@@ -371,8 +371,13 @@
             <div class="grid grid-cols-2 gap-3">
                 <input type="number" id="ap-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500">
                 <input type="number" id="ap-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0">
+    
             </div>
-            <input type="url" id="ap-img" placeholder="Image URL" class="w-full border p-2.5 rounded-lg text-sm">
+            <div class="flex flex-col">
+    <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Images (One link per line)</label>
+    <textarea id="ap-imgs" placeholder="https://link1.jpg&#10;https://link2.jpg" class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea>
+</div>
+
             <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg">Add to Database</button>
         </form>
     </div>
@@ -976,17 +981,20 @@ function handleLogout() {
             `).reverse().join('');
         }
 
-        async function adminAddProduct(e) {
+async function adminAddProduct(e) {
     e.preventDefault();
+    // Links ko line-break se tod kar array banana
+    const imgLinks = document.getElementById('ap-imgs').value.split('\n').filter(link => link.trim() !== "");
+    
     const newP = {
         name: document.getElementById('ap-name').value, 
         price: parseInt(document.getElementById('ap-price').value),
         oldprice: parseInt(document.getElementById('ap-oldprice').value) || (parseInt(document.getElementById('ap-price').value) + 500),
         checkout_discount: parseInt(document.getElementById('ap-discount').value) || 0,
+        imgs: imgLinks, // Array save ho raha hai
         category: document.getElementById('ap-category').value,
         sub: document.getElementById('ap-sub').value, 
         desc: document.getElementById('ap-desc').value,
-        img: document.getElementById('ap-img').value || `https://placehold.co/300x400/eeeeee/333333?text=Product`,
         istrending: true
     };
     const { data } = await dbClient.from('products').insert([newP]).select().single();
@@ -1029,7 +1037,11 @@ function handleLogout() {
             viewingProductId = p.id;
             selectedSize = 'M';
             const html = `
-                <div><img src="${p.img}" class="w-full h-[400px] object-cover rounded-lg shadow-sm border"></div>
+                ${p.imgs && p.imgs.length > 0 
+    ? `<div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-2 mb-4 h-[400px]">
+        ${p.imgs.map(img => `<img src="${img}" class="snap-center min-w-full h-full object-cover rounded-lg border shadow-sm">`).join('')}
+       </div>`
+    : `<img src="${p.img || 'https://placehold.co/300x400/eeeeee/333333?text=Product'}" class="w-full h-[400px] object-cover rounded-lg border shadow-sm">`}
                 <div class="flex flex-col justify-center">
                     <div class="text-xs text-rose-500 font-bold uppercase mb-1">${p.category} > ${p.sub}</div>
                     
