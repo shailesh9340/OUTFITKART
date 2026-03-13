@@ -483,27 +483,39 @@
         let selectedSize = 'M';
 
         /* --- 3. INITIALIZATION ON LOAD --- */
-       document.addEventListener("DOMContentLoaded", async () => {
+        document.addEventListener("DOMContentLoaded", async () => {
+            // 1. LocalStorage se session uthana
             const savedSession = localStorage.getItem('outfitkart_session');
-            if(savedSession) currentUser = JSON.parse(savedSession);
             
+            if(savedSession) {
+                try {
+                    currentUser = JSON.parse(savedSession);
+                    console.log("Session restored for:", currentUser.name);
+                } catch(e) {
+                    console.error("Session error:", e);
+                    localStorage.removeItem('outfitkart_session');
+                }
+            }
+            
+            // 2. Data load karna (Categories, Products)
             renderCategoryBubbles();
-            await fetchProducts(); // Pehle database se kapde load honge
-            if(currentUser) await fetchUserData();
+            await fetchProducts(); 
+            
+            // 3. Agar user login hai, toh uska data (Cart, Wishlist) turant khinchna
+            if(currentUser) {
+                await fetchUserData();
+            }
+            
+            // 4. UI update karna
             checkAuthUI();
 
-            // NAYA: Deep Linking & Affiliate Tracking
+            // Affiliate & Deep Linking logic (Wahi purana)
             const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.get('ref')) {
-                localStorage.setItem('outfitkart_referrer', urlParams.get('ref'));
-            }
+            if(urlParams.get('ref')) localStorage.setItem('outfitkart_referrer', urlParams.get('ref'));
             
             const deepLinkPid = urlParams.get('pid');
             if(deepLinkPid) {
-                // Thoda delay taaki UI smooth load ho, phir direct product page khule
-                setTimeout(() => {
-                    openProductPage(parseInt(deepLinkPid));
-                }, 300);
+                setTimeout(() => { openProductPage(parseInt(deepLinkPid)); }, 500);
             }
         });
         /* --- 4. DATABASE FETCH FUNCTIONS --- */
