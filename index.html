@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OutfitKart | Premium Fashion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab-btn.active { border-left: 4px solid #e11d48; background-color: #fff1f2; color: #e11d48; font-weight: bold; }
+        .size-btn.selected { border-color: #e11d48; background-color: #e11d48; color: white; }
+        .payment-modal { backdrop-filter: blur(5px); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-20 flex flex-col min-h-screen overflow-x-hidden">
+
+    <header class="fixed top-0 w-full bg-white shadow-sm z-40 h-16 flex items-center justify-between px-4 md:px-8">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-bold text-rose-600 cursor-pointer tracking-tight select-none" 
+                onmousedown="startAdminTimer()" onmouseup="cancelAdminTimer()" onmouseleave="cancelAdminTimer()" 
+                ontouchstart="startAdminTimer()" ontouchend="cancelAdminTimer()">
+                OutfitKart
+            </h1>
+        </div>
+        
+       <div class="hidden md:flex relative w-1/2 bg-gray-100 rounded-md items-center border border-transparent focus-within:border-rose-500 focus-within:bg-white transition-colors">
+            <i class="fas fa-search text-gray-400 ml-3"></i>
+            <input type="text" id="desktop-search" placeholder="Search for products..." class="w-full bg-transparent py-2 px-3 focus:outline-none text-sm" oninput="handleSearch(this.value)">
+            
+            <div class="h-6 w-px bg-gray-300"></div>
+            
+            <select id="price-sort-desktop" onchange="sortProducts(this.value)" class="bg-transparent text-sm text-gray-600 font-bold focus:outline-none py-2 pl-2 pr-3 cursor-pointer appearance-none">
+                <option value="default">Sort</option>
+                <option value="low">Price: Low-High</option>
+                <option value="high">Price: High-Low</option>
+            </select>
+            
+            <div id="desktop-search-results" class="absolute top-11 left-0 w-full bg-white shadow-lg rounded-b-md hidden max-h-64 overflow-y-auto z-50"></div>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <button class="text-gray-600 hover:text-rose-600 relative" onclick="navigate('profile', 'wishlist')">
+                <i class="far fa-heart text-xl"></i>
+                <span id="wishlist-count" class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+            </button>
+            <button class="text-gray-600 hover:text-rose-600 relative" onclick="toggleCart()">
+                <i class="fas fa-shopping-bag text-xl"></i>
+                <span id="cart-count" class="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+            </button>
+        </div>
+    </header>
+
+    <main id="app-content" class="pt-16 flex-grow">
+        
+        <div id="view-home" class="view-section">
+            <div class="md:hidden p-3 bg-white z-20">
+                <div class="flex items-center bg-gray-100 rounded-md relative border border-transparent focus-within:border-rose-500 focus-within:bg-white shadow-sm">
+                    <i class="fas fa-search text-gray-400 pl-3"></i>
+                    <input type="text" id="mobile-search" placeholder="Search..." class="w-full bg-transparent py-2 px-3 focus:outline-none text-sm" oninput="handleSearch(this.value)">
+                    
+                    <div class="h-5 w-px bg-gray-300"></div>
+                    
+                    <select id="price-sort-mobile" onchange="sortProducts(this.value)" class="bg-transparent text-xs text-gray-700 font-bold focus:outline-none py-2 pl-2 pr-2 cursor-pointer max-w-[85px] appearance-none">
+                        <option value="default">Sort</option>
+                        <option value="low">Low - High</option>
+                        <option value="high">High - Low</option>
+                    </select>
+                    
+                    <div id="mobile-search-results" class="absolute top-11 left-0 w-full bg-white shadow-lg rounded-b-md hidden max-h-64 overflow-y-auto z-50"></div>
+                </div>
+            </div>
+            <div class="w-full bg-gradient-to-r from-rose-100 to-teal-100 p-6 md:p-12 flex flex-col items-center justify-center text-center">
+                <h2 class="text-3xl md:text-5xl font-extrabold text-gray-800 mb-2">Premium Fashion at Best Prices</h2>
+                <p class="text-gray-600 md:text-lg mb-6">Discover the latest trends and full outfit combos.</p>
+                <button onclick="navigate('shop')" class="bg-rose-600 text-white px-8 py-3 rounded-md font-bold shadow-lg hover:bg-rose-700 transition">Shop Now</button>
+            </div>
+
+            <div class="bg-white py-4 mt-2">
+                <h3 class="font-bold text-lg px-4 mb-3">Shop by Category</h3>
+                <div class="flex overflow-x-auto hide-scrollbar px-4 gap-4" id="category-bubbles"></div>
+            </div>
+
+            <div class="mt-4 bg-white p-4">
+                <h3 class="font-bold text-xl mb-4">Trending Fits <i class="fas fa-fire text-orange-500"></i></h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" id="trending-grid">
+                    <div class="col-span-full text-center py-10"><i class="fas fa-spinner fa-spin text-rose-500 text-3xl"></i><p class="mt-2 text-gray-500">Loading...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-shop" class="view-section hidden p-4">
+            <div class="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-4 z-10">
+                <h2 class="font-bold text-xl mb-3" id="shop-title">Shop All Products</h2>
+                <div id="subcategory-filters" class="flex flex-wrap gap-2 mb-4"></div>
+            
+                </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="shop-grid"></div>
+        </div>
+        
+<div id="view-product" class="view-section hidden p-4 md:p-8 max-w-6xl mx-auto">
+            <button onclick="navigate('home')" class="text-gray-500 text-sm mb-4"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="grid md:grid-cols-2 gap-8 bg-white p-4 rounded-xl shadow-sm border" id="pdp-container"></div>
+            
+            <div class="mt-8 bg-white p-6 rounded-xl shadow-sm border">
+                <h3 class="font-bold text-xl border-b pb-2 mb-4">Customer Reviews <i class="fas fa-star text-yellow-400"></i></h3>
+                <div id="pdp-reviews-list" class="space-y-4 mb-6"></div>
+                
+                <h4 class="font-bold text-sm mb-2">Write a Review</h4>
+                <div class="flex gap-2 mb-2 text-yellow-400 text-lg cursor-pointer" id="star-rating">
+                    <i class="far fa-star" onclick="setRating(1)"></i><i class="far fa-star" onclick="setRating(2)"></i>
+                    <i class="far fa-star" onclick="setRating(3)"></i><i class="far fa-star" onclick="setRating(4)"></i>
+                    <i class="far fa-star" onclick="setRating(5)"></i>
+                </div>
+                <textarea id="review-text" class="w-full border rounded p-2 text-sm outline-none mb-2" placeholder="What do you think?"></textarea>
+                <button onclick="submitReview()" class="bg-gray-800 text-white px-4 py-2 rounded font-bold hover:bg-gray-900">Submit Review</button>
+            </div>
+        </div>
+        <div id="view-checkout" class="view-section hidden p-4 max-w-3xl mx-auto">
+            <button onclick="navigate('home')" class="text-gray-500 text-sm mb-4"><i class="fas fa-arrow-left"></i> Continue Shopping</button>
+            <h2 class="text-2xl font-bold mb-6">Secure Checkout</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                    <h3 class="font-bold mb-4 border-b pb-2">Delivery Address</h3>
+                    <form id="checkout-form" class="space-y-3">
+                        <input type="text" id="co-name" placeholder="Full Name" required class="w-full border p-2 rounded outline-none">
+                        <input type="text" id="co-mobile" placeholder="Mobile Number" required class="w-full border p-2 rounded outline-none">
+                        <textarea id="co-address" placeholder="House No, Street, Landmark" required class="w-full border p-2 rounded h-20 outline-none"></textarea>
+                        
+                        <div class="relative">
+                            <input type="text" id="co-pincode" placeholder="6-digit PIN Code" required maxlength="6" pattern="[0-9]{6}" class="w-full border p-2 rounded outline-none" oninput="fetchPincodeDetails(this.value)">
+                            <div id="pincode-loader" class="absolute right-3 top-3 hidden"><i class="fas fa-spinner fa-spin text-rose-500"></i></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="co-city" placeholder="City/District" required readonly class="w-full border p-2 rounded bg-gray-50 text-gray-500">
+                            <input type="text" id="co-state" placeholder="State" required readonly class="w-full border p-2 rounded bg-gray-50 text-gray-500">
+                        </div>
+
+                        <h3 class="font-bold mt-6 border-b pb-2">Payment Method</h3>
+                        <div class="space-y-3 mt-3">
+                            <label class="flex items-start gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+    <input type="radio" name="payment" value="upi" checked class="mt-1 accent-rose-600" onchange="togglePaymentUI()">
+    <div>
+    <div class="font-bold text-sm">UPI Payment (Online)</div>
+    <div id="upi-details" class="mt-2 text-sm bg-blue-50 text-blue-800 p-3 rounded border border-blue-200">
+        <p class="mb-2"><i class="fas fa-shield-alt"></i> Direct payment via GPay, PhonePe, Paytm.</p>
+        <span class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold"><i class="fas fa-bolt"></i> Fast & Secure</span>
+    </div>
+</div>
+</label>                                                                 
+                            <label class="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                                <input type="radio" name="payment" value="cod" class="accent-rose-600" onchange="togglePaymentUI()">
+                                <div class="font-bold text-sm">Cash on Delivery (COD)</div>
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-fit sticky top-4">
+                    <h3 class="font-bold mb-4 border-b pb-2">Order Summary</h3>
+                    <div id="checkout-items" class="space-y-3 mb-4 max-h-48 overflow-y-auto pr-2"></div>
+                  <div class="border-t pt-3 space-y-2">
+    <div class="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span id="check-subtotal">₹0</span></div>
+    
+    <div class="flex justify-between text-sm text-green-600 font-bold hidden" id="check-discount-row">
+        <span>Extra Discount Applied</span>
+        <span id="check-discount">- ₹0</span>
+    </div>
+    
+    <div class="flex justify-between font-bold text-xl pt-2 border-t"><span>Total</span><span id="check-total">₹0</span></div>
+</div>
+                </div>
+                    <button type="button" onclick="placeOrder()" class="w-full bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700 shadow-md mt-6">Place Order</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-profile" class="view-section hidden p-4 max-w-5xl mx-auto mt-2">
+            
+            <div id="auth-forms" class="bg-white p-6 rounded-lg shadow-md border max-w-md mx-auto mt-10">
+                <div class="flex justify-center border-b mb-6">
+                    <button id="tab-login" onclick="switchAuthTab('login')" class="px-6 py-2 border-b-2 border-rose-600 font-bold text-rose-600">Login</button>
+                    <button id="tab-signup" onclick="switchAuthTab('signup')" class="px-6 py-2 text-gray-500 font-semibold hover:text-rose-600">Sign Up</button>
+                </div>
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Mobile Number</label>
+                        <div class="flex"><span class="bg-gray-100 border border-r-0 p-2 rounded-l text-gray-500">+91</span><input type="tel" id="login-mobile" pattern="[0-9]{10}" required class="w-full border p-2 rounded-r outline-none"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">Password</label>
+                        <input type="password" id="login-password" required class="w-full border p-2 rounded outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-rose-600 text-white py-2 rounded font-bold hover:bg-rose-700">Login</button>
+                </form>
+                <form id="form-signup" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+                    <input type="text" id="signup-name" placeholder="Full Name" required class="w-full border p-2 rounded outline-none">
+                    <div class="flex"><span class="bg-gray-100 border border-r-0 p-2 rounded-l text-gray-500">+91</span><input type="tel" id="signup-mobile" placeholder="Mobile Number" pattern="[0-9]{10}" required class="w-full border p-2 rounded-r outline-none"></div>
+                    <input type="email" id="signup-email" placeholder="Email (Optional)" class="w-full border p-2 rounded outline-none">
+                    <input type="password" id="signup-password" placeholder="Password (Min 6 chars)" required minlength="6" class="w-full border p-2 rounded outline-none">
+                    <button type="submit" class="w-full bg-rose-600 text-white py-2 rounded font-bold hover:bg-rose-700">Create Account</button>
+                </form>
+            </div>
+
+            <div id="user-dashboard" class="hidden grid md:grid-cols-4 gap-6">
+                <div class="bg-white rounded-lg shadow-sm border overflow-hidden h-fit md:col-span-1">
+                    <div class="p-4 bg-rose-50 flex flex-col items-center gap-2 border-b text-center relative">
+                        <div class="relative group">
+                            <img id="user-avatar-img" src="https://placehold.co/100x100/e11d48/ffffff?text=U" class="w-20 h-20 rounded-full border-4 border-white shadow object-cover">
+                            <button class="absolute bottom-0 right-0 bg-gray-800 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-rose-600" onclick="updateProfilePic()"><i class="fas fa-camera"></i></button>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800" id="user-greeting">User</h3>
+                            <p class="text-xs text-gray-500" id="user-mobile-display">+91 0000000000</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <button class="tab-btn active text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50" onclick="switchProfileTab('info', this)"><i class="fas fa-user w-6"></i> Profile Info</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('orders', this)"><i class="fas fa-box-open w-6"></i> My Orders</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('wishlist', this)"><i class="fas fa-heart w-6"></i> Wishlist</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('cart', this)"><i class="fas fa-shopping-cart w-6"></i> Saved Cart</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('payments', this)"><i class="fas fa-wallet w-6"></i> Payments & Wallet</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('security', this)"><i class="fas fa-shield-alt w-6"></i> Security</button>
+                        <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('help', this)"><i class="fas fa-info-circle w-6"></i> Help & Info</button>
+                        <button class="text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 border-t" onclick="handleLogout()"><i class="fas fa-sign-out-alt w-6"></i> Logout</button>
+                    </div>
+                </div>
+
+                <div class="md:col-span-3">
+                    <div id="tab-info" class="profile-tab bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h2 class="text-xl font-bold">Profile Information</h2>
+                            <button onclick="saveProfile()" class="bg-gray-800 text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-gray-900"><i class="fas fa-edit"></i> Save Edit</button>
+                        </div>
+                        <div class="space-y-4 max-w-md">
+                            <div><label class="text-xs text-gray-500">Full Name</label><input type="text" id="prof-name" class="w-full border p-2 rounded outline-none"></div>
+                            <div><label class="text-xs text-gray-500">Email Address</label><input type="email" id="prof-email" class="w-full border p-2 rounded outline-none" placeholder="Add Email"></div>
+                            <div><label class="text-xs text-gray-500">Delivery Address Book</label><textarea id="prof-address" class="w-full border rounded p-2 text-sm mt-1 h-20 outline-none" placeholder="House, Street, Pincode..."></textarea></div>
+                        </div>
+                    </div>
+
+                    <div id="tab-orders" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                        <h2 class="text-xl font-bold mb-4 border-b pb-2">My Orders</h2>
+                        <div id="orders-list-container" class="space-y-4"></div>
+                    </div>
+
+                    <div id="tab-wishlist" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                        <h2 class="text-xl font-bold mb-4 border-b pb-2">Wishlist & Favorites</h2>
+                        <div id="wishlist-container" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    </div>
+                    
+                    <div id="tab-cart" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border text-center">
+                        <i class="fas fa-shopping-cart text-5xl text-gray-300 mb-4 mt-10 block"></i>
+                        <h2 class="text-xl font-bold mb-2">Your Active Cart</h2>
+                        <p class="text-gray-500 mb-4">You have <span id="tab-cart-count" class="font-bold text-gray-800">0</span> items waiting for you.</p>
+                        <button onclick="toggleCart()" class="bg-rose-600 text-white px-6 py-2 rounded shadow font-bold hover:bg-rose-700">Open Cart</button>
+                    </div>
+
+                    <div id="tab-payments" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                        <h2 class="text-xl font-bold mb-4 border-b pb-2">Payments & Wallet</h2>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-gray-50 rounded border">
+                                <h3 class="font-bold text-sm text-gray-700 mb-2">Saved Payment Methods</h3>
+<p class="text-sm bg-white border p-2 rounded font-bold"><i class="fas fa-mobile-alt text-green-500 w-5"></i> UPI App Linked</p>                                <p class="text-sm bg-white border p-2 rounded mt-2"><i class="fas fa-money-bill-wave text-gray-500 w-5"></i> Cash on Delivery</p>
+                            </div>
+                            <div class="p-4 bg-blue-50 rounded border border-blue-100 flex flex-col justify-center">
+                                <h3 class="font-bold text-sm text-blue-800"><i class="fas fa-wallet"></i> Store Credit / Wallet</h3>
+                                <p class="text-3xl font-black mt-1" id="prof-wallet">₹0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-security" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                        <h2 class="text-xl font-bold mb-4 border-b pb-2">Security Settings</h2>
+                        <div class="max-w-md space-y-3">
+                            <input type="password" id="sec-old-pass" placeholder="Current Password" class="w-full border p-2 rounded outline-none text-sm">
+                            <input type="password" id="sec-new-pass" placeholder="New Password" class="w-full border p-2 rounded outline-none text-sm">
+                            <button class="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-900" onclick="changePassword()">Change Password</button>
+                        </div>
+                    </div>
+
+                    <div id="tab-help" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                        <h2 class="text-xl font-bold mb-4 border-b pb-2">Help, Info & Policies</h2>
+                        <div class="space-y-3">
+                            <div class="border rounded-lg overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between items-center" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                    FAQs <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t">
+                                    <p><strong>Q: How long does delivery take?</strong><br>A: Standard delivery takes 3-5 days.</p>
+                                    <p><strong>Q: How can I track my order?</strong><br>A: Click 'Track Order' in the My Orders tab.</p>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between items-center" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                    Our Policies <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t">
+                                    <p><strong>Return Policy:</strong> Return unused items within 7 days.</p>
+                                    <p><strong>Privacy Policy:</strong> Your data is secured properly.</p>
+                                </div>
+                            </div>
+                            <div class="border rounded-lg overflow-hidden">
+                                <button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between items-center" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                                    About Us <i class="fas fa-chevron-down text-gray-500"></i>
+                                </button>
+                                <div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t">
+                                    <p class="font-bold text-gray-800">OutfitKart</p>
+                                    <p>Premium Fashion at Best Prices.</p>
+                                    <p><i class="fas fa-envelope text-rose-500 w-5"></i> support@outfitkart.in</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-admin" class="view-section hidden p-4 max-w-4xl mx-auto mt-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-purple-700"><i class="fas fa-database"></i> Database Admin Dashboard</h2>
+                <button onclick="navigate('home')" class="text-gray-500 underline">Exit Admin</button>
+            </div>
+            <div class="bg-white p-6 rounded shadow border">
+                <h3 class="font-bold mb-4 border-b pb-2">Product List (Live Database)</h3>
+                <div class="overflow-y-auto h-64 border rounded p-2" id="admin-product-list"></div>
+                
+                <h3 class="font-bold mt-6 mb-4 border-b pb-2">Add New Product</h3>
+                <form id="add-product-form" onsubmit="adminAddProduct(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+    <input type="text" id="ap-name" placeholder="Product Name" required class="w-full border p-2 rounded">
+    <input type="number" id="ap-price" placeholder="Price (₹)" required class="w-full border p-2 rounded">
+    <select id="ap-category" class="w-full border p-2 rounded" required>
+        <option value="Men">Men</option>
+        <option value="Women">Women</option>
+        <option value="Combos">Combos</option>
+    </select>
+    <input type="text" id="ap-sub" placeholder="Subcategory" required class="w-full border p-2 rounded">
+</div>
+
+<div class="flex flex-col gap-1 mt-2">
+    <div class="flex justify-between items-center">
+        <label class="text-sm font-semibold">Description</label>
+        <button type="button" onclick="autoGenerateDescription()" class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200"><i class="fas fa-magic"></i> Auto Generate</button>
+    </div>
+    <textarea id="ap-desc" placeholder="Description..." required class="w-full border p-2 rounded h-20 text-sm"></textarea>
+</div>
+
+<div class="grid grid-cols-2 gap-3 mt-2 mb-2">
+    <div class="flex flex-col">
+        <label class="text-xs font-semibold text-gray-500 mb-1">Cut Price / MRP (Optional)</label>
+        <input type="number" id="ap-oldprice" placeholder="e.g. 1999" class="w-full border p-2 rounded text-red-500">
+    </div>
+    <div class="flex flex-col">
+        <label class="text-xs font-semibold text-gray-500 mb-1">Extra Discount at Checkout</label>
+        <input type="number" id="ap-discount" placeholder="e.g. 50" class="w-full border p-2 rounded text-green-600 font-bold" value="0">
+    </div>
+</div>
+
+<input type="url" id="ap-img" placeholder="Image URL" class="w-full border p-2 rounded">
+<button type="submit" class="w-full bg-purple-600 text-white py-2 rounded font-bold mt-3">Add to Database</button>
+</form>
+</div>
+</div>
+    </main>
+
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" onclick="toggleCart()"></div>
+    <div id="cart-sidebar" class="fixed top-0 right-0 w-80 max-w-[90vw] h-full bg-white z-50 transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h2 class="font-bold text-lg"><i class="fas fa-shopping-cart"></i> Your Cart</h2>
+            <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+        <div class="border-t p-4 bg-gray-50">
+            <div class="flex justify-between font-bold text-lg mb-4"><span>Total:</span><span id="cart-total-price">₹0</span></div>
+            <button onclick="proceedToCheckout()" class="w-full bg-rose-600 text-white py-3 rounded font-bold hover:bg-rose-700 shadow-md">Proceed to Checkout</button>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-[60] text-xs font-medium text-gray-500 shadow-[0_-5px_15px_rgba(0,0,0,0.08)]">
+        <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('home')">
+            <i class="fas fa-home text-lg"></i><span>Home</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('shop')">
+            <i class="fas fa-tshirt text-lg"></i><span>Shop</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 relative transition-colors" onclick="toggleCart()">
+            <i class="fas fa-shopping-bag text-lg"></i><span>Cart</span>
+            <span id="mobile-cart-badge" class="absolute -top-1 right-2 bg-rose-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
+        </div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('profile')">
+            <i class="far fa-user text-lg"></i><span id="nav-profile-text">Profile</span>
+        </div>
+    </nav>
+
+    <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        /* --- 1. SUPABASE INIT (Renamed to dbClient to prevent SyntaxError) --- */
+        // Yahan apni URL aur Key daaliye:
+        const supabaseUrl = 'https://wlgytgwmmefwpljstque.supabase.co'; 
+        const supabaseKey = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
+        
+        // Error fix: Ab yeh window.supabase se clash nahi karega
+        const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        /* --- 2. GLOBAL STATE VARIABLES --- */
+        let products = [];
+        let cart = [];
+        let wishlist = [];
+        let ordersDb = []; 
+        let currentUser = null; 
+        
+        const categories = [
+            { 
+                id: 'men', 
+                name: 'Men', 
+                icon: 'fa-male', 
+                subs: [
+                   'shirts', 'Oversized Shirts', 'Printed T-Shirts', 'Polo T-Shirts', 
+                    'Hoodies & Sweatshirts', 'Denim Jackets', 
+                    'Baggy Jeans','Formal pant', 'Cargo Pants', 'Shorts', 
+                    'Sneakers', 'Watches & Accessories'
+                ] 
+            },
+            { 
+                id: 'women', 
+                name: 'Women', 
+                icon: 'fa-female', 
+                subs: [
+                    'Tops & Crop Tops', 'Dresses & Gowns', 'Kurtis & Ethnic', 
+                    'Oversized Tees', 'Hoodies & Jackets', 
+                    'Wide Leg Jeans', 'Cargo & Parachute', 'Skirts', 
+                    'Heels & Flats', 'Sneakers', 'Bags & Jewelry'
+                ] 
+            },
+            { 
+                id: 'combos', 
+                name: 'Combos', 
+                icon: 'fa-layer-group', 
+                subs: [
+                    'Streetwear Set', 'Date Night Fit', 'Gym & Activewear', 
+                    'Airport Look', 'Vacation Combo', 'Couple Matching Outfits', 
+                    'Winter Layering Set','party ready combo', 'festival special', 
+                ] 
+            }
+        ];
+        
+        let currentCategoryFilter = null; 
+        let currentSubFilter = null;
+        let currentCheckoutItems = [];
+        let viewingProductId = null;
+        let selectedSize = 'M';
+
+        /* --- 3. INITIALIZATION ON LOAD --- */
+       document.addEventListener("DOMContentLoaded", async () => {
+            const savedSession = localStorage.getItem('outfitkart_session');
+            if(savedSession) currentUser = JSON.parse(savedSession);
+            
+            renderCategoryBubbles();
+            await fetchProducts(); // Pehle database se kapde load honge
+            if(currentUser) await fetchUserData();
+            checkAuthUI();
+
+            // NAYA: Deep Linking & Affiliate Tracking
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('ref')) {
+                localStorage.setItem('outfitkart_referrer', urlParams.get('ref'));
+            }
+            
+            const deepLinkPid = urlParams.get('pid');
+            if(deepLinkPid) {
+                // Thoda delay taaki UI smooth load ho, phir direct product page khule
+                setTimeout(() => {
+                    openProductPage(parseInt(deepLinkPid));
+                }, 300);
+            }
+        });
+        /* --- 4. DATABASE FETCH FUNCTIONS --- */
+        async function fetchProducts() {
+            try {
+                const { data, error } = await dbClient.from('products').select('*');
+                if (data && data.length > 0) {
+                    products = data;
+                } else {
+                    // Fallback visual data if DB is empty
+                    products = [{ id: 1, name: "Add products from Admin Panel", price: 0, oldprice: 0, category: "Men", sub: "T-Shirts", img: "https://placehold.co/300x400/222/fff?text=No+Products+Yet", istrending: true }];
+                }
+                renderProductGrid('trending-grid', products.filter(p => p.istrending));
+            } catch(e) { console.error("DB Error", e); }
+        }
+
+        async function fetchUserData() {
+            if(!currentUser) return;
+            // Cart Fetch
+            const { data: cData } = await dbClient.from('cart_items').select('*').eq('mobile', currentUser.mobile);
+            cart = cData || [];
+            updateCartCount();
+
+            // Wishlist Fetch
+            const { data: wData } = await dbClient.from('wishlist').select('*').eq('mobile', currentUser.mobile);
+            wishlist = wData ? wData.map(w => w.product_id) : [];
+            updateWishlistCount();
+
+            // Orders Fetch
+            const { data: oData } = await dbClient.from('orders').select('*').eq('mobile', currentUser.mobile);
+            ordersDb = oData || [];
+        }
+
+        /* --- 5. NAVIGATION & UI TABS --- */
+        function navigate(view, cat = null) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            const targetView = document.getElementById(`view-${view}`);
+            if(targetView) { targetView.classList.remove('hidden'); targetView.classList.add('fade-in'); }
+            window.scrollTo(0,0);
+
+            if (view === 'shop') {
+                currentCategoryFilter = cat; currentSubFilter = null;
+                document.getElementById('shop-title').innerText = cat ? cat : "All Products";
+                renderShopSubcategories(); renderShopProducts();
+            }
+            if (view === 'profile') {
+                checkAuthUI();
+                if(currentUser && cat) {
+                    const tabBtn = document.querySelector(`[onclick="switchProfileTab('${cat}', this)"]`);
+                    if(tabBtn) switchProfileTab(cat, tabBtn);
+                }
+            }
+        }
+
+        function switchProfileTab(tabId, btnElement) {
+            document.querySelectorAll('.profile-tab').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            if(btnElement) btnElement.classList.add('active');
+            
+            if(tabId === 'orders') renderOrdersList();
+            if(tabId === 'wishlist') renderWishlist();
+        }
+
+        /* --- 6. AUTHENTICATION & PROFILE MANAGE --- */
+        function checkAuthUI() {
+            const authForms = document.getElementById('auth-forms');
+            const userDash = document.getElementById('user-dashboard');
+            const navText = document.getElementById('nav-profile-text');
+
+            if (currentUser) {
+                authForms.classList.add('hidden'); userDash.classList.remove('hidden'); userDash.classList.add('grid');
+                document.getElementById('user-greeting').innerText = currentUser.name;
+                document.getElementById('user-mobile-display').innerText = `+91 ${currentUser.mobile}`;
+                
+                const dp = currentUser.profile_pic || `https://placehold.co/100x100/e11d48/ffffff?text=${currentUser.name.charAt(0).toUpperCase()}`;
+                document.getElementById('user-avatar-img').src = dp;
+                
+                document.getElementById('prof-name').value = currentUser.name;
+                document.getElementById('prof-email').value = currentUser.email || "";
+                document.getElementById('prof-address').value = currentUser.address || "";
+                document.getElementById('prof-wallet').innerText = `₹${currentUser.wallet || 0}`;
+                navText.innerText = currentUser.name.split(' ')[0];
+            } else {
+                authForms.classList.remove('hidden'); userDash.classList.add('hidden'); userDash.classList.remove('grid');
+                navText.innerText = "Login";
+            }
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('form-signup').classList.toggle('hidden', tab === 'login');
+            document.getElementById('tab-login').className = tab === 'login' ? "px-6 py-2 border-b-2 border-rose-600 font-bold text-rose-600" : "px-6 py-2 text-gray-500 font-semibold hover:text-rose-600";
+            document.getElementById('tab-signup').className = tab === 'signup' ? "px-6 py-2 border-b-2 border-rose-600 font-bold text-rose-600" : "px-6 py-2 text-gray-500 font-semibold hover:text-rose-600";
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const mobile = document.getElementById('signup-mobile').value;
+            const payload = {
+                mobile: mobile,
+                name: document.getElementById('signup-name').value,
+                email: document.getElementById('signup-email').value,
+                password: document.getElementById('signup-password').value,
+                wallet: 0
+            };
+            
+            const { data: exist } = await dbClient.from('users').select('mobile').eq('mobile', mobile).single();
+            if(exist) { showToast("Mobile already registered!"); return; }
+
+            const { data, error } = await dbClient.from('users').insert([payload]).select().single();
+            if(error) { showToast("Error creating account"); console.error(error); return; }
+
+            currentUser = data; e.target.reset(); showToast("Account Created! 🎉");
+            await fetchUserData(); checkAuthUI();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const mobile = document.getElementById('login-mobile').value;
+            const password = document.getElementById('login-password').value;
+            
+            const { data, error } = await dbClient.from('users').select('*').eq('mobile', mobile).eq('password', password).single();
+            
+            if (data) {
+                currentUser = data; showToast("Login successful! 🚀"); e.target.reset();
+                await fetchUserData(); checkAuthUI();
+            } else { showToast("Invalid Mobile Number or Password. ❌"); }
+        }
+
+        async function saveProfile() {
+            if(!currentUser) return;
+            const updates = {
+                name: document.getElementById('prof-name').value,
+                email: document.getElementById('prof-email').value,
+                address: document.getElementById('prof-address').value
+            };
+            const { data } = await dbClient.from('users').update(updates).eq('mobile', currentUser.mobile).select().single();
+            if(data) { currentUser = data; showToast("Profile Updated! ✅"); checkAuthUI(); }
+        }
+
+        async function changePassword() {
+            const oldP = document.getElementById('sec-old-pass').value;
+            const newP = document.getElementById('sec-new-pass').value;
+            if(oldP !== currentUser.password) { showToast("Incorrect Current Password"); return; }
+            const { data } = await dbClient.from('users').update({ password: newP }).eq('mobile', currentUser.mobile).select().single();
+            if(data) { currentUser = data; showToast("Password Changed Secured! 🔒"); document.getElementById('sec-old-pass').value=''; document.getElementById('sec-new-pass').value=''; }
+        }
+
+        function updateProfilePic() {
+            const url = prompt("Enter Image URL for Profile Picture:");
+            if(url) {
+                dbClient.from('users').update({ profile_pic: url }).eq('mobile', currentUser.mobile).select().single().then(({data})=>{
+                    if(data) { currentUser = data; checkAuthUI(); showToast("Profile Picture Updated! 📸"); }
+                });
+            }
+        }
+
+function handleLogout() { 
+            currentUser = null; cart=[]; wishlist=[]; ordersDb=[]; 
+            localStorage.removeItem('outfitkart_session');
+            showToast("Logged out."); navigate('home'); checkAuthUI(); switchAuthTab('login'); 
+        }
+        /* --- 7. CART & WISHLIST LOGIC --- */
+        async function toggleWishlist(id) {
+            if(!currentUser) { showToast("Please login to save favorites ❤️"); navigate('profile'); return; }
+            const index = wishlist.indexOf(id);
+            if (index === -1) { 
+                wishlist.push(id); showToast("Added to Wishlist ❤️"); 
+                await dbClient.from('wishlist').insert([{ mobile: currentUser.mobile, product_id: id }]);
+            } else { 
+                wishlist.splice(index, 1); showToast("Removed from Wishlist 💔"); 
+                await dbClient.from('wishlist').delete().eq('mobile', currentUser.mobile).eq('product_id', id);
+            }
+            updateWishlistCount();
+            if(!document.getElementById('view-shop').classList.contains('hidden')) renderShopProducts();
+            if(!document.getElementById('tab-wishlist').classList.contains('hidden')) renderWishlist();
+        }
+
+        function updateWishlistCount() {
+            const badge = document.getElementById('wishlist-count');
+            badge.innerText = wishlist.length;
+            wishlist.length > 0 ? badge.classList.remove('hidden') : badge.classList.add('hidden');
+        }
+
+        async function addToCart(productId) {
+            if(!currentUser) { showToast("Please login to use cart 🛒"); navigate('profile'); return; }
+            const existing = cart.find(item => item.product_id === productId);
+            
+            if (existing) {
+                existing.qty += 1;
+                await dbClient.from('cart_items').update({ qty: existing.qty }).eq('id', existing.id);
+            } else { 
+                const { data } = await dbClient.from('cart_items').insert([{ mobile: currentUser.mobile, product_id: productId, qty: 1 }]).select().single();
+                if(data) cart.push(data);
+            }
+            updateCartCount(); showToast('Added to cart 🛒');
+        }
+
+        async function updateQty(cartId, delta) {
+            const item = cart.find(i => i.id === cartId);
+            if(item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    cart = cart.filter(i => i.id !== cartId);
+                    await dbClient.from('cart_items').delete().eq('id', cartId);
+                } else {
+                    await dbClient.from('cart_items').update({ qty: item.qty }).eq('id', cartId);
+                }
+                updateCartCount(); renderCart();
+            }
+        }
+
+        function updateCartCount() {
+            const total = cart.reduce((sum, item) => sum + item.qty, 0);
+            document.getElementById('cart-count').innerText = total;
+            document.getElementById('mobile-cart-badge').innerText = total;
+            document.getElementById('tab-cart-count').innerText = total;
+            total > 0 ? document.getElementById('mobile-cart-badge').classList.remove('hidden') : document.getElementById('mobile-cart-badge').classList.add('hidden');
+        }
+
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.getElementById('cart-overlay');
+            if (sidebar.classList.contains('translate-x-full')) { sidebar.classList.remove('translate-x-full'); overlay.classList.remove('hidden'); renderCart(); } 
+            else { sidebar.classList.add('translate-x-full'); overlay.classList.add('hidden'); }
+        }
+
+        /* --- 8. PRODUCT RENDERING --- */
+       function createProductCard(product) {
+            const inWishlist = wishlist.includes(product.id);
+            return `
+                <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative flex flex-col group cursor-pointer" onclick="openProductPage(${product.id})">
+                    
+                    <button class="absolute top-2 right-2 ${inWishlist ? 'text-rose-500' : 'text-gray-400'} hover:text-rose-600 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow z-10" onclick="event.stopPropagation(); toggleWishlist(${product.id})">
+                        <i class="${inWishlist ? 'fas' : 'far'} fa-heart"></i>
+                    </button>
+                    
+                    <img src="${product.img}" class="w-full h-48 md:h-56 object-cover group-hover:scale-105 transition-transform duration-300">
+                    
+                    <div class="p-3 flex flex-col flex-grow">
+                        <h4 class="text-sm text-gray-800 font-semibold truncate">${product.name}</h4>
+                        <div class="mt-1 flex items-baseline gap-2 mb-3">
+                            <span class="font-bold text-gray-900">₹${product.price}</span>
+                            <span class="text-xs text-gray-400 line-through">₹${product.oldprice}</span>
+                        </div>
+                        <div class="mt-auto grid grid-cols-2 gap-2">
+                            <button onclick="event.stopPropagation(); addToCart(${product.id})" class="text-xs border border-gray-300 font-semibold py-2 rounded hover:bg-gray-50 text-gray-700">Add to Cart</button>
+                            <button onclick="event.stopPropagation(); buyNow(${product.id})" class="text-xs bg-rose-600 text-white font-semibold py-2 rounded hover:bg-rose-700 shadow-sm">Buy Now</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProductGrid(containerId, productList) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = productList.length > 0 ? productList.map(p => createProductCard(p)).join('') : '<p class="col-span-full text-center text-gray-500 py-8">No products found.</p>';
+        }
+
+        function renderCategoryBubbles() {
+            document.getElementById('category-bubbles').innerHTML = categories.map(c => `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[80px]" onclick="navigate('shop', '${c.name}')"><div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border"><i class="fas ${c.icon}"></i></div><span class="text-xs font-semibold text-gray-700">${c.name}</span></div>`).join('');
+        }
+
+        function renderShopSubcategories() {
+            if(!currentCategoryFilter) { document.getElementById('subcategory-filters').innerHTML=''; return; }
+            const cData = categories.find(c => c.name === currentCategoryFilter);
+            document.getElementById('subcategory-filters').innerHTML = `<button class="px-3 py-1 text-xs border rounded-full whitespace-nowrap ${!currentSubFilter?'bg-rose-600 text-white':'bg-white text-gray-600'}" onclick="filterSub(null)">All</button>` + cData.subs.map(s => `<button class="px-3 py-1 text-xs border rounded-full whitespace-nowrap ${currentSubFilter===s?'bg-rose-600 text-white':'bg-white text-gray-600'}" onclick="filterSub('${s}')">${s}</button>`).join('');
+        }
+
+        function filterSub(sub) { currentSubFilter = sub; renderShopSubcategories(); renderShopProducts(); }
+
+        function renderShopProducts() {
+            renderProductGrid('shop-grid', products.filter(p => (!currentCategoryFilter || p.category === currentCategoryFilter) && (!currentSubFilter || p.sub === currentSubFilter)));
+        }
+
+        function renderWishlist() {
+            const container = document.getElementById('wishlist-container');
+            const wItems = products.filter(p => wishlist.includes(p.id));
+            if(wItems.length === 0) { container.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10"><i class="far fa-heart text-4xl mb-3 block"></i>Wishlist is empty</div>'; return; }
+            container.innerHTML = wItems.map(p => createProductCard(p)).join('');
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cart-items');
+            let total = 0;
+            if (cart.length === 0) { container.innerHTML = `<div class="text-center text-gray-400 mt-10"><p>Cart is empty</p></div>`; } 
+            else {
+                container.innerHTML = cart.map(cItem => {
+                    const p = products.find(x => x.id === cItem.product_id);
+                    if(!p) return '';
+                    total += (p.price * cItem.qty);
+                    return `
+                    <div class="flex gap-3 border p-2 rounded relative">
+                        <img src="${p.img}" class="w-16 h-20 object-cover rounded">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-semibold truncate w-40">${p.name}</h4>
+                            <div class="text-sm font-bold mt-1">₹${p.price}</div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button onclick="updateQty(${cItem.id}, -1)" class="bg-gray-200 px-2 rounded">-</button>
+                                <span class="text-sm">${cItem.qty}</span>
+                                <button onclick="updateQty(${cItem.id}, 1)" class="bg-gray-200 px-2 rounded">+</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            document.getElementById('cart-total-price').innerText = `₹${total}`;
+        }
+
+        function handleSearch(q) {
+            q = q.toLowerCase().trim();
+            if(q.length < 2) { document.getElementById('desktop-search-results').classList.add('hidden'); document.getElementById('mobile-search-results').classList.add('hidden'); return; }
+            const res = products.filter(p => p.name.toLowerCase().includes(q));
+            const html = res.length ? res.map(p => `<div class="p-2 border-b flex gap-3 hover:bg-gray-50 cursor-pointer" onclick="navigate('shop','${p.category}')"><img src="${p.img}" class="w-10 h-10 rounded"><div><div class="text-sm font-semibold">${p.name}</div></div></div>`).join('') : '<div class="p-3 text-sm">No results</div>';
+            document.getElementById('desktop-search-results').innerHTML=html; document.getElementById('mobile-search-results').innerHTML=html;
+            document.getElementById('desktop-search-results').classList.remove('hidden'); document.getElementById('mobile-search-results').classList.remove('hidden');
+        }
+
+        /* --- 9. CHECKOUT & ORDERS --- */
+        function buyNow(productId) {
+            if(!currentUser) { showToast('Please Login to Buy!'); navigate('profile'); return; }
+            const p = products.find(x => x.id === productId);
+            currentCheckoutItems = [{ ...p, qty: 1 }]; navigate('checkout'); renderCheckoutView();
+        }
+
+        function proceedToCheckout() {
+            if(cart.length === 0) { showToast('Cart is empty!'); return; }
+            if(!currentUser) { showToast('Please Login to continue!'); toggleCart(); navigate('profile'); return; }
+            toggleCart(); 
+            currentCheckoutItems = cart.map(c => { const p = products.find(x=>x.id===c.product_id); return {...p, qty: c.qty, cart_id: c.id}; });
+            navigate('checkout'); renderCheckoutView();
+        }
+
+       function renderCheckoutView() {
+    if(currentUser) {
+        document.getElementById('co-name').value = currentUser.name;
+        document.getElementById('co-mobile').value = currentUser.mobile;
+        document.getElementById('co-address').value = currentUser.address || "";
+    }
+    const container = document.getElementById('checkout-items');
+    let subtotal = 0;
+    let totalDiscount = 0; // Naya: Total discount calculate karne ke liye
+
+    container.innerHTML = currentCheckoutItems.map(item => {
+        subtotal += (item.price * item.qty);
+        // Har item ka checkout discount calculate ho raha hai
+        totalDiscount += ((item.checkout_discount || 0) * item.qty); 
+        
+        return `
+        <div class="flex gap-3 border-b pb-2">
+            <img src="${item.img}" class="w-12 h-16 object-cover rounded border">
+            <div class="flex-1">
+                <div class="text-sm font-semibold truncate max-w-[150px]">${item.name}</div>
+                <div class="flex justify-between text-sm text-gray-500 mt-1">
+                    <span>Qty: ${item.qty}</span><span class="font-bold text-gray-800">₹${item.price * item.qty}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // UI par prices update karna
+    document.getElementById('check-subtotal').innerText = `₹${subtotal}`;
+    
+    // Agar discount 0 se zyada hai, toh usey dikhao warna hide rakho
+    const discountRow = document.getElementById('check-discount-row');
+    if(totalDiscount > 0) {
+        discountRow.classList.remove('hidden');
+        document.getElementById('check-discount').innerText = `- ₹${totalDiscount}`;
+    } else {
+        discountRow.classList.add('hidden');
+    }
+
+    // Final Total: Subtotal - Discount
+    document.getElementById('check-total').innerText = `₹${subtotal - totalDiscount}`;
+}
+       async function placeOrder() {
+    const form = document.getElementById('checkout-form');
+    if(!form.checkValidity()) { form.reportValidity(); return; }
+
+    const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+    
+    // NAYA: Discount minus karke final total nikalna
+    const subtotal = currentCheckoutItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const totalDiscount = currentCheckoutItems.reduce((sum, item) => sum + ((item.checkout_discount || 0) * item.qty), 0);
+    const finalTotal = subtotal - totalDiscount;
+
+    const itemsToSave = currentCheckoutItems.map(i => ({ 
+        id: i.id, 
+        name: i.name, 
+        img: i.img, 
+        qty: i.qty, 
+        price: i.price,
+        size: i.size || 'M' // Size save karna mat bhulna
+    }));
+
+    const newOrder = {
+        id: 'ORD' + Math.floor(Math.random() * 1000000),
+        mobile: currentUser.mobile,
+        items: itemsToSave,
+        total: finalTotal, // NAYA: Final amount with discount
+        paymentmode: paymentMethod.toUpperCase(),
+        status: 'Processing',
+        date: new Date().toLocaleDateString()
+    };
+    
+    const { data, error } = await dbClient.from('orders').insert([newOrder]).select().single();
+    
+    if(data) {
+        // NAYA: Affiliate Commission Logic (₹7)
+        const referrer = localStorage.getItem('outfitkart_referrer');
+        if (referrer && referrer !== currentUser.mobile) {
+            const { data: refUser } = await dbClient.from('users').select('wallet').eq('mobile', referrer).single();
+            if (refUser) {
+                // Refer karne wale ke wallet mein ₹7 add karna
+                await dbClient.from('users').update({ wallet: (refUser.wallet || 0) + 7 }).eq('mobile', referrer);
+            }
+            localStorage.removeItem('outfitkart_referrer'); // Commission milne ke baad tracker clear
+        }
+
+        ordersDb.push(data);
+        
+        // Cart clear karna agar cart se checkout kiya hai toh
+        if(currentCheckoutItems[0].cart_id) {
+            await dbClient.from('cart_items').delete().eq('mobile', currentUser.mobile);
+            cart = []; 
+            updateCartCount();
+        }
+        
+        showToast(paymentMethod === 'upi' ? 'Payment Success... Order Confirmed! 🎉' : 'Order Placed (COD)! 🎉');
+        setTimeout(() => { navigate('profile', 'orders'); }, 1500);
+    }
+}
+
+        function renderOrdersList() {
+            const container = document.getElementById('orders-list-container');
+            if(ordersDb.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-10">No orders placed yet.</div>'; return; }
+            
+            container.innerHTML = ordersDb.map(order => `
+                <div class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between border-b pb-3 mb-3">
+                        <div><span class="font-bold text-gray-800">Order #${order.id}</span><br><span class="text-xs text-gray-500">${order.date} • ${order.paymentmode}</span></div>
+                        <div class="text-right"><span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">${order.status}</span><br><span class="font-bold text-sm mt-1 block">₹${order.total}</span></div>
+                    </div>
+                    <div class="space-y-3">
+                        ${order.items.map(item => `
+                            <div class="flex gap-3 items-center text-sm">
+                                <img src="${item.img}" class="w-12 h-16 rounded object-cover border">
+                                <div class="flex-1"><div class="font-semibold text-gray-800">${item.name}</div><div class="text-gray-500 text-xs">Qty: ${item.qty}</div></div>
+                                <button class="text-xs border px-3 py-1.5 rounded text-gray-600 font-bold hover:bg-gray-50" onclick="showToast('Tracking: Dispatching Soon 🚚')">Track Order</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).reverse().join('');
+        }
+
+        /* --- 10. ADMIN PANEL --- */
+        let adminPressTimer;
+        function startAdminTimer() { adminPressTimer = setTimeout(() => { promptAdminAccess(); }, 3000); }
+        function cancelAdminTimer() { clearTimeout(adminPressTimer); }
+        document.addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); promptAdminAccess(); } });
+
+        function promptAdminAccess() {
+            let pwd = prompt("Admin Password:");
+            if (pwd === "1234") { navigate('admin'); renderAdminProducts(); showToast("Admin Unlocked 🔓"); } 
+        }
+
+        function renderAdminProducts() {
+            document.getElementById('admin-product-list').innerHTML = products.map(p => `
+                <div class="flex justify-between items-center p-2 border-b text-sm hover:bg-gray-50">
+                    <div class="flex items-center gap-2"><img src="${p.img}" class="w-8 h-8 rounded"><span class="truncate w-32">${p.name}</span></div>
+                    <span>₹${p.price}</span><button onclick="deleteProduct(${p.id})" class="text-red-500"><i class="fas fa-trash"></i></button>
+                </div>
+            `).reverse().join('');
+        }
+
+        async function adminAddProduct(e) {
+    e.preventDefault();
+    const newP = {
+        name: document.getElementById('ap-name').value, 
+        price: parseInt(document.getElementById('ap-price').value),
+        oldprice: parseInt(document.getElementById('ap-oldprice').value) || (parseInt(document.getElementById('ap-price').value) + 500),
+        checkout_discount: parseInt(document.getElementById('ap-discount').value) || 0,
+        category: document.getElementById('ap-category').value,
+        sub: document.getElementById('ap-sub').value, 
+        desc: document.getElementById('ap-desc').value,
+        img: document.getElementById('ap-img').value || `https://placehold.co/300x400/eeeeee/333333?text=Product`,
+        istrending: true
+    };
+    const { data } = await dbClient.from('products').insert([newP]).select().single();
+    if(data) { products.push(data); e.target.reset(); renderAdminProducts(); showToast("Product Added! ✅"); }
+}
+        async function deleteProduct(id) {
+            await dbClient.from('products').delete().eq('id', id);
+            products = products.filter(p => p.id !== id); renderAdminProducts(); showToast("Deleted from DB. 🗑️");
+        }
+
+        /* --- 11. EXTRA UTILITIES --- */
+        function togglePaymentUI() { document.getElementById('upi-details').classList.toggle('hidden', document.querySelector('input[name="payment"]:checked').value !== 'upi'); }
+        
+        async function fetchPincodeDetails(pin) {
+            if(pin.length !== 6) return;
+            document.getElementById('pincode-loader').classList.remove('hidden');
+            const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+            const data = await res.json();
+            if(data[0].Status === 'Success') { 
+                document.getElementById('co-city').value = data[0].PostOffice[0].District; 
+                document.getElementById('co-state').value = data[0].PostOffice[0].State; 
+            }
+            document.getElementById('pincode-loader').classList.add('hidden');
+        }
+
+        function autoGenerateDescription() {
+            const name = document.getElementById('ap-name').value;
+            if(!name) return showToast("Enter Product Name");
+            document.getElementById('ap-desc').value = `Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, this piece offers unmatched comfort.`;
+        }
+
+        function showToast(msg) {
+            const t = document.createElement('div'); t.className = 'bg-gray-900 text-white px-5 py-3 rounded-full shadow-2xl text-sm fade-in pointer-events-auto'; t.innerHTML = msg;
+            document.getElementById('toast-container').appendChild(t); setTimeout(() => t.remove(), 3000);
+        }
+        /* --- NEW: PDP, SIZE & REVIEWS --- */
+       async function openProductPage(id) {
+            const p = products.find(x => x.id === id);
+            if(!p) return;
+            viewingProductId = p.id;
+            selectedSize = 'M';
+            const html = `
+                <div><img src="${p.img}" class="w-full h-[400px] object-cover rounded-lg shadow-sm border"></div>
+                <div class="flex flex-col justify-center">
+                    <div class="text-xs text-rose-500 font-bold uppercase mb-1">${p.category} > ${p.sub}</div>
+                    
+                    <div class="flex justify-between items-start mb-2">
+                        <h1 class="text-3xl font-black text-gray-800">${p.name}</h1>
+                        <button onclick="nativeShareProduct(${p.id}, '${p.name}', ${p.price})" class="bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-sm">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex items-baseline gap-3 mb-4">
+                        <span class="text-3xl font-bold">₹${p.price}</span>
+                        <span class="text-lg text-gray-400 line-through">₹${p.oldprice}</span>
+                    </div>
+                    <p class="text-gray-600 text-sm mb-6">${p.desc || 'Premium quality.'}</p>
+                    <div class="mb-6">
+                        <div class="font-bold text-sm mb-2">Select Size</div>
+                        <div class="flex gap-3" id="size-selector">
+                            ${['S', 'M', 'L', 'XL', 'XXL'].map(s => `<button onclick="selectSize('${s}')" class="size-btn ${s==='M'?'selected':''} w-12 h-12 rounded-full border border-gray-300 font-bold">${s}</button>`).join('')}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-auto">
+                        <button onclick="addToCartPDP()" class="border-2 border-gray-800 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-50">Add to Cart</button>
+                        <button onclick="buyNowPDP()" class="bg-rose-600 text-white py-3 rounded-lg font-bold hover:bg-rose-700">Buy Now</button>
+                    </div>
+                </div>`;
+            document.getElementById('pdp-container').innerHTML = html;
+            navigate('product');
+            await loadReviews(p.id);
+        }
+
+        function selectSize(size) {
+            selectedSize = size;
+            document.querySelectorAll('#size-selector .size-btn').forEach(btn => {
+                btn.innerText === size ? btn.classList.add('selected') : btn.classList.remove('selected');
+            });
+        }
+
+        async function addToCartPDP() {
+            if(!currentUser) { showToast("Login to add to cart 🛒"); return navigate('profile'); }
+            await dbClient.from('cart_items').insert([{ mobile: currentUser.mobile, product_id: viewingProductId, qty: 1, size: selectedSize }]);
+            await fetchUserData(); showToast(`Added Size ${selectedSize} to Cart 🛒`);
+        }
+
+        function buyNowPDP() {
+            if(!currentUser) { showToast('Login to Buy!'); return navigate('profile'); }
+            const p = products.find(x => x.id === viewingProductId);
+            currentCheckoutItems = [{ ...p, qty: 1, size: selectedSize }]; navigate('checkout'); renderCheckoutView();
+        }
+
+        async function loadReviews(prodId) {
+            const container = document.getElementById('pdp-reviews-list');
+            const { data } = await dbClient.from('reviews').select('*').eq('product_id', prodId);
+            if(data && data.length > 0) {
+                container.innerHTML = data.map(r => `<div class="border-b pb-3"><div class="flex justify-between mb-1"><span class="font-bold text-sm">${r.user_name}</span><span class="text-xs text-gray-400">${r.date}</span></div><div class="text-yellow-400 text-xs mb-1">${'<i class="fas fa-star"></i>'.repeat(r.rating)}${'<i class="far fa-star"></i>'.repeat(5-r.rating)}</div><p class="text-sm text-gray-600">${r.comment}</p></div>`).join('');
+            } else { container.innerHTML = '<p class="text-sm text-gray-500">No reviews yet.</p>'; }
+        }
+
+        let currentRating = 5;
+        function setRating(r) {
+            currentRating = r;
+            const stars = document.getElementById('star-rating').children;
+            for(let i=0; i<5; i++) stars[i].className = i < r ? 'fas fa-star' : 'far fa-star';
+        }
+
+async function submitReview() {
+            if(!currentUser) return showToast("Login required!");
+            const txt = document.getElementById('review-text').value;
+            if(!txt) return showToast("Write something first!");
+            
+            const rev = { 
+                product_id: viewingProductId, 
+                user_name: currentUser.name, 
+                rating: currentRating, 
+                comment: txt, 
+                date: new Date().toLocaleDateString() 
+            };
+            
+            const { data } = await dbClient.from('reviews').insert([rev]).select().single();
+            
+            if(data) { 
+                document.getElementById('review-text').value = ''; 
+                loadReviews(viewingProductId); 
+                showToast("Review Added! ⭐"); 
+            }
+        }       
+       
+            function initiatePayment() {
+            const form = document.getElementById('checkout-form');
+            if(!form.checkValidity()) { form.reportValidity(); return; }
+            const pm = document.querySelector('input[name="payment"]:checked').value;
+            
+            if(pm === 'upi') {
+                // Total amount calculate karna
+                const totalAmt = currentCheckoutItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                
+                // Aapka hidden UPI ID
+                const upiId = "9343988416-4@ybl";
+                
+                // UPI App me redirect karne ka Asli link
+                const upiLink = `upi://pay?pa=${upiId}&pn=OutfitKart&am=${totalAmt}&cu=INR`;
+                
+                // PhonePe / GPay / Paytm automatically open karega (Mobile par)
+                window.location.href = upiLink;
+
+                // User ko processing modal dikhana
+                const modal = document.getElementById('payment-modal');
+                const statusDiv = document.getElementById('payment-status');
+                modal.classList.remove('hidden');
+                statusDiv.innerHTML = `<div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mx-auto mb-4"></div><p class="text-gray-600 font-semibold">Redirecting to UPI App...</p><p class="text-xs text-gray-400 mt-2">Waiting for payment confirmation...</p>`;
+                
+                // Payment ke baad automatically order place karna (Simulation)
+                setTimeout(() => {
+                    statusDiv.innerHTML = `<i class="fas fa-check-circle text-5xl text-green-500 mb-3"></i><p class="text-green-600 font-bold text-lg">Payment Successful!</p>`;
+                    setTimeout(() => { modal.classList.add('hidden'); placeOrder(); }, 1500);
+                }, 5000); // 5 second baad order confirm ho jayega
+            } else { 
+                placeOrder(); // Cash on Delivery
+            }
+        }
+        let globalSortOrder = 'default';
+
+        function sortProducts(val) {
+            globalSortOrder = val;
+            
+            // Dono (Mobile & Desktop) dropdowns ko ek sath sync karna
+            const dSort = document.getElementById('price-sort-desktop');
+            const mSort = document.getElementById('price-sort-mobile');
+            if(dSort) dSort.value = val;
+            if(mSort) mSort.value = val;
+
+            // Agar user Shop page par hai toh product re-render karein
+            if(!document.getElementById('view-shop').classList.contains('hidden')) {
+                renderShopProducts();
+            } else {
+                // Agar user home page par sort kare, toh turant shop page pe le jao
+                navigate('shop');
+            }
+        }
+
+        function renderShopProducts() {
+            // 1. Pehle category ke hisaab se filter
+            let filtered = products.filter(p => (!currentCategoryFilter || p.category === currentCategoryFilter) && (!currentSubFilter || p.sub === currentSubFilter));
+            
+            // 2. Phir price ke hisaab se sort
+            if (globalSortOrder === 'low') {
+                filtered.sort((a, b) => a.price - b.price);
+            } else if (globalSortOrder === 'high') {
+                filtered.sort((a, b) => b.price - a.price);
+            }
+
+            renderProductGrid('shop-grid', filtered);
+        }
+        // NAYA: Universal Share Feature
+        async function nativeShareProduct(id, name, price) {
+            // Unique link jisme Product ID (pid) aur Affiliate Ref dono hain
+            const shareUrl = `${window.location.origin}${window.location.pathname}?pid=${id}` + (currentUser ? `&ref=${currentUser.mobile}` : '');
+            const shareText = `Check out this awesome ${name} for just ₹${price} at OutfitKart!\n\nShop here:`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'OutfitKart Fashion',
+                        text: shareText,
+                        url: shareUrl
+                    });
+                } catch (err) { console.log("Share cancelled"); }
+            } else {
+                // Agar phone support nahi karta, toh link copy ho jayega
+                navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+                showToast("Link copied to clipboard! 📋");
+            }
+        }
+    </script>
+</body>
+</html>
