@@ -679,10 +679,19 @@
         }
 
 function handleLogout() { 
-            currentUser = null; cart=[]; wishlist=[]; ordersDb=[]; 
-            localStorage.removeItem('outfitkart_session');
-            showToast("Logged out."); navigate('home'); checkAuthUI(); switchAuthTab('login'); 
-        }
+    currentUser = null; 
+    cart = []; 
+    wishlist = []; 
+    ordersDb = []; 
+    
+    // NAYA: Phone ki memory se session delete karna
+    localStorage.removeItem('outfitkart_session');
+    
+    showToast("Logged out successfully."); 
+    navigate('home'); 
+    checkAuthUI(); 
+    switchAuthTab('login'); 
+}
         /* --- 7. CART & WISHLIST LOGIC --- */
         async function toggleWishlist(id) {
             if(!currentUser) { showToast("Please login to save favorites ❤️"); navigate('profile'); return; }
@@ -857,21 +866,30 @@ function handleLogout() {
             navigate('checkout'); renderCheckoutView();
         }
 
-       function renderCheckoutView() {
+function renderCheckoutView() {
     if(currentUser) {
-        document.getElementById('co-name').value = currentUser.name;
-        document.getElementById('co-mobile').value = currentUser.mobile;
+        // Purana saved data auto-fill karna
+        document.getElementById('co-name').value = currentUser.name || "";
+        document.getElementById('co-mobile').value = currentUser.mobile || "";
+        
+        // Agar user ne pehle address save kiya hai toh wo dikhega
         document.getElementById('co-address').value = currentUser.address || "";
+        
+        // Pincode fill karna aur City/State load karna
+        if(currentUser.pincode) {
+            document.getElementById('co-pincode').value = currentUser.pincode;
+            fetchPincodeDetails(currentUser.pincode); // Isse City/State apne aap aa jayenge
+        }
     }
+    
+    // Baaki ka purana cart items dikhane ka logic yahan rahega...
     const container = document.getElementById('checkout-items');
     let subtotal = 0;
-    let totalDiscount = 0; // Naya: Total discount calculate karne ke liye
+    let totalDiscount = 0;
 
     container.innerHTML = currentCheckoutItems.map(item => {
         subtotal += (item.price * item.qty);
-        // Har item ka checkout discount calculate ho raha hai
-        totalDiscount += ((item.checkout_discount || 0) * item.qty); 
-        
+        totalDiscount += ((item.checkout_discount || 0) * item.qty);
         return `
         <div class="flex gap-3 border-b pb-2">
             <img src="${item.img}" class="w-12 h-16 object-cover rounded border">
@@ -884,19 +902,7 @@ function handleLogout() {
         </div>`;
     }).join('');
 
-    // UI par prices update karna
     document.getElementById('check-subtotal').innerText = `₹${subtotal}`;
-    
-    // Agar discount 0 se zyada hai, toh usey dikhao warna hide rakho
-    const discountRow = document.getElementById('check-discount-row');
-    if(totalDiscount > 0) {
-        discountRow.classList.remove('hidden');
-        document.getElementById('check-discount').innerText = `- ₹${totalDiscount}`;
-    } else {
-        discountRow.classList.add('hidden');
-    }
-
-    // Final Total: Subtotal - Discount
     document.getElementById('check-total').innerText = `₹${subtotal - totalDiscount}`;
 }
 async function placeOrder() {
@@ -941,6 +947,21 @@ async function placeOrder() {
         if(error) throw error;
 
         if(data) {
+            // NAYA: User ka address permanent save karna (Flipkart style)
+            const updatedAddress = {
+                address: document.getElementById('co-address').value,
+                pincode: document.getElementById('co-pincode').value,
+                city: document.getElementById('co-city').value,
+                state: document.getElementById('co-state').value
+            };
+
+            // Database mein user profile update karna
+            await dbClient.from('users').update(updatedAddress).eq('mobile', currentUser.mobile);
+            
+            // Local storage aur currentUser ko bhi update karna taaki turant asar dikhe
+            currentUser = { ...currentUser, ...updatedAddress };
+            localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+
             // Affiliate Logic (₹7 commission)
             const referrer = localStorage.getItem('outfitkart_referrer');
             if (referrer && referrer !== currentUser.mobile) {
@@ -960,7 +981,7 @@ async function placeOrder() {
                 updateCartCount();
             }
             
-            showToast(paymentMethod === 'upi' ? 'Payment Success... Order Confirmed! 🎉' : 'Order Placed (COD)! 🎉');
+            showToast("Order Placed & Address Saved! 🏠");
             setTimeout(() => { navigate('profile', 'orders'); }, 1500);
         }
     } catch (err) {
