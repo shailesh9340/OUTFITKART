@@ -75,11 +75,19 @@
                     <div id="mobile-search-results" class="absolute top-11 left-0 w-full bg-white shadow-lg rounded-b-md hidden max-h-64 overflow-y-auto z-50"></div>
                 </div>
             </div>
-            <div class="w-full bg-gradient-to-r from-rose-100 to-teal-100 p-6 md:p-12 flex flex-col items-center justify-center text-center">
-                <h2 class="text-3xl md:text-5xl font-extrabold text-gray-800 mb-2">Premium Fashion at Best Prices</h2>
-                <p class="text-gray-600 md:text-lg mb-6">Discover the latest trends and full outfit combos.</p>
-                <button onclick="navigate('shop')" class="bg-rose-600 text-white px-8 py-3 rounded-md font-bold shadow-lg hover:bg-rose-700 transition">Shop Now</button>
-            </div>
+    <div class="w-full h-80 relative flex items-center justify-center text-center overflow-hidden">
+        <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2070&auto=format&fit=crop" 
+             alt="Fashion background" 
+             class="absolute inset-0 w-full h-full object-cover z-0">
+        
+        <div class="absolute inset-0 bg-black bg-opacity-40 z-10"></div>
+        
+        <div class="relative z-20 p-6 md:p-12 text-white">
+            <h2 class="text-3xl md:text-5xl font-extrabold mb-3 drop-shadow-md">Premium Fashion at Best Prices</h2>
+            <p class="md:text-lg mb-8 text-white text-opacity-90">Discover the latest trends and full outfit combos.</p>
+            <button onclick="navigate('shop')" class="bg-rose-600 text-white px-10 py-3 rounded-md font-bold shadow-xl hover:bg-rose-700 transition">Shop Now</button>
+        </div>
+    </div>
 
             <div class="bg-white py-4 mt-2">
                 <h3 class="font-bold text-lg px-4 mb-3">Shop by Category</h3>
