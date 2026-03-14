@@ -1974,6 +1974,136 @@ async function submitReview() {
         }
     </script>
 
+    <!-- PWA Install Banner - Beautiful Tailwind Modal (Hidden by Default) -->
+    <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
+        <!-- Logo/Icon -->
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+                <i class="fas fa-shopping-bag text-2xl"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg">OutfitKart</h3>
+                <p class="text-sm opacity-90">Install for better experience</p>
+            </div>
+        </div>
+        
+        <!-- Buttons -->
+        <div class="flex gap-3">
+            <button id="pwa-install-btn" onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200">
+                Install App
+            </button>
+            <button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10 transition-all">
+                Not Now
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Version: Full Screen Overlay -->
+    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b flex items-center gap-3">
+            <div class="w-16 h-16 bg-gradient-to-br from-rose-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-2xl">
+                <i class="fas fa-crown text-2xl"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-gray-900">Add OutfitKart to Home Screen</h2>
+                <p class="text-gray-600 mt-1">Get lightning-fast access & offline shopping</p>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 p-8 text-center">
+            <div class="mx-auto w-24 h-24 bg-gradient-to-br from-rose-500/20 to-rose-600/20 rounded-3xl flex items-center justify-center mb-6 backdrop-blur-sm shadow-2xl">
+                <i class="fas fa-mobile-alt text-3xl text-rose-600"></i>
+            </div>
+            <div class="space-y-3 mb-8">
+                <h3 class="text-xl font-bold text-gray-900">App-like Experience</h3>
+                <ul class="text-left max-w-md mx-auto text-sm text-gray-600 space-y-2">
+                    <li class="flex items-center gap-2"><i class="fas fa-bolt text-rose-500"></i>Lightning fast loading</li>
+                    <li class="flex items-center gap-2"><i class="fas fa-wifi text-rose-500"></i>Works offline</li>
+                    <li class="flex items-center gap-2"><i class="fas fa-home text-rose-500"></i>Home screen icon</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Footer Buttons -->
+        <div class="p-6 border-t bg-gray-50 space-y-3">
+            <button id="pwa-install-btn-mobile" onclick="installApp()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-4 px-6 rounded-2xl font-black text-lg shadow-2xl hover:shadow-3xl active:scale-[0.98] transition-all">
+                <i class="fas fa-plus-circle mr-2"></i>Add to Home Screen
+            </button>
+            <button onclick="hideInstallBanner()" class="w-full border-2 border-gray-300 text-gray-700 py-3.5 px-6 rounded-2xl font-bold hover:bg-gray-50 transition-all">
+                Maybe Later
+            </button>
+        </div>
+    </div>
+
+    <!-- PWA Install JS Logic -->
+    <script>
+        let deferredPrompt;
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent default Chrome install prompt
+            e.preventDefault();
+            
+            // Save the event for later
+            deferredPrompt = e;
+            
+            // Show install banner/modal
+            showInstallBanner();
+        });
+
+        // Show banner on desktop, modal on mobile
+        function showInstallBanner() {
+            if (window.innerWidth >= 768) {
+                // Desktop: Slide up banner
+                const banner = document.getElementById('pwa-install-banner');
+                banner.classList.remove('hidden', 'translate-y-full');
+                banner.classList.add('translate-y-0');
+            } else {
+                // Mobile: Full screen modal
+                document.getElementById('pwa-install-modal').classList.remove('hidden');
+            }
+        }
+
+        // Install app handler
+        window.installApp = async function() {
+            if (!deferredPrompt) return;
+
+            // Show install prompt
+            deferredPrompt.prompt();
+            
+            // Wait for choice
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            // Hide banner regardless
+            hideInstallBanner();
+            
+            if (outcome === 'accepted') {
+                console.log('User accepted PWA install');
+                showToast('✅ OutfitKart installed on your device!');
+                deferredPrompt = null;
+            }
+        };
+
+        // Hide banner/modal
+        window.hideInstallBanner = function() {
+            document.getElementById('pwa-install-banner').classList.add('translate-y-full');
+            document.getElementById('pwa-install-modal').classList.add('hidden');
+            
+            // Hide after animation
+            setTimeout(() => {
+                document.getElementById('pwa-install-banner').classList.add('hidden');
+            }, 300);
+        };
+
+        // Also hide on appinstalled event
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed successfully');
+            hideInstallBanner();
+        });
+    </script>
+
     <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -1988,5 +2118,7 @@ async function submitReview() {
         });
       }
     </script>
+
+
 </body>
 </html>
