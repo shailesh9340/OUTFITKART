@@ -1183,6 +1183,11 @@
             document.getElementById('shop-title').innerText = cat || 'All Products';
             renderShopSubcategories(); renderShopProducts();
         }
+        if (view === 'checkout') {
+    
+    preFillUserAddress(); // Yeh line add karein
+
+}
         if (view === 'profile') {
             checkAuthUI();
             if (currentUser && cat) {
@@ -1506,38 +1511,42 @@
     function goToStep(step) { currentCheckoutStep = step; renderCheckoutStep(); }
 
     /* FIX: saveAddressForm reads values directly with getElementById since inputs have id not name */
-    async function saveAddressForm(event) {
-        event.preventDefault();
+  async function saveAddressForm(event) {
+    event.preventDefault();
 
-        addressFormData = {
-            fullname: document.getElementById('addr-fullname').value,
-            mobile: document.getElementById('addr-mobile').value,
-            pincode: document.getElementById('addr-pincode').value,
-            house: document.getElementById('addr-house').value,
-            road: document.getElementById('addr-road').value,
-            landmark: document.getElementById('addr-landmark').value,
-            city: document.getElementById('addr-city').value,
-            state: document.getElementById('addr-state').value,
-        };
+    // Data collect karein
+    addressFormData = {
+        fullname: document.getElementById('addr-fullname').value,
+        mobile: document.getElementById('addr-mobile').value,
+        pincode: document.getElementById('addr-pincode').value,
+        house: document.getElementById('addr-house').value,
+        road: document.getElementById('addr-road').value,
+        landmark: document.getElementById('addr-landmark').value,
+        city: document.getElementById('addr-city').value,
+        state: document.getElementById('addr-state').value,
+    };
 
-        addressFormData.fullAddress = [
-            addressFormData.house,
-            addressFormData.road,
-            addressFormData.landmark ? `(${addressFormData.landmark})` : '',
-            `${addressFormData.city}, ${addressFormData.state}`,
-            addressFormData.pincode
-        ].filter(Boolean).join(', ');
+    addressFormData.fullAddress = `${addressFormData.house}, ${addressFormData.road}, ${addressFormData.landmark ? addressFormData.landmark + ',' : ''} ${addressFormData.city}, ${addressFormData.state} - ${addressFormData.pincode}`;
 
-        if (currentUser && document.getElementById('addr-default').checked) {
-            const userUpdate = { address: addressFormData.fullAddress, pincode: addressFormData.pincode, city: addressFormData.city, state: addressFormData.state };
-            await dbClient.from('users').update(userUpdate).eq('mobile', currentUser.mobile);
-            currentUser = { ...currentUser, ...userUpdate };
-            localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+    // Database mein turant update karein
+    if (currentUser) {
+        const { error } = await dbClient
+            .from('users')
+            .update({
+                address: addressFormData.fullAddress,
+                city: addressFormData.city,
+                state: addressFormData.state,
+                pincode: addressFormData.pincode
+            })
+            .eq('mobile', currentUser.mobile);
+
+        if (!error) {
+            showToast('Address saved to database! ☁️');
         }
-
-        showToast('✅ Address saved!');
-        goToStep(2);
     }
+
+    goToStep(2); // Order Summary par le jayein
+}
 
     function updateCheckoutTotals() {
         let mrpTotal = 0, priceTotal = 0, discountTotal = 0;
@@ -1586,32 +1595,51 @@
 
     /* FIX: initiatePayment rebuilt — no longer references #checkout-form or #check-total */
   async function initiatePayment() {
-    if (!addressFormData.fullname) { showToast('Pehle address bharein!'); goToStep(1); return; }
+    // 1. Address Check
+    if (!addressFormData.fullname) { 
+        showToast('Pehle address bharein!'); 
+        goToStep(1); 
+        return; 
+    }
+
+    // 2. Amount Calculation (Verify karein ki currentCheckoutItems khali na ho)
+    if (currentCheckoutItems.length === 0) {
+        showToast('Cart khali hai!');
+        return;
+    }
 
     const amountInPaise = (currentCheckoutItems.reduce((total, item) => total + (item.price * item.qty), 0) + 7) * 100;
 
+    // 3. Razorpay/COD Logic
     if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
         const options = {
-            "key": "Rzp_live_SRPWOrGGI0glBS", // Yahan apni key dalein
+            "key": "Rzp_live_xxxxxxxxxxxx", // DASHBOARD SE NAYI KEY DALEIN
             "amount": amountInPaise,
             "currency": "INR",
             "name": "OutfitKart",
             "description": "Premium Fashion Purchase",
             "handler": async function (response) {
-                // Agar payment successful hui toh hi ye function chalega
-                showToast("Payment Successful! ID: " + response.razorpay_payment_id);
+                // Payment ID response.razorpay_payment_id mein aayegi
+                showToast("Payment Successful! 🚀");
+                
+                // Yeh function ab database mein order save karega aur cart clear karega
                 await placeOrder(response.razorpay_payment_id);
             },
             "prefill": {
                 "name": addressFormData.fullname,
                 "contact": addressFormData.mobile
             },
-            "theme": { "color": "#e11d48" }
+            "theme": { "color": "#e11d48" },
+            "modal": {
+                "ondismiss": function() {
+                    showToast("Payment Cancelled! ❌");
+                }
+            }
         };
         const rzp1 = new Razorpay(options);
         rzp1.open();
     } else {
-        // Cash on Delivery
+        // Cash on Delivery - Yahan txId 'COD' pass hoga
         await placeOrder('COD');
     }
 }
@@ -1717,21 +1745,66 @@
 
     /* ===== PINCODE ===== */
     /* FIX: fetchPincodeDetails now writes to correct IDs: addr-city & addr-state */
-    async function fetchPincodeDetails(pin) {
-        if (pin.length !== 6) return;
-        const loader = document.getElementById('pincode-loader');
-        if (loader) loader.classList.remove('hidden');
-        try {
-            const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-            const data = await res.json();
-            if (data[0].Status === 'Success') {
-                document.getElementById('addr-city').value = data[0].PostOffice[0].District;
-                document.getElementById('addr-state').value = data[0].PostOffice[0].State;
-            }
-        } catch(e) { /* silently fail */ }
+   // Isse apne purane fetchPincodeDetails function se replace karein
+async function fetchPincodeDetails(pin) {
+    if (pin.length !== 6) return;
+    
+    const cityInput = document.getElementById('addr-city');
+    const stateInput = document.getElementById('addr-state');
+    const loader = document.getElementById('pincode-loader');
+
+    if (loader) loader.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+        const data = await res.json();
+        
+        if (data[0].Status === 'Success') {
+            const details = data[0].PostOffice[0];
+            cityInput.value = details.District;
+            stateInput.value = details.State;
+            
+            // Manual update triggers for some browsers
+            cityInput.dispatchEvent(new Event('input'));
+            stateInput.dispatchEvent(new Event('input'));
+            
+            showToast("Location detected! 📍");
+        }
+    } catch(e) {
+        console.error("Pincode error", e);
+    } finally {
         if (loader) loader.classList.add('hidden');
     }
+}
+/* FIX: preFillUserAddress function added to auto-fill address form if user has saved address in profile. Call this function when navigating to checkout page. */
+// Is function ko navigate('checkout') ke andar call karein
+async function preFillUserAddress() {
+    if (!currentUser) return;
 
+    // Supabase se latest user data lein (kyunki ho sakta hai address update hua ho)
+    const { data: user } = await dbClient
+        .from('users')
+        .select('*')
+        .eq('mobile', currentUser.mobile)
+        .single();
+
+    if (user && user.address) {
+        // Agar address save hai, toh details bharein
+        document.getElementById('addr-fullname').value = user.name || '';
+        document.getElementById('addr-mobile').value = user.mobile || '';
+        
+        // Agar aapne address ko alag columns mein save kiya hai (city, state, house)
+        // Toh unhe bhi yahan fill karein:
+        if(user.pincode) document.getElementById('addr-pincode').value = user.pincode;
+        if(user.city) document.getElementById('addr-city').value = user.city;
+        if(user.state) document.getElementById('addr-state').value = user.state;
+        
+        // Agar address ek hi string mein hai, toh use landmark ya road mein dikha sakte hain
+        document.getElementById('addr-road').value = user.address;
+        
+        showToast("Address auto-filled from profile! ✅");
+    }
+}
     /* FIX: useCurrentLocation now defined */
     function useCurrentLocation() {
         if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
