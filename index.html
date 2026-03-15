@@ -49,7 +49,6 @@
             .timeline-step::after { left: 1.75rem !important; transform: none !important; }
         }
         #tracking-modal { backdrop-filter: blur(8px); }
-        /* FIX: step-circle base styles */
         .step-circle {
             width: 2rem; height: 2rem;
             border-radius: 9999px;
@@ -57,6 +56,56 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 0.875rem; transition: all 0.3s;
         }
+        /* PDP Image Slider */
+        .pdp-img-slider {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            gap: 0;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        .pdp-img-slider img {
+            scroll-snap-align: start;
+            min-width: 100%;
+            height: 420px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .pdp-thumb-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+        .pdp-thumb-strip::-webkit-scrollbar { display: none; }
+        .pdp-thumb {
+            min-width: 60px;
+            width: 60px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.2s;
+            flex-shrink: 0;
+        }
+        .pdp-thumb.active {
+            border-color: #e11d48;
+            transform: scale(1.05);
+        }
+        /* Profile pic upload overlay */
+        .avatar-upload-wrapper { position: relative; display: inline-block; }
+        .avatar-upload-btn {
+            position: absolute; bottom: 2px; right: 2px;
+            background: #1f2937; color: white;
+            border-radius: 9999px; width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; cursor: pointer; border: 2px solid white;
+            transition: background 0.2s;
+        }
+        .avatar-upload-btn:hover { background: #e11d48; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-20 flex flex-col min-h-screen overflow-x-hidden">
@@ -151,6 +200,7 @@
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="shop-grid"></div>
         </div>
 
+        <!-- PRODUCT DETAIL PAGE — with multi-image slider + thumbnails -->
         <div id="view-product" class="view-section hidden p-4 md:p-8 max-w-6xl mx-auto">
             <button onclick="navigate('home')" class="text-gray-500 text-sm mb-4"><i class="fas fa-arrow-left"></i> Back</button>
             <div class="grid md:grid-cols-2 gap-8 bg-white p-4 rounded-xl shadow-sm border" id="pdp-container"></div>
@@ -436,14 +486,17 @@
                 </form>
             </div>
 
-            <!-- FIX: Removed invalid 'grid' class from hidden div — causes layout issues -->
             <div id="user-dashboard" class="hidden">
                 <div class="grid md:grid-cols-4 gap-6">
                 <div class="bg-white rounded-lg shadow-sm border overflow-hidden h-fit md:col-span-1">
                     <div class="p-4 bg-rose-50 flex flex-col items-center gap-2 border-b text-center relative">
-                        <div class="relative group">
+                        <!-- FEATURE 5: Avatar with upload button -->
+                        <div class="avatar-upload-wrapper">
                             <img id="user-avatar-img" src="https://placehold.co/100x100/e11d48/ffffff?text=U" class="w-20 h-20 rounded-full border-4 border-white shadow object-cover">
-                            <button class="absolute bottom-0 right-0 bg-gray-800 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-rose-600" onclick="updateProfilePic()"><i class="fas fa-camera"></i></button>
+                            <label class="avatar-upload-btn" title="Change profile photo">
+                                <input type="file" accept="image/*" style="display:none;" onchange="uploadProfilePic(event)">
+                                <i class="fas fa-camera"></i>
+                            </label>
                         </div>
                         <div>
                             <h3 class="font-bold text-gray-800" id="user-greeting">User</h3>
@@ -656,57 +709,57 @@
                     </div>
                     <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg">Add to Database</button>
                 </form>
+            </div>
 
-                <!-- Edit Product Modal -->
-                <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4 flex">
-                    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div class="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl z-10 flex justify-between items-center">
-                            <h3 class="text-xl font-bold text-purple-700">Edit Product <span id="edit-product-title" class="text-sm font-normal text-gray-500 ml-2">(ID: --)</span></h3>
-                            <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition"><i class="fas fa-times text-xl"></i></button>
-                        </div>
-                        <form id="edit-product-form" onsubmit="updateProduct(event)" class="p-6 space-y-4">
-                            <input type="hidden" id="edit-product-id">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input type="text" id="ep-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
-                                <input type="number" id="ep-price" placeholder="Selling Price" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
-                                <select id="ep-category" onchange="updateDropdownSubs('ep-category', 'ep-sub')" class="w-full border p-2.5 rounded-lg text-sm bg-white" required>
-                                    <option value="Men">Men</option><option value="Women">Women</option><option value="Combos">Combos</option>
-                                </select>
-                                <select id="ep-sub" class="w-full border p-2.5 rounded-lg text-sm bg-white" required>
-                                    <option value="">Select Subcategory</option>
-                                </select>
-                                <input type="text" id="edit-ap-brand" placeholder="Brand Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <label class="text-[10px] font-bold text-gray-400 ml-1">DESCRIPTION</label>
-                                <textarea id="ep-desc" placeholder="Product details..." required class="w-full border p-2.5 rounded-lg h-20 text-sm outline-none"></textarea>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <input type="number" id="ep-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500">
-                                <input type="number" id="ep-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                <input type="number" id="ep-stock" placeholder="Total Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label>
-                                <div class="grid grid-cols-4 md:grid-cols-6 gap-2 text-xs" id="ep-sizes-grid"></div>
-                            </div>
-                            <div class="flex flex-col mb-2">
-                                <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label>
-                                <input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer hover:border-purple-300" onchange="uploadToImgBB(event, 'ep-imgs')">
-                                <div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading to ImgBB...</div>
-                            </div>
-                            <div class="flex flex-col">
-                                <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Images (Auto-filled ↑)</label>
-                                <textarea id="ep-imgs" placeholder="Upload above or paste URLs..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea>
-                            </div>
-                            <div class="flex gap-3 pt-4 border-t">
-                                <button type="submit" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">💾 Update Product</button>
-                                <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold hover:bg-gray-600">Cancel</button>
-                            </div>
-                        </form>
+            <!-- Edit Product Modal -->
+            <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4 flex">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl z-10 flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-purple-700">Edit Product <span id="edit-product-title" class="text-sm font-normal text-gray-500 ml-2">(ID: --)</span></h3>
+                        <button onclick="closeEditModal()" class="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition"><i class="fas fa-times text-xl"></i></button>
                     </div>
+                    <form id="edit-product-form" onsubmit="updateProduct(event)" class="p-6 space-y-4">
+                        <input type="hidden" id="edit-product-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input type="text" id="ep-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
+                            <input type="number" id="ep-price" placeholder="Selling Price" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
+                            <select id="ep-category" onchange="updateDropdownSubs('ep-category', 'ep-sub')" class="w-full border p-2.5 rounded-lg text-sm bg-white" required>
+                                <option value="Men">Men</option><option value="Women">Women</option><option value="Combos">Combos</option>
+                            </select>
+                            <select id="ep-sub" class="w-full border p-2.5 rounded-lg text-sm bg-white" required>
+                                <option value="">Select Subcategory</option>
+                            </select>
+                            <input type="text" id="edit-ap-brand" placeholder="Brand Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-bold text-gray-400 ml-1">DESCRIPTION</label>
+                            <textarea id="ep-desc" placeholder="Product details..." required class="w-full border p-2.5 rounded-lg h-20 text-sm outline-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="number" id="ep-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500">
+                            <input type="number" id="ep-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <input type="number" id="ep-stock" placeholder="Total Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label>
+                            <div class="grid grid-cols-4 md:grid-cols-6 gap-2 text-xs" id="ep-sizes-grid"></div>
+                        </div>
+                        <div class="flex flex-col mb-2">
+                            <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label>
+                            <input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer hover:border-purple-300" onchange="uploadToImgBB(event, 'ep-imgs')">
+                            <div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading to ImgBB...</div>
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Images (Auto-filled ↑)</label>
+                            <textarea id="ep-imgs" placeholder="Upload above or paste URLs..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea>
+                        </div>
+                        <div class="flex gap-3 pt-4 border-t">
+                            <button type="submit" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">💾 Update Product</button>
+                            <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold hover:bg-gray-600">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -719,6 +772,27 @@
                 <div id="admin-withdraw-list" class="space-y-3"></div>
             </div>
         </div>
+
+        <!-- SUCCESS VIEW -->
+        <div id="view-success" class="view-section hidden flex flex-col items-center justify-center min-h-[80vh] text-center p-6">
+            <div class="w-24 h-24 bg-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce">
+                <i class="fas fa-check text-white text-5xl"></i>
+            </div>
+            <h2 class="text-3xl font-black text-green-700 mb-2 uppercase tracking-tighter">Ordered Successfully</h2>
+            <p class="text-gray-600 mb-6">Your order has been placed and is being processed.</p>
+            <div class="bg-gray-100 p-4 rounded-xl w-full max-w-xs mb-8 border border-dashed border-gray-400">
+                <p class="text-xs text-gray-500 uppercase font-bold">Transaction ID</p>
+                <p id="success-tx-id" class="text-lg font-mono font-bold text-gray-800">----------</p>
+            </div>
+            <!-- FEATURE 3: Continue Shopping button -->
+            <button onclick="navigate('home')" class="w-full max-w-xs bg-gray-900 text-white py-4 rounded-xl font-bold shadow-xl active:scale-95 transition-all mb-3">
+                CONTINUE SHOPPING
+            </button>
+            <button onclick="navigate('profile','orders')" class="w-full max-w-xs border-2 border-gray-900 text-gray-900 bg-white py-4 rounded-xl font-bold shadow active:scale-95 transition-all">
+                VIEW MY ORDERS
+            </button>
+        </div>
+
     </main>
 
     <!-- CART SIDEBAR -->
@@ -809,6 +883,56 @@
         </div>
     </div>
 
+    <!-- Order Success Modal (inline full-screen) -->
+    <div id="order-success-modal" class="fixed inset-0 bg-white z-[200] hidden flex-col items-center justify-center text-center p-6">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+            <i class="fas fa-check text-5xl text-green-600"></i>
+        </div>
+        <h2 class="text-3xl font-black text-gray-900 mb-2">Order Successful!</h2>
+        <p class="text-gray-500 mb-8">Thank you for shopping with OutfitKart.<br>Aapka order process kiya ja raha hai.</p>
+        <div class="bg-gray-50 rounded-2xl p-4 w-full max-w-xs mb-8 border border-dashed border-gray-300">
+            <p class="text-sm text-gray-600">Order ID</p>
+            <p id="success-order-id" class="font-bold text-lg text-rose-600">ORD-XXXXXX</p>
+        </div>
+        <button onclick="closeSuccessAndGoToOrders()" class="w-full max-w-xs bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-rose-700 active:scale-95 transition-all mb-3">
+            VIEW MY ORDERS
+        </button>
+        <button onclick="closeSuccessModal(); navigate('home')" class="w-full max-w-xs border-2 border-gray-800 text-gray-800 bg-white py-4 rounded-xl font-bold text-lg shadow active:scale-95 transition-all">
+            CONTINUE SHOPPING
+        </button>
+    </div>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><i class="fas fa-shopping-bag text-2xl"></i></div>
+            <div><h3 class="font-bold text-lg">OutfitKart</h3><p class="text-sm opacity-90">Install for better experience</p></div>
+        </div>
+        <div class="flex gap-3">
+            <button id="pwa-install-btn" onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all">Install App</button>
+            <button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10 transition-all">Not Now</button>
+        </div>
+    </div>
+
+    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex-col">
+        <div class="p-6 border-b flex items-center gap-3">
+            <div class="w-16 h-16 bg-gradient-to-br from-rose-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-2xl"><i class="fas fa-crown text-2xl"></i></div>
+            <div><h2 class="text-2xl font-black text-gray-900">Add OutfitKart to Home Screen</h2><p class="text-gray-600 mt-1">Get lightning-fast access</p></div>
+        </div>
+        <div class="flex-1 p-8 text-center">
+            <div class="mx-auto w-24 h-24 bg-rose-100 rounded-3xl flex items-center justify-center mb-6"><i class="fas fa-mobile-alt text-3xl text-rose-600"></i></div>
+            <ul class="text-left max-w-md mx-auto text-sm text-gray-600 space-y-2">
+                <li class="flex items-center gap-2"><i class="fas fa-bolt text-rose-500"></i>Lightning fast loading</li>
+                <li class="flex items-center gap-2"><i class="fas fa-wifi text-rose-500"></i>Works offline</li>
+                <li class="flex items-center gap-2"><i class="fas fa-home text-rose-500"></i>Home screen icon</li>
+            </ul>
+        </div>
+        <div class="p-6 border-t bg-gray-50 space-y-3">
+            <button onclick="installApp()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-4 px-6 rounded-2xl font-black text-lg shadow-2xl active:scale-[0.98] transition-all"><i class="fas fa-plus-circle mr-2"></i>Add to Home Screen</button>
+            <button onclick="hideInstallBanner()" class="w-full border-2 border-gray-300 text-gray-700 py-3.5 px-6 rounded-2xl font-bold hover:bg-gray-50 transition-all">Maybe Later</button>
+        </div>
+    </div>
+
     <script>
     /* ===== SUPABASE INIT ===== */
     const supabaseUrl = 'https://wlgytgwmmefwpljstque.supabase.co';
@@ -879,17 +1003,13 @@
         await fetchProducts();
         checkAuthUI();
 
-        // FIX: Handle ?pid= deeplink on load
         const urlParams = new URLSearchParams(window.location.search);
         const pid = urlParams.get('pid');
         if (pid) openProductPage(parseInt(pid));
     });
 
-    /* ===== CART SYSTEM (size-aware) ===== */
-    function initCart() {
-        loadCart();
-        updateCartCount();
-    }
+    /* ===== CART SYSTEM ===== */
+    function initCart() { loadCart(); updateCartCount(); }
 
     function loadCart() {
         try {
@@ -923,17 +1043,13 @@
         if (idx === -1) return;
         cart[idx].qty += delta;
         if (cart[idx].qty <= 0) { cart.splice(idx, 1); showToast('Item removed 🗑️'); }
-        saveCart();
-        updateCartCount();
-        renderCart();
+        saveCart(); updateCartCount(); renderCart();
     }
 
     function removeFromCart(productId, size) {
         const key = `${productId}-${size}`;
         cart = cart.filter(i => `${i.productId}-${i.size}` !== key);
-        saveCart();
-        updateCartCount();
-        renderCart();
+        saveCart(); updateCartCount(); renderCart();
         showToast('Removed from cart 🗑️');
     }
 
@@ -951,55 +1067,19 @@
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total-price');
         if (!container) return;
-
         if (cart.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-20 text-center h-full">
-                    <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <i class="fas fa-shopping-bag text-3xl text-gray-400"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">Your cart feels lonely</h3>
-                    <p class="text-sm text-gray-500 mb-6">Nothing added yet.</p>
-                    <button onclick="toggleCart(); navigate('shop')" class="bg-rose-600 text-white px-8 py-2 rounded-lg shadow-md font-bold text-sm hover:bg-rose-700">Continue Shopping</button>
-                </div>`;
+            container.innerHTML = `<div class="flex flex-col items-center justify-center py-20 text-center h-full"><div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-3xl text-gray-400"></i></div><h3 class="text-lg font-bold text-gray-800 mb-2">Your cart feels lonely</h3><p class="text-sm text-gray-500 mb-6">Nothing added yet.</p><button onclick="toggleCart(); navigate('shop')" class="bg-rose-600 text-white px-8 py-2 rounded-lg shadow-md font-bold text-sm hover:bg-rose-700">Continue Shopping</button></div>`;
             if (totalEl) totalEl.textContent = '₹0';
             return;
         }
-
         let subtotal = 0;
         container.innerHTML = cart.map(item => {
             const p = products.find(x => x.id === item.productId);
             if (!p) return '';
             const img = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : (p.img || 'https://placehold.co/80x80/eee/666?text=?');
             subtotal += p.price * item.qty;
-            return `
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all">
-                <div class="flex gap-3">
-                    <div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50">
-                        <img src="${img}" class="w-full h-full object-cover" alt="${p.name}">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-sm text-gray-900 truncate mb-1">${p.name}</h4>
-                        <p class="text-xs text-blue-600 font-semibold mb-1">Size: ${item.size}</p>
-                        <div class="flex items-baseline gap-2 mb-2">
-                            <span class="text-lg font-black text-gray-900">₹${p.price}</span>
-                            ${p.oldprice ? `<span class="text-xs text-gray-500 line-through">₹${p.oldprice}</span>` : ''}
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center bg-gray-100 rounded-lg p-1">
-                                <button onclick="updateQty(${item.productId},'${item.size}',-1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 hover:bg-gray-200 rounded font-bold text-sm">-</button>
-                                <span class="w-8 text-center font-bold text-sm">${item.qty}</span>
-                                <button onclick="updateQty(${item.productId},'${item.size}',1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 hover:bg-gray-200 rounded font-bold text-sm">+</button>
-                            </div>
-                            <button onclick="removeFromCart(${item.productId},'${item.size}')" class="text-rose-500 hover:text-rose-600 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50">
-                                <i class="fas fa-trash-alt text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
+            return `<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all"><div class="flex gap-3"><div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50"><img src="${img}" class="w-full h-full object-cover" alt="${p.name}"></div><div class="flex-1 min-w-0"><h4 class="font-semibold text-sm text-gray-900 truncate mb-1">${p.name}</h4><p class="text-xs text-blue-600 font-semibold mb-1">Size: ${item.size}</p><div class="flex items-baseline gap-2 mb-2"><span class="text-lg font-black text-gray-900">₹${p.price}</span>${p.oldprice ? `<span class="text-xs text-gray-500 line-through">₹${p.oldprice}</span>` : ''}</div><div class="flex items-center justify-between"><div class="flex items-center bg-gray-100 rounded-lg p-1"><button onclick="updateQty(${item.productId},'${item.size}',-1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 hover:bg-gray-200 rounded font-bold text-sm">-</button><span class="w-8 text-center font-bold text-sm">${item.qty}</span><button onclick="updateQty(${item.productId},'${item.size}',1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 hover:bg-gray-200 rounded font-bold text-sm">+</button></div><button onclick="removeFromCart(${item.productId},'${item.size}')" class="text-rose-500 hover:text-rose-600 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50"><i class="fas fa-trash-alt text-xs"></i></button></div></div></div></div>`;
         }).join('');
-
         if (totalEl) totalEl.textContent = `₹${subtotal.toLocaleString()}`;
     }
 
@@ -1104,14 +1184,9 @@
         const hasDiscount = product.oldprice && product.oldprice > product.price;
         const discountPct = hasDiscount ? Math.round(((product.oldprice - product.price) / product.oldprice) * 100) : 0;
         const availableSizes = product.available_sizes || getDefaultSizes(product.sub || product.category);
-        return `
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative flex flex-col group cursor-pointer" onclick="openProductPage(${product.id})">
-            <button class="absolute top-2 right-2 z-20 ${inWishlist ? 'text-rose-500 scale-110' : 'text-gray-400'} hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all" onclick="event.stopPropagation(); toggleWishlist(${product.id})">
-                <i class="${inWishlist ? 'fas' : 'far'} fa-heart text-sm"></i>
-            </button>
-            <button class="absolute top-12 right-2 z-20 text-gray-600 hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all" onclick="event.stopPropagation(); showQuickSizeModal(${product.id})">
-                <i class="fas fa-cart-plus text-sm"></i>
-            </button>
+        return `<div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative flex flex-col group cursor-pointer" onclick="openProductPage(${product.id})">
+            <button class="absolute top-2 right-2 z-20 ${inWishlist ? 'text-rose-500 scale-110' : 'text-gray-400'} hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all" onclick="event.stopPropagation(); toggleWishlist(${product.id})"><i class="${inWishlist ? 'fas' : 'far'} fa-heart text-sm"></i></button>
+            <button class="absolute top-12 right-2 z-20 text-gray-600 hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all" onclick="event.stopPropagation(); showQuickSizeModal(${product.id})"><i class="fas fa-cart-plus text-sm"></i></button>
             <img src="${img}" loading="lazy" class="w-full h-48 md:h-56 object-cover group-hover:scale-[1.02] transition-transform duration-300" alt="${product.name}">
             <div class="p-4 flex flex-col flex-grow">
                 ${product.brand ? `<div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">${product.brand}</div>` : ''}
@@ -1136,10 +1211,7 @@
 
     function renderCategoryBubbles() {
         document.getElementById('category-bubbles').innerHTML = categories.map(c =>
-            `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[80px]" onclick="navigate('shop','${c.name}')">
-                <div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border"><i class="fas ${c.icon}"></i></div>
-                <span class="text-xs font-semibold text-gray-700">${c.name}</span>
-            </div>`
+            `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[80px]" onclick="navigate('shop','${c.name}')"><div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border"><i class="fas ${c.icon}"></i></div><span class="text-xs font-semibold text-gray-700">${c.name}</span></div>`
         ).join('');
     }
 
@@ -1166,10 +1238,7 @@
         renderProductGrid('shop-grid', filtered);
     }
 
-    function shopSortProducts(val) {
-        globalSortOrder = val;
-        renderShopProducts();
-    }
+    function shopSortProducts(val) { globalSortOrder = val; renderShopProducts(); }
 
     function sortProducts(val) {
         globalSortOrder = val;
@@ -1182,14 +1251,10 @@
     }
 
     /* ===== NAVIGATION ===== */
-    /* FIX: navigate() is now a complete, working function */
     function navigate(view, cat = null) {
-        // Hide all views
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-
         currentView = view;
 
-        // Special: navigate to 'profile' with a tab param
         if (view === 'profile' && cat && cat !== null) {
             document.getElementById('view-profile').classList.remove('hidden');
             if (currentUser) {
@@ -1220,18 +1285,14 @@
         if (view === 'checkout') {
             currentCheckoutStep = 1;
             if (currentUser) {
-                if (typeof preFillUserAddress === 'function') {
-                    preFillUserAddress().then((filled) => {
-                        if (filled) {
-                            goToStep(2);
-                            showToast('Previously saved address loaded! 📍');
-                        } else {
-                            renderCheckoutStep();
-                        }
-                    }).catch(() => renderCheckoutStep());
-                } else {
-                    renderCheckoutStep();
-                }
+                preFillUserAddress().then((filled) => {
+                    if (filled) {
+                        goToStep(2);
+                        showToast('Previously saved address loaded! 📍');
+                    } else {
+                        renderCheckoutStep();
+                    }
+                }).catch(() => renderCheckoutStep());
             } else {
                 renderCheckoutStep();
             }
@@ -1334,6 +1395,58 @@
         if (data) { currentUser = data; showToast('Password Changed! 🔒'); document.getElementById('sec-old-pass').value = ''; document.getElementById('sec-new-pass').value = ''; }
     }
 
+    /* ===== FEATURE 5: Profile Picture Upload via ImgBB ===== */
+    async function uploadProfilePic(event) {
+        if (!currentUser) { showToast('Please login first'); return; }
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 32e6) { showToast('File too large (max 32MB)'); return; }
+
+        showToast('Uploading profile picture... 📸');
+
+        const key = '3949e4873d8510691ee63026d22eeb75';
+        const fd = new FormData();
+        fd.append('image', file);
+
+        try {
+            const res  = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd });
+            const json = await res.json();
+
+            if (json.success && json.data && json.data.url) {
+                const newUrl = json.data.url;
+
+                // Update Supabase
+                const { data, error } = await dbClient
+                    .from('users')
+                    .update({ profile_pic: newUrl })
+                    .eq('mobile', currentUser.mobile)
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('[uploadProfilePic] Supabase error:', error);
+                    showToast('Upload succeeded but DB update failed ❌');
+                    return;
+                }
+
+                // Update local state and UI instantly
+                currentUser = data;
+                localStorage.setItem('outfitkart_session', JSON.stringify(data));
+                document.getElementById('user-avatar-img').src = newUrl;
+                showToast('Profile picture updated! ✅');
+            } else {
+                showToast('ImgBB upload failed ❌');
+            }
+        } catch(e) {
+            console.error('[uploadProfilePic] error:', e);
+            showToast('Upload error: ' + e.message);
+        }
+
+        // Reset file input
+        event.target.value = '';
+    }
+
+    /* ===== LEGACY updateProfilePic (kept for compatibility) ===== */
     function updateProfilePic() {
         const url = prompt('Enter Image URL for Profile Picture:');
         if (url) {
@@ -1344,8 +1457,7 @@
     }
 
     function handleLogout() {
-        saveCart();
-        cleanupRealtime();
+        saveCart(); cleanupRealtime();
         currentUser = null; wishlist = []; ordersDb = [];
         localStorage.removeItem('outfitkart_session');
         showToast('Logged out successfully.');
@@ -1390,7 +1502,7 @@
         container.innerHTML = wItems.map(p => createProductCard(p)).join('');
     }
 
-    /* ===== PRODUCT DETAIL PAGE ===== */
+    /* ===== FEATURE 4: PRODUCT DETAIL PAGE with Image Slider + Thumbnails ===== */
     async function openProductPage(id) {
         const p = products.find(x => x.id === id);
         if (!p) return;
@@ -1399,10 +1511,33 @@
         let sizeArray = p.available_sizes && p.available_sizes.length ? p.available_sizes : getDefaultSizes(p.sub || p.category);
         selectedSize = sizeArray[1] || sizeArray[0];
 
+        // Build image list — support both imgs array and legacy img field
+        const imgList = (p.imgs && p.imgs.length > 0) ? p.imgs : (p.img ? [p.img] : ['https://placehold.co/600x420/eee/333?text=No+Image']);
+
+        // Build slider HTML
+        let sliderHtml = '';
+        if (imgList.length === 1) {
+            sliderHtml = `<div class="rounded-lg overflow-hidden border shadow-sm"><img src="${imgList[0]}" class="w-full h-[420px] object-cover" alt="${p.name}"></div>`;
+        } else {
+            const slidesHtml = imgList.map((src, i) =>
+                `<img src="${src}" alt="${p.name} - image ${i+1}" class="pdp-slider-img" data-index="${i}">`
+            ).join('');
+            const thumbsHtml = imgList.map((src, i) =>
+                `<img src="${src}" alt="thumb ${i+1}" class="pdp-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="pdpScrollToSlide(${i})">`
+            ).join('');
+            sliderHtml = `
+                <div>
+                    <div class="pdp-img-slider hide-scrollbar" id="pdp-slider-${id}">
+                        ${slidesHtml}
+                    </div>
+                    <div class="pdp-thumb-strip mt-2" id="pdp-thumbs-${id}">
+                        ${thumbsHtml}
+                    </div>
+                </div>`;
+        }
+
         const html = `
-            ${p.imgs && p.imgs.length > 0
-                ? `<div class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-2 mb-4 h-[400px]">${p.imgs.map(img => `<img src="${img}" class="snap-center min-w-full h-full object-cover rounded-lg border shadow-sm">`).join('')}</div>`
-                : `<img src="${p.img || 'https://placehold.co/300x400/eee/333?text=Product'}" class="w-full h-[400px] object-cover rounded-lg border shadow-sm">`}
+            ${sliderHtml}
             <div class="flex flex-col justify-center">
                 <div class="text-xs text-rose-500 font-bold uppercase mb-1">${p.category} > ${p.sub || ''}</div>
                 ${p.stock_qty ? `<div class="text-xs text-green-600 font-semibold mb-2">📦 Stock: ${p.stock_qty} available</div>` : ''}
@@ -1429,8 +1564,42 @@
 
         document.getElementById('pdp-container').innerHTML = html;
         navigate('product');
+
+        // Attach scroll listener to update active thumbnail after DOM is built
+        if (imgList.length > 1) {
+            requestAnimationFrame(() => {
+                const slider = document.getElementById(`pdp-slider-${id}`);
+                if (slider) {
+                    slider.addEventListener('scroll', () => {
+                        const scrollLeft = slider.scrollLeft;
+                        const width = slider.offsetWidth;
+                        const activeIndex = Math.round(scrollLeft / width);
+                        updatePdpActiveThumbnail(id, activeIndex);
+                    }, { passive: true });
+                }
+            });
+        }
+
         await loadReviews(p.id);
         renderRecommendedProducts(p.category, p.id);
+    }
+
+    // Scroll main slider to a given image index and update thumbs
+    window.pdpScrollToSlide = function(index) {
+        const slider = document.getElementById(`pdp-slider-${viewingProductId}`);
+        if (!slider) return;
+        const width = slider.offsetWidth;
+        slider.scrollTo({ left: index * width, behavior: 'smooth' });
+        updatePdpActiveThumbnail(viewingProductId, index);
+    };
+
+    function updatePdpActiveThumbnail(productId, activeIndex) {
+        const thumbsContainer = document.getElementById(`pdp-thumbs-${productId}`);
+        if (!thumbsContainer) return;
+        const thumbs = thumbsContainer.querySelectorAll('.pdp-thumb');
+        thumbs.forEach((thumb, i) => {
+            thumb.classList.toggle('active', i === activeIndex);
+        });
     }
 
     function selectSize(size) {
@@ -1548,8 +1717,10 @@
 
     function goToStep(step) { currentCheckoutStep = step; renderCheckoutStep(); }
 
+    /* ===== FEATURE 2: saveAddressForm — saves separate columns to Supabase ===== */
     async function saveAddressForm(event) {
         event.preventDefault();
+        console.log('[saveAddressForm] Starting address save...');
 
         const name     = document.getElementById('addr-fullname').value.trim();
         const mobile   = document.getElementById('addr-mobile').value.trim();
@@ -1560,25 +1731,54 @@
         const state    = document.getElementById('addr-state').value.trim();
         const landmark = document.getElementById('addr-landmark').value.trim();
 
+        console.log('[saveAddressForm] Data:', { name, mobile, pin, house, road, city, state, landmark });
+
         if (currentUser) {
-            await dbClient.from('users').update({
-                name: name,
+            // Save separate address columns to users table
+            const updatePayload = {
+                name:    name,
                 pincode: pin,
-                city: city,
-                state: state,
-                address: road
-            }).eq('mobile', currentUser.mobile);
+                city:    city,
+                state:   state,
+                address: road   // "address" column stores Road/Area
+            };
+            console.log('[saveAddressForm] Updating Supabase users with:', updatePayload);
+
+            const { data: updatedUser, error: updateError } = await dbClient
+                .from('users')
+                .update(updatePayload)
+                .eq('mobile', currentUser.mobile)
+                .select()
+                .single();
+
+            if (updateError) {
+                console.error('[saveAddressForm] Supabase update error:', updateError);
+            } else {
+                console.log('[saveAddressForm] Supabase update success:', updatedUser);
+                currentUser = updatedUser;
+                localStorage.setItem('outfitkart_session', JSON.stringify(updatedUser));
+            }
         }
+
+        // Build full address string for display
+        const fullAddress = [
+            house,
+            road,
+            landmark ? `Near ${landmark}` : '',
+            city,
+            state ? `${state} - ${pin}` : pin
+        ].filter(Boolean).join(', ');
 
         addressFormData = {
             fullname: name,
-            mobile: mobile,
-            pincode: pin,
-            city: city,
-            state: state,
-            fullAddress: `${house}${house ? ', ' : ''}${road}${landmark ? ', ' + landmark : ''}, ${city}, ${state} - ${pin}`
+            mobile:   mobile,
+            pincode:  pin,
+            city:     city,
+            state:    state,
+            fullAddress: fullAddress
         };
 
+        console.log('[saveAddressForm] addressFormData set:', addressFormData);
         goToStep(2);
     }
 
@@ -1610,14 +1810,7 @@
         if (itemsList) {
             itemsList.innerHTML = currentCheckoutItems.map(item => {
                 const img = item.imgs?.[0] || item.img || 'https://placehold.co/64x80/eee/666';
-                return `<div class="flex items-center gap-3 py-2 border-b last:border-b-0">
-                    <img src="${img}" loading="lazy" class="w-14 object-cover rounded flex-shrink-0" style="height:4.5rem" alt="${item.name}">
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-sm truncate">${item.name}</h4>
-                        <p class="text-xs text-gray-500">Size: ${item.size || 'M'} | Qty: ${item.qty}</p>
-                        <div class="text-sm font-bold mt-1">₹${(item.price * item.qty).toLocaleString()}</div>
-                    </div>
-                </div>`;
+                return `<div class="flex items-center gap-3 py-2 border-b last:border-b-0"><img src="${img}" loading="lazy" class="w-14 object-cover rounded flex-shrink-0" style="height:4.5rem" alt="${item.name}"><div class="flex-1 min-w-0"><h4 class="font-semibold text-sm truncate">${item.name}</h4><p class="text-xs text-gray-500">Size: ${item.size || 'M'} | Qty: ${item.qty}</p><div class="text-sm font-bold mt-1">₹${(item.price * item.qty).toLocaleString()}</div></div></div>`;
             }).join('');
         }
 
@@ -1630,14 +1823,12 @@
     function updatePaymentSelection(method) { selectedPaymentMethod = method; updateCheckoutTotals(); }
 
     /* ===== PAYMENT ===== */
-    /* FIX: Updated Razorpay key to rzp_live_SRZMbmo0aTi8xs */
     async function initiatePayment() {
         if (!addressFormData.fullname) {
             showToast('Please fill address first!');
             goToStep(1);
             return;
         }
-
         if (!currentCheckoutItems || currentCheckoutItems.length === 0) {
             showToast('Cart is empty!');
             return;
@@ -1665,9 +1856,7 @@
                 },
                 "theme": { "color": "#e11d48" },
                 "modal": {
-                    "ondismiss": function() {
-                        showToast("Payment Cancelled! ❌");
-                    }
+                    "ondismiss": function() { showToast("Payment Cancelled! ❌"); }
                 }
             };
             try {
@@ -1680,60 +1869,95 @@
                 showToast('Could not open payment gateway');
             }
         } else {
-            // Cash on Delivery
             await placeOrder('COD');
         }
     }
 
+    /* ===== FEATURE 1: placeOrder — includes customer_name and correct address fields ===== */
     async function placeOrder(txId = 'COD') {
-    let subtotal = 0;
-    currentCheckoutItems.forEach(item => { subtotal += item.price * item.qty; });
+        console.log('[placeOrder] Starting with txId:', txId);
+        console.log('[placeOrder] addressFormData:', addressFormData);
+        console.log('[placeOrder] currentCheckoutItems:', currentCheckoutItems);
 
-    const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
-    const finalTotal = subtotal + 7 + handlingFee;
+        let subtotal = 0;
+        currentCheckoutItems.forEach(item => { subtotal += item.price * item.qty; });
 
-    const itemsToSave = currentCheckoutItems.map(i => ({
-        id: i.id,
-        name: i.name,
-        img: (i.imgs && i.imgs.length > 0) ? i.imgs[0] : (i.img || ''),
-        qty: i.qty,
-        price: i.price,
-        size: i.size || 'M'
-    }));
+        const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
+        const finalTotal = subtotal + 7 + handlingFee;
 
-    // YAHAN DHAYAN DEIN: addressFormData se naam uthana hai
-    const newOrder = {
-        id: 'ORD' + Math.floor(Math.random() * 1000000),
-        mobile: currentUser.mobile,
-        customer_name: addressFormData.fullname, // <-- Yeh 'fullname' hona chahiye jo saveAddressForm mein set kiya tha // <--- YEH LINE ZAROORI HAI
-        items: itemsToSave,
-        total: finalTotal,
-        paymentmode: selectedPaymentMethod.toUpperCase(),
-        status: 'Processing',
-        transaction_id: txId,
-        date: new Date().toLocaleDateString(),
-        address: addressFormData.fullAddress || '',
-        pincode: addressFormData.pincode || '',
-        city: addressFormData.city || '',
-        state: addressFormData.state || ''
-    };
+        const itemsToSave = currentCheckoutItems.map(i => ({
+            id:    i.id,
+            name:  i.name,
+            img:   (i.imgs && i.imgs.length > 0) ? i.imgs[0] : (i.img || ''),
+            qty:   i.qty,
+            price: i.price,
+            size:  i.size || 'M'
+        }));
 
-    try {
-        const { data, error } = await dbClient.from('orders').insert([newOrder]).select().single();
-        if (error) throw error;
+        const orderId = 'ORD' + Math.floor(Math.random() * 1000000);
 
-        if (data) {
+        const newOrder = {
+            id:             orderId,
+            mobile:         currentUser.mobile,
+            customer_name:  addressFormData.fullname || currentUser.name || '',   // FIX: correct field
+            items:          itemsToSave,
+            total:          finalTotal,
+            paymentmode:    selectedPaymentMethod.toUpperCase(),
+            status:         'Processing',
+            transaction_id: txId,
+            date:           new Date().toLocaleDateString('en-IN'),
+            address:        addressFormData.fullAddress || '',
+            pincode:        addressFormData.pincode || '',
+            city:           addressFormData.city    || '',
+            state:          addressFormData.state   || ''
+        };
+
+        console.log('[placeOrder] Inserting order:', newOrder);
+
+        try {
+            const { data, error } = await dbClient.from('orders').insert([newOrder]).select().single();
+
+            if (error) {
+                console.error('[placeOrder] Supabase insert error:', error);
+                throw error;
+            }
+
+            console.log('[placeOrder] Order inserted successfully:', data);
+
             showToast('Order Placed! 🛍️');
-            // Cart clear logic...
-            await dbClient.from('cart').delete().eq('mobile', currentUser.mobile);
-            cart = []; 
+
+            // Clear cart
+            cart = [];
+            saveCart();
             updateCartCount();
-            setTimeout(() => navigate('profile', 'orders'), 1500);
+
+            // Push to local orders list
+            ordersDb.push(newOrder);
+
+            // Show success modal
+            const successModal = document.getElementById('order-success-modal');
+            const successIdEl  = document.getElementById('success-order-id');
+            if (successIdEl)  successIdEl.innerText  = orderId;
+            if (successModal) {
+                successModal.classList.remove('hidden');
+                successModal.classList.add('flex');
+            }
+
+        } catch (err) {
+            console.error('[placeOrder] Error:', err);
+            showToast('Error placing order: ' + err.message);
         }
-    } catch (err) {
-        showToast('Error: ' + err.message);
     }
-}
+
+    function closeSuccessModal() {
+        const modal = document.getElementById('order-success-modal');
+        if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+    }
+
+    function closeSuccessAndGoToOrders() {
+        closeSuccessModal();
+        navigate('profile', 'orders');
+    }
 
     /* ===== ORDERS LIST ===== */
     function renderOrdersList() {
@@ -1761,7 +1985,69 @@
             </div>`).join('');
     }
 
-    /* ===== PINCODE ===== */
+    /* ===== FEATURE 2: preFillUserAddress — reads separate DB columns ===== */
+    async function preFillUserAddress() {
+        if (!currentUser) return false;
+        console.log('[preFillUserAddress] Fetching saved address for:', currentUser.mobile);
+
+        const { data: user, error } = await dbClient
+            .from('users')
+            .select('*')
+            .eq('mobile', currentUser.mobile)
+            .single();
+
+        if (error) {
+            console.error('[preFillUserAddress] Supabase error:', error);
+            return false;
+        }
+
+        console.log('[preFillUserAddress] User data from DB:', user);
+
+        // Check if we have enough data to skip the form
+        if (user && user.pincode && user.city && user.state) {
+            // Fill individual form inputs
+            const setVal = (id, val) => {
+                const el = document.getElementById(id);
+                if (el && val) el.value = val;
+            };
+
+            setVal('addr-fullname', user.name   || '');
+            setVal('addr-mobile',   user.mobile || '');
+            setVal('addr-pincode',  user.pincode || '');
+            setVal('addr-city',     user.city   || '');    // city field
+            setVal('addr-state',    user.state  || '');    // state field
+            setVal('addr-road',     user.address || '');   // "address" col → road input
+
+            const house    = document.getElementById('addr-house')    ? document.getElementById('addr-house').value.trim()    : '';
+            const landmark = document.getElementById('addr-landmark') ? document.getElementById('addr-landmark').value.trim() : '';
+            const road     = user.address || '';
+
+            const fullAddress = [
+                house,
+                road,
+                landmark ? `Near ${landmark}` : '',
+                user.city,
+                user.state ? `${user.state} - ${user.pincode}` : user.pincode
+            ].filter(Boolean).join(', ');
+
+            addressFormData = {
+                fullname:    user.name    || '',
+                mobile:      user.mobile  || '',
+                pincode:     user.pincode || '',
+                city:        user.city    || '',
+                state:       user.state   || '',
+                fullAddress: fullAddress
+            };
+
+            console.log('[preFillUserAddress] addressFormData populated:', addressFormData);
+            return true;
+        }
+
+        console.log('[preFillUserAddress] Insufficient address data, showing form');
+        return false;
+    }
+
+    /* ===== FEATURE 2: fetchPincodeDetails — fills city + state inputs separately ===== */
     async function fetchPincodeDetails(pin) {
         if (pin.length !== 6) return;
         const cityInput  = document.getElementById('addr-city');
@@ -1778,37 +2064,10 @@
                 showToast('Location detected! 📍');
             }
         } catch(e) {
-            console.error('Pincode error', e);
+            console.error('[fetchPincodeDetails] error:', e);
         } finally {
             if (loader) loader.classList.add('hidden');
         }
-    }
-
-    async function preFillUserAddress() {
-        if (!currentUser) return false;
-        const { data: user } = await dbClient.from('users').select('*').eq('mobile', currentUser.mobile).single();
-        if (user && user.pincode && user.city && user.state) {
-            const n = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-            n('addr-fullname', user.name);
-            n('addr-mobile',   user.mobile);
-            n('addr-pincode',  user.pincode);
-            n('addr-city',     user.city);
-            n('addr-state',    user.state);
-            n('addr-road',     user.address);
-            const house    = document.getElementById('addr-house')    ? document.getElementById('addr-house').value    : '';
-            const landmark = document.getElementById('addr-landmark') ? document.getElementById('addr-landmark').value : '';
-            const road     = user.address || '';
-            addressFormData = {
-                fullname:    user.name    || '',
-                mobile:      user.mobile  || '',
-                pincode:     user.pincode || '',
-                city:        user.city    || '',
-                state:       user.state   || '',
-                fullAddress: `${house}${house ? ', ' : ''}${road}${landmark ? ', ' + landmark : ''}, ${user.city}, ${user.state} - ${user.pincode}`
-            };
-            return true;
-        }
-        return false;
     }
 
     function useCurrentLocation() {
@@ -1844,10 +2103,7 @@
         const html = res.length
             ? res.map(p => {
                 const img = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : (p.img || '');
-                return `<div class="p-2 border-b flex gap-3 hover:bg-gray-50 cursor-pointer items-center" onclick="openProductPage(${p.id}); document.getElementById('desktop-search-results').classList.add('hidden'); document.getElementById('mobile-search-results').classList.add('hidden')">
-                    <img src="${img}" class="w-10 h-10 rounded object-cover">
-                    <div><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">₹${p.price}</div></div>
-                </div>`;
+                return `<div class="p-2 border-b flex gap-3 hover:bg-gray-50 cursor-pointer items-center" onclick="openProductPage(${p.id}); document.getElementById('desktop-search-results').classList.add('hidden'); document.getElementById('mobile-search-results').classList.add('hidden')"><img src="${img}" class="w-10 h-10 rounded object-cover"><div><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">₹${p.price}</div></div></div>`;
             }).join('')
             : '<div class="p-3 text-sm text-gray-500">No results</div>';
         if (desktopResults) { desktopResults.innerHTML = html; desktopResults.classList.remove('hidden'); }
@@ -1885,7 +2141,7 @@
             const btn = document.getElementById(`btn-admin-${t}`);
             if (btn) btn.className = t === tab ? 'pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700' : 'pb-2 px-4 text-sm font-bold text-gray-500';
         });
-        if (tab === 'order')  n();
+        if (tab === 'order')  loadAllOrdersAdmin();
         if (tab === 'payout') loadAllWithdrawalsAdmin();
     }
 
@@ -2022,36 +2278,71 @@
         document.getElementById('ap-desc').value = `Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, this piece offers unmatched comfort.`;
     }
 
+    /* ===== FEATURE 1: loadAllOrdersAdmin — direct fetch from orders table ===== */
     async function loadAllOrdersAdmin() {
-        const { data } = await dbClient.from('orders').select('*').order('date', { ascending: false });
+        console.log('[loadAllOrdersAdmin] Fetching all orders...');
+
         const container = document.getElementById('admin-full-order-list');
         if (!container) return;
-        let totalSales = 0;
-        if (data) {
-            document.getElementById('admin-order-count').innerText = data.length;
-                container.innerHTML = data.map(o => {
-                    totalSales += o.total || 0;
-                    return `<div class="bg-white border p-3 rounded-lg shadow-sm text-xs">
-                        <div class="flex justify-between font-bold mb-1">
-                            <span>#${o.id}</span>
-                            <span class="text-blue-600">${o.status}</span>
+        container.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i><p class="text-sm text-gray-500 mt-2">Loading orders...</p></div>`;
+
+        try {
+            // Direct fetch from orders table — no join needed
+            const { data, error } = await dbClient
+                .from('orders')
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (error) {
+                console.error('[loadAllOrdersAdmin] Supabase error:', error);
+                container.innerHTML = `<div class="text-center py-6 text-red-500">Error: ${error.message}</div>`;
+                showToast('Error loading orders: ' + error.message);
+                return;
+            }
+
+            console.log('[loadAllOrdersAdmin] Orders fetched:', data ? data.length : 0, data);
+
+            if (data && data.length > 0) {
+                // Update stats
+                document.getElementById('admin-order-count').innerText = data.length;
+                let totalSales = 0;
+                data.forEach(o => { totalSales += (o.total || 0); });
+                document.getElementById('admin-total-sales').innerText = `₹${totalSales.toLocaleString()}`;
+
+                container.innerHTML = data.map(o => `
+                    <div class="bg-white border p-4 rounded-xl shadow-sm mb-3">
+                        <div class="flex justify-between font-bold text-sm mb-2">
+                            <span class="text-purple-700">#${o.id}</span>
+                            <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px]">${o.status || 'Processing'}</span>
                         </div>
-                        <p class="font-bold text-gray-800 mt-1">Name: ${o.customer_name || 'N/A'}</p> 
-                        <p>Mobile: ${o.mobile} | Total: ₹${o.total}</p>
-                        <div class="mt-2 p-2 bg-gray-50 rounded border border-dashed border-gray-300">
-                            <p class="font-bold text-gray-700">Delivery Address:</p>
-                            <p class="text-gray-600">${o.address || 'N/A'}, ${o.city || 'N/A'}, ${o.state || 'N/A'} - ${o.pincode || 'N/A'}</p>
+                        <div class="space-y-1 mb-3">
+                            <p class="text-xs"><b>Customer:</b> ${o.customer_name || o.mobile || 'N/A'}</p>
+                            <p class="text-xs"><b>Mobile:</b> ${o.mobile || 'N/A'}</p>
+                            <p class="text-xs text-gray-500"><b>Date:</b> ${o.date || 'N/A'}</p>
+                            <p class="text-xs text-gray-500"><b>Payment:</b> ${o.paymentmode || 'N/A'}</p>
+                            <p class="text-xs text-gray-500"><b>TX ID:</b> ${o.transaction_id || 'N/A'}</p>
+                            <p class="font-bold text-sm text-rose-600">Total: ₹${o.total || 0}</p>
                         </div>
-                        <div class="text-[10px] text-gray-500 mt-2">${(o.items || []).map(i => `${i.qty}x ${i.name} (${i.size || 'M'})`).join(', ')}</div>
-                        <select onchange="updateOrderStatus('${o.id}', this.value)" class="mt-2 w-full border rounded p-1 font-bold">
-                            <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                            <option value="Packed"     ${o.status === 'Packed'     ? 'selected' : ''}>Packed</option>
-                            <option value="Shipped"    ${o.status === 'Shipped'    ? 'selected' : ''}>Shipped</option>
-                            <option value="Delivered"  ${o.status === 'Delivered'  ? 'selected' : ''}>Delivered</option>
-                        </select>
-                    </div>`;
-                }).join('');
-            document.getElementById('admin-total-sales').innerText = `₹${totalSales}`;
+                        <div class="bg-gray-50 p-2 rounded text-[10px] text-gray-600 border mb-3">
+                            <b>Address:</b> ${o.address || 'N/A'}${o.city ? ', ' + o.city : ''}${o.state ? ', ' + o.state : ''}${o.pincode ? ' - ' + o.pincode : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <select onchange="updateOrderStatus('${o.id}', this.value)" class="flex-1 border rounded text-xs p-1.5 font-bold bg-white">
+                                <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                                <option value="Packed"     ${o.status === 'Packed'     ? 'selected' : ''}>Packed</option>
+                                <option value="Shipped"    ${o.status === 'Shipped'    ? 'selected' : ''}>Shipped</option>
+                                <option value="Delivered"  ${o.status === 'Delivered'  ? 'selected' : ''}>Delivered</option>
+                            </select>
+                        </div>
+                    </div>`).join('');
+            } else {
+                container.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">No orders found in database.</div>`;
+                document.getElementById('admin-order-count').innerText = '0';
+                document.getElementById('admin-total-sales').innerText = '₹0';
+            }
+        } catch(e) {
+            console.error('[loadAllOrdersAdmin] Unexpected error:', e);
+            container.innerHTML = `<div class="text-center py-6 text-red-500">Unexpected error: ${e.message}</div>`;
         }
     }
 
@@ -2184,55 +2475,6 @@
         setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
     }
     </script>
-
-    <!-- Order Success Modal -->
-    <div id="order-success-modal" class="fixed inset-0 bg-white z-[200] hidden flex flex-col items-center justify-center text-center p-6">
-        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
-            <i class="fas fa-check text-5xl text-green-600"></i>
-        </div>
-        <h2 class="text-3xl font-black text-gray-900 mb-2">Order Successful!</h2>
-        <p class="text-gray-500 mb-8">Thank you for shopping with OutfitKart. <br> Aapka order process kiya ja raha hai.</p>
-        
-        <div class="bg-gray-50 rounded-2xl p-4 w-full max-w-xs mb-8 border border-dashed border-gray-300">
-            <p class="text-sm text-gray-600">Order ID</p>
-            <p id="success-order-id" class="font-bold text-lg text-rose-600">ORD-XXXXXX</p>
-        </div>
-
-        <button onclick="closeSuccessAndGoToOrders()" class="w-full max-w-xs bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-rose-700 active:scale-95 transition-all">
-            VIEW MY ORDERS
-        </button>
-    </div>
-
-    <!-- PWA Install Banner -->
-    <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><i class="fas fa-shopping-bag text-2xl"></i></div>
-            <div><h3 class="font-bold text-lg">OutfitKart</h3><p class="text-sm opacity-90">Install for better experience</p></div>
-        </div>
-        <div class="flex gap-3">
-            <button id="pwa-install-btn" onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95 transition-all">Install App</button>
-            <button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10 transition-all">Not Now</button>
-        </div>
-    </div>
-
-    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex-col">
-        <div class="p-6 border-b flex items-center gap-3">
-            <div class="w-16 h-16 bg-gradient-to-br from-rose-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-2xl"><i class="fas fa-crown text-2xl"></i></div>
-            <div><h2 class="text-2xl font-black text-gray-900">Add OutfitKart to Home Screen</h2><p class="text-gray-600 mt-1">Get lightning-fast access</p></div>
-        </div>
-        <div class="flex-1 p-8 text-center">
-            <div class="mx-auto w-24 h-24 bg-rose-100 rounded-3xl flex items-center justify-center mb-6"><i class="fas fa-mobile-alt text-3xl text-rose-600"></i></div>
-            <ul class="text-left max-w-md mx-auto text-sm text-gray-600 space-y-2">
-                <li class="flex items-center gap-2"><i class="fas fa-bolt text-rose-500"></i>Lightning fast loading</li>
-                <li class="flex items-center gap-2"><i class="fas fa-wifi text-rose-500"></i>Works offline</li>
-                <li class="flex items-center gap-2"><i class="fas fa-home text-rose-500"></i>Home screen icon</li>
-            </ul>
-        </div>
-        <div class="p-6 border-t bg-gray-50 space-y-3">
-            <button onclick="installApp()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-4 px-6 rounded-2xl font-black text-lg shadow-2xl active:scale-[0.98] transition-all"><i class="fas fa-plus-circle mr-2"></i>Add to Home Screen</button>
-            <button onclick="hideInstallBanner()" class="w-full border-2 border-gray-300 text-gray-700 py-3.5 px-6 rounded-2xl font-bold hover:bg-gray-50 transition-all">Maybe Later</button>
-        </div>
-    </div>
 
     <script>
     let deferredPrompt;
