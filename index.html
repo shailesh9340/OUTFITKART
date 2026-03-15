@@ -49,6 +49,14 @@
             .timeline-step::after { left: 1.75rem !important; transform: none !important; }
         }
         #tracking-modal { backdrop-filter: blur(8px); }
+        /* FIX: step-circle base styles */
+        .step-circle {
+            width: 2rem; height: 2rem;
+            border-radius: 9999px;
+            border: 2px solid #d1d5db;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.875rem; transition: all 0.3s;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 pb-20 flex flex-col min-h-screen overflow-x-hidden">
@@ -130,7 +138,6 @@
             <div class="bg-white p-3 rounded-lg shadow-sm mb-3 sticky top-4 z-10">
                 <div class="flex items-center justify-between">
                     <h2 class="font-bold text-xl" id="shop-title">Shop All Products</h2>
-                    <!-- FIX: was calling undefined shopSortProducts(), now calls correct renderShopProducts() via shopSortProducts wrapper -->
                     <select id="shop-sort" onchange="shopSortProducts(this.value)" class="ml-auto border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 text-sm bg-white shadow-sm">
                         <option value="default">Recommended</option>
                         <option value="low">Price: Low to High</option>
@@ -163,14 +170,14 @@
         </div>
 
         <div id="view-checkout" class="view-section hidden checkout-main max-w-6xl mx-auto mt-4 pb-24 md:pb-0">
-            <button onclick="navigate('home')" class="text-gray-600 text-sm mb-4 flex items-center gap-1 hover:text-gray-800">
+            <button onclick="navigate('home')" class="text-gray-600 text-sm mb-4 flex items-center gap-1 hover:text-gray-800 px-4 pt-4">
                 <i class="fas fa-arrow-left"></i> Continue Shopping
             </button>
             <div class="checkout-progress sticky top-16 z-20 bg-white shadow-lg py-3 px-6 border-b">
                 <div class="max-w-4xl mx-auto flex items-center justify-between">
                     <div class="flex-1 flex items-center justify-center relative">
                         <div class="progress-step flex flex-col items-center active complete">
-                            <div class="step-circle bg-[#fb641b] text-white font-bold">1</div>
+                            <div class="step-circle bg-[#fb641b] text-white font-bold border-[#fb641b]">1</div>
                             <span class="text-xs mt-1 font-medium text-[#fb641b]">Address</span>
                         </div>
                         <div class="progress-line absolute right-0 top-1/2 w-1/2 h-0.5 bg-[#fb641b] z-0"></div>
@@ -199,7 +206,6 @@
                         <h3 class="font-bold text-xl mb-6 flex items-center gap-2 text-gray-900">
                             <i class="fas fa-map-marker-alt text-[#fb641b]"></i> Add a new address
                         </h3>
-                        <!-- FIX: Added name attributes to all inputs so FormData works correctly -->
                         <form id="address-form" class="space-y-4" onsubmit="saveAddressForm(event)">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
@@ -215,14 +221,12 @@
                             <div class="grid grid-cols-3 gap-3">
                                 <div class="col-span-2">
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Pincode *</label>
-                                    <!-- FIX: corrected element IDs referenced in fetchPincodeDetails -->
                                     <input type="text" id="addr-pincode" name="pincode" maxlength="6" required class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] focus:border-transparent shadow-sm" placeholder="110001" oninput="fetchPincodeDetails(this.value)">
                                 </div>
                                 <button type="button" onclick="useCurrentLocation()" class="col-span-1 bg-[#fb641b] text-white py-3 px-4 rounded-xl font-semibold text-sm shadow-md hover:shadow-lg hover:bg-[#f45012] transition-all">
                                     Use My Location <i class="fas fa-location-arrow ml-1 text-xs"></i>
                                 </button>
                             </div>
-                            <!-- FIX: Added spinner element that fetchPincodeDetails references -->
                             <div id="pincode-loader" class="hidden text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-1"></i> Fetching location...</div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-2">House No, Building Name</label>
@@ -239,7 +243,6 @@
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                                    <!-- FIX: IDs now match what fetchPincodeDetails writes to -->
                                     <input type="text" id="addr-city" name="city" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-gray-50" readonly>
                                 </div>
                                 <div>
@@ -433,7 +436,9 @@
                 </form>
             </div>
 
-            <div id="user-dashboard" class="hidden grid md:grid-cols-4 gap-6">
+            <!-- FIX: Removed invalid 'grid' class from hidden div — causes layout issues -->
+            <div id="user-dashboard" class="hidden">
+                <div class="grid md:grid-cols-4 gap-6">
                 <div class="bg-white rounded-lg shadow-sm border overflow-hidden h-fit md:col-span-1">
                     <div class="p-4 bg-rose-50 flex flex-col items-center gap-2 border-b text-center relative">
                         <div class="relative group">
@@ -533,6 +538,7 @@
                         </div>
                     </div>
                 </div>
+                </div><!-- end grid -->
             </div>
         </div>
 
@@ -652,7 +658,7 @@
                 </form>
 
                 <!-- Edit Product Modal -->
-                <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex items-center justify-center p-4">
+                <div id="edit-product-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden items-center justify-center p-4 flex">
                     <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <div class="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl z-10 flex justify-between items-center">
                             <h3 class="text-xl font-bold text-purple-700">Edit Product <span id="edit-product-title" class="text-sm font-normal text-gray-500 ml-2">(ID: --)</span></h3>
@@ -751,8 +757,8 @@
 
     <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- FIX: Quick Size Modal HTML added (was completely missing) -->
-    <div id="quick-size-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden flex items-end md:items-center justify-center" onclick="hideQuickSizeModal()">
+    <!-- Quick Size Modal -->
+    <div id="quick-size-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden items-end md:items-center justify-center flex" onclick="hideQuickSizeModal()">
         <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-w-sm w-full p-6" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="font-bold text-lg">Select Size</h3>
@@ -766,7 +772,7 @@
     </div>
 
     <!-- Order Tracking Modal -->
-    <div id="tracking-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex items-center justify-center p-4" onclick="closeTrackingModal(event)">
+    <div id="tracking-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden items-center justify-center p-4 flex" onclick="closeTrackingModal(event)">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto m-4 relative" onclick="event.stopPropagation()">
             <div class="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl z-10">
                 <div class="flex justify-between items-center">
@@ -806,7 +812,7 @@
     <script>
     /* ===== SUPABASE INIT ===== */
     const supabaseUrl = 'https://wlgytgwmmefwpljstque.supabase.co';
-    const supabaseKey = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8'; // Replace with your actual anon key
+    const supabaseKey = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
     const dbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     function updateNetworkStatus(status, details = '') {
@@ -872,6 +878,11 @@
         renderProductGrid('trending-grid', [], true);
         await fetchProducts();
         checkAuthUI();
+
+        // FIX: Handle ?pid= deeplink on load
+        const urlParams = new URLSearchParams(window.location.search);
+        const pid = urlParams.get('pid');
+        if (pid) openProductPage(parseInt(pid));
     });
 
     /* ===== CART SYSTEM (size-aware) ===== */
@@ -906,7 +917,6 @@
         if (!document.getElementById('cart-sidebar').classList.contains('translate-x-full')) renderCart();
     };
 
-    /* FIX: updateQty now correctly takes 3 args: (productId, size, delta) */
     function updateQty(productId, size, delta) {
         const key = `${productId}-${size}`;
         const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
@@ -927,7 +937,6 @@
         showToast('Removed from cart 🗑️');
     }
 
-    /* FIX: updateCartCount defined only ONCE */
     function updateCartCount() {
         const total = cart.reduce((sum, item) => sum + item.qty, 0);
         ['cart-count','mobile-cart-badge','tab-cart-count'].forEach(id => {
@@ -938,7 +947,6 @@
         if (badge) badge.classList.toggle('hidden', total === 0);
     }
 
-    /* FIX: renderCart defined only ONCE — size-aware version kept */
     function renderCart() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total-price');
@@ -1018,7 +1026,9 @@
         document.getElementById('quick-size-grid').innerHTML = sizes.map(size =>
             `<button onclick="selectQuickSize('${size}')" class="size-btn px-5 py-2 rounded-xl border-2 border-gray-300 font-bold text-sm hover:border-rose-500 transition-all ${quickSelectedSize === size ? 'border-rose-600 bg-rose-600 text-white shadow-lg' : ''}">${size}</button>`
         ).join('');
-        document.getElementById('quick-size-modal').classList.remove('hidden');
+        const modal = document.getElementById('quick-size-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
 
     function selectQuickSize(size) {
@@ -1041,7 +1051,9 @@
     }
 
     function hideQuickSizeModal() {
-        document.getElementById('quick-size-modal').classList.add('hidden');
+        const modal = document.getElementById('quick-size-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
         quickSizeModalProduct = null;
         quickSelectedSize = null;
     }
@@ -1154,7 +1166,6 @@
         renderProductGrid('shop-grid', filtered);
     }
 
-    /* FIX: shopSortProducts now defined — was missing entirely */
     function shopSortProducts(val) {
         globalSortOrder = val;
         renderShopProducts();
@@ -1171,42 +1182,72 @@
     }
 
     /* ===== NAVIGATION ===== */
+    /* FIX: navigate() is now a complete, working function */
     function navigate(view, cat = null) {
+        // Hide all views
         document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-        const target = document.getElementById(`view-${view}`);
-        if (target) { target.classList.remove('hidden'); target.classList.add('fade-in'); }
-        window.scrollTo(0, 0);
-        currentView = view;
-        updateBottomNav();
-        if (view === 'shop') {
-            currentCategoryFilter = cat; currentSubFilter = null;
-            document.getElementById('shop-title').innerText = cat || 'All Products';
-            renderShopSubcategories(); renderShopProducts();
-        }
-        if (view === 'checkout') {
-    
-    preFillUserAddress(); // Yeh line add karein
 
-}
-        if (view === 'profile') {
-            checkAuthUI();
-            if (currentUser && cat) {
-                const tabBtn = document.querySelector(`[onclick="switchProfileTab('${cat}', this)"]`);
-                if (tabBtn) switchProfileTab(cat, tabBtn);
+        currentView = view;
+
+        // Special: navigate to 'profile' with a tab param
+        if (view === 'profile' && cat && cat !== null) {
+            document.getElementById('view-profile').classList.remove('hidden');
+            if (currentUser) {
+                const btn = document.querySelector(`.tab-btn[onclick*="switchProfileTab('${cat}'"]`);
+                switchProfileTab(cat, btn);
             }
+            updateBottomNav();
+            return;
         }
+
+        const viewEl = document.getElementById(`view-${view}`);
+        if (viewEl) viewEl.classList.remove('hidden');
+
+        if (view === 'shop') {
+            if (cat) {
+                currentCategoryFilter = cat;
+                currentSubFilter = null;
+                document.getElementById('shop-title').textContent = `${cat} Collection`;
+            } else {
+                currentCategoryFilter = null;
+                currentSubFilter = null;
+                document.getElementById('shop-title').textContent = 'Shop All Products';
+            }
+            renderShopSubcategories();
+            renderShopProducts();
+        }
+
         if (view === 'checkout') {
             currentCheckoutStep = 1;
-            renderCheckoutStep();
+            if (currentUser) {
+                if (typeof preFillUserAddress === 'function') {
+                    preFillUserAddress().then((filled) => {
+                        if (filled) {
+                            goToStep(2);
+                            showToast('Previously saved address loaded! 📍');
+                        } else {
+                            renderCheckoutStep();
+                        }
+                    }).catch(() => renderCheckoutStep());
+                } else {
+                    renderCheckoutStep();
+                }
+            } else {
+                renderCheckoutStep();
+            }
         }
+
+        if (view === 'profile') checkAuthUI();
+
+        window.scrollTo(0, 0);
+        updateBottomNav();
     }
 
     function updateBottomNav() {
         const navItems = document.querySelectorAll('nav div');
         const activeViews = ['home','shop','cart','profile'];
         navItems.forEach((item, index) => {
-            const isActive = currentView === activeViews[index];
-            item.style.color = isActive ? '#e11d48' : '#6b7280';
+            item.style.color = currentView === activeViews[index] ? '#e11d48' : '#6b7280';
         });
     }
 
@@ -1226,7 +1267,8 @@
         const userDash = document.getElementById('user-dashboard');
         const navText = document.getElementById('nav-profile-text');
         if (currentUser) {
-            authForms.classList.add('hidden'); userDash.classList.remove('hidden'); userDash.classList.add('grid');
+            authForms.classList.add('hidden');
+            userDash.classList.remove('hidden');
             document.getElementById('user-greeting').innerText = currentUser.name;
             document.getElementById('user-mobile-display').innerText = `+91 ${currentUser.mobile}`;
             const dp = currentUser.profile_pic || `https://placehold.co/100x100/e11d48/ffffff?text=${currentUser.name.charAt(0).toUpperCase()}`;
@@ -1237,7 +1279,8 @@
             document.getElementById('prof-wallet').innerText = `₹${currentUser.wallet || 0}`;
             if (navText) navText.innerText = currentUser.name.split(' ')[0];
         } else {
-            authForms.classList.remove('hidden'); userDash.classList.add('hidden'); userDash.classList.remove('grid');
+            authForms.classList.remove('hidden');
+            userDash.classList.add('hidden');
             if (navText) navText.innerText = 'Login';
         }
     }
@@ -1397,7 +1440,6 @@
         });
     }
 
-    /* FIX: addToCartPDP now passes selectedSize correctly */
     async function addToCartPDP() {
         if (!currentUser) { showToast('Login to add to cart 🛒'); return navigate('profile'); }
         addToCart(viewingProductId, selectedSize);
@@ -1442,17 +1484,14 @@
     }
 
     /* ===== CHECKOUT ===== */
-    /* FIX: renderCheckoutView removed — was never defined. Navigate to checkout
-       now calls renderCheckoutStep() which is the correct function. */
-
     function proceedToCheckout() {
         if (cart.length === 0) { showToast('Cart is empty!'); return; }
         if (!currentUser) { showToast('Please Login to continue!'); toggleCart(); navigate('profile'); return; }
         toggleCart();
         currentCheckoutItems = cart.map(c => {
             const p = products.find(x => x.id === c.productId);
-            return { ...p, qty: c.qty, size: c.size };
-        });
+            return p ? { ...p, qty: c.qty, size: c.size } : null;
+        }).filter(Boolean);
         navigate('checkout');
     }
 
@@ -1474,10 +1513,10 @@
             const circle = step.querySelector('.step-circle');
             const stepText = step.querySelector('span');
             if (stepNum < currentCheckoutStep) {
-                circle.innerHTML = '✓'; circle.className = 'step-circle bg-[#fb641b] text-white';
+                circle.innerHTML = '✓'; circle.className = 'step-circle bg-[#fb641b] text-white border-[#fb641b]';
                 stepText.className = 'text-xs mt-1 font-medium text-[#fb641b]';
             } else if (stepNum === currentCheckoutStep) {
-                circle.innerHTML = stepNum; circle.className = 'step-circle bg-[#fb641b] text-white';
+                circle.innerHTML = stepNum; circle.className = 'step-circle bg-[#fb641b] text-white border-[#fb641b]';
                 stepText.className = 'text-xs mt-1 font-medium text-[#fb641b]';
             } else {
                 circle.innerHTML = stepNum; circle.className = 'step-circle border-gray-300 text-gray-500';
@@ -1489,7 +1528,6 @@
         step2.classList.toggle('hidden', currentCheckoutStep !== 2);
         step3.classList.toggle('hidden', currentCheckoutStep !== 3);
 
-        /* FIX: update BOTH step 2 and step 3 address displays */
         if (currentCheckoutStep >= 2 && addressFormData.fullname) {
             const nameStr = `${addressFormData.fullname} • +91 ${addressFormData.mobile}`;
             const addrStr = addressFormData.fullAddress ? addressFormData.fullAddress.replace(/\n/g, '<br>') : '';
@@ -1510,43 +1548,39 @@
 
     function goToStep(step) { currentCheckoutStep = step; renderCheckoutStep(); }
 
-    /* FIX: saveAddressForm reads values directly with getElementById since inputs have id not name */
-  async function saveAddressForm(event) {
-    event.preventDefault();
+    async function saveAddressForm(event) {
+        event.preventDefault();
 
-    // Data collect karein
-    addressFormData = {
-        fullname: document.getElementById('addr-fullname').value,
-        mobile: document.getElementById('addr-mobile').value,
-        pincode: document.getElementById('addr-pincode').value,
-        house: document.getElementById('addr-house').value,
-        road: document.getElementById('addr-road').value,
-        landmark: document.getElementById('addr-landmark').value,
-        city: document.getElementById('addr-city').value,
-        state: document.getElementById('addr-state').value,
-    };
+        const name     = document.getElementById('addr-fullname').value.trim();
+        const mobile   = document.getElementById('addr-mobile').value.trim();
+        const pin      = document.getElementById('addr-pincode').value.trim();
+        const house    = document.getElementById('addr-house').value.trim();
+        const road     = document.getElementById('addr-road').value.trim();
+        const city     = document.getElementById('addr-city').value.trim();
+        const state    = document.getElementById('addr-state').value.trim();
+        const landmark = document.getElementById('addr-landmark').value.trim();
 
-    addressFormData.fullAddress = `${addressFormData.house}, ${addressFormData.road}, ${addressFormData.landmark ? addressFormData.landmark + ',' : ''} ${addressFormData.city}, ${addressFormData.state} - ${addressFormData.pincode}`;
-
-    // Database mein turant update karein
-    if (currentUser) {
-        const { error } = await dbClient
-            .from('users')
-            .update({
-                address: addressFormData.fullAddress,
-                city: addressFormData.city,
-                state: addressFormData.state,
-                pincode: addressFormData.pincode
-            })
-            .eq('mobile', currentUser.mobile);
-
-        if (!error) {
-            showToast('Address saved to database! ☁️');
+        if (currentUser) {
+            await dbClient.from('users').update({
+                name: name,
+                pincode: pin,
+                city: city,
+                state: state,
+                address: road
+            }).eq('mobile', currentUser.mobile);
         }
-    }
 
-    goToStep(2); // Order Summary par le jayein
-}
+        addressFormData = {
+            fullname: name,
+            mobile: mobile,
+            pincode: pin,
+            city: city,
+            state: state,
+            fullAddress: `${house}${house ? ', ' : ''}${road}${landmark ? ', ' + landmark : ''}, ${city}, ${state} - ${pin}`
+        };
+
+        goToStep(2);
+    }
 
     function updateCheckoutTotals() {
         let mrpTotal = 0, priceTotal = 0, discountTotal = 0;
@@ -1587,88 +1621,91 @@
             }).join('');
         }
 
-        if (document.getElementById('payment-upi')) document.getElementById('payment-upi').checked = selectedPaymentMethod === 'upi';
-        if (document.getElementById('payment-cod')) document.getElementById('payment-cod').checked = selectedPaymentMethod === 'cod';
+        const upiEl = document.getElementById('payment-upi');
+        const codEl = document.getElementById('payment-cod');
+        if (upiEl) upiEl.checked = selectedPaymentMethod === 'upi';
+        if (codEl) codEl.checked = selectedPaymentMethod === 'cod';
     }
 
     function updatePaymentSelection(method) { selectedPaymentMethod = method; updateCheckoutTotals(); }
 
-    /* FIX: initiatePayment rebuilt — no longer references #checkout-form or #check-total */
-  async function initiatePayment() {
-    // 1. Address Check
-    if (!addressFormData.fullname) { 
-        showToast('Pehle address bharein!'); 
-        goToStep(1); 
-        return; 
-    }
+    /* ===== PAYMENT ===== */
+    /* FIX: Updated Razorpay key to rzp_live_SRZMbmo0aTi8xs */
+    async function initiatePayment() {
+        if (!addressFormData.fullname) {
+            showToast('Please fill address first!');
+            goToStep(1);
+            return;
+        }
 
-    // 2. Amount Calculation (Verify karein ki currentCheckoutItems khali na ho)
-    if (currentCheckoutItems.length === 0) {
-        showToast('Cart khali hai!');
-        return;
-    }
+        if (!currentCheckoutItems || currentCheckoutItems.length === 0) {
+            showToast('Cart is empty!');
+            return;
+        }
 
-    const amountInPaise = (currentCheckoutItems.reduce((total, item) => total + (item.price * item.qty), 0) + 7) * 100;
+        const subtotal = currentCheckoutItems.reduce((total, item) => total + (item.price * item.qty), 0);
+        const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
+        const finalAmount = subtotal + 7 + handlingFee;
+        const amountInPaise = finalAmount * 100;
 
-    // 3. Razorpay/COD Logic
-    if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
-        const options = {
-            "key": "Rzp_live_xxxxxxxxxxxx", // DASHBOARD SE NAYI KEY DALEIN
-            "amount": amountInPaise,
-            "currency": "INR",
-            "name": "OutfitKart",
-            "description": "Premium Fashion Purchase",
-            "handler": async function (response) {
-                // Payment ID response.razorpay_payment_id mein aayegi
-                showToast("Payment Successful! 🚀");
-                
-                // Yeh function ab database mein order save karega aur cart clear karega
-                await placeOrder(response.razorpay_payment_id);
-            },
-            "prefill": {
-                "name": addressFormData.fullname,
-                "contact": addressFormData.mobile
-            },
-            "theme": { "color": "#e11d48" },
-            "modal": {
-                "ondismiss": function() {
-                    showToast("Payment Cancelled! ❌");
+        if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
+            const options = {
+                "key": "rzp_live_SRZMbmo0aTi8xs",
+                "amount": amountInPaise,
+                "currency": "INR",
+                "name": "OutfitKart",
+                "description": "Premium Fashion Purchase",
+                "handler": async function (response) {
+                    showToast("Payment Successful! 🚀");
+                    await placeOrder(response.razorpay_payment_id);
+                },
+                "prefill": {
+                    "name": addressFormData.fullname,
+                    "contact": "+91" + addressFormData.mobile
+                },
+                "theme": { "color": "#e11d48" },
+                "modal": {
+                    "ondismiss": function() {
+                        showToast("Payment Cancelled! ❌");
+                    }
                 }
+            };
+            try {
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function(resp) {
+                    showToast('Payment failed: ' + (resp.error.description || 'Unknown error'));
+                });
+                rzp.open();
+            } catch(e) {
+                showToast('Could not open payment gateway');
             }
-        };
-        const rzp1 = new Razorpay(options);
-        rzp1.open();
-    } else {
-        // Cash on Delivery - Yahan txId 'COD' pass hoga
-        await placeOrder('COD');
+        } else {
+            // Cash on Delivery
+            await placeOrder('COD');
+        }
     }
-}
 
-    /* FIX: placeOrder rebuilt — reads from addressFormData instead of deleted form inputs */
     async function placeOrder(txId = 'COD') {
-    // 1. Calculations
     let subtotal = 0;
-    currentCheckoutItems.forEach(item => {
-        subtotal += item.price * item.qty;
-    });
+    currentCheckoutItems.forEach(item => { subtotal += item.price * item.qty; });
 
     const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
     const finalTotal = subtotal + 7 + handlingFee;
 
-    // 2. Formatting Items
     const itemsToSave = currentCheckoutItems.map(i => ({
-        id: i.id, 
+        id: i.id,
         name: i.name,
         img: (i.imgs && i.imgs.length > 0) ? i.imgs[0] : (i.img || ''),
-        qty: i.qty, 
-        price: i.price, 
+        qty: i.qty,
+        price: i.price,
         size: i.size || 'M'
     }));
 
-    // 3. Creating Order Object
+    // YAHAN DHAYAN DEIN: addressFormData se naam uthana hai
     const newOrder = {
         id: 'ORD' + Math.floor(Math.random() * 1000000),
         mobile: currentUser.mobile,
+        customer_name: addressFormData.fullname, // <-- Yeh 'fullname' hona chahiye jo saveAddressForm mein set kiya tha // <--- YEH LINE ZAROORI HAI
         items: itemsToSave,
         total: finalTotal,
         paymentmode: selectedPaymentMethod.toUpperCase(),
@@ -1682,35 +1719,15 @@
     };
 
     try {
-        // Step 4: Save Order to Supabase
         const { data, error } = await dbClient.from('orders').insert([newOrder]).select().single();
         if (error) throw error;
 
         if (data) {
-            // --- LOCALSTORAGE REPLACEMENT 1: Referral Logic ---
-            // Ab hum user table se check karenge ki kya is user ka koi referrer_mobile hai
-            if (currentUser.referrer_mobile && currentUser.referrer_mobile !== currentUser.mobile) {
-                const { data: refUser } = await dbClient.from('users').select('wallet').eq('mobile', currentUser.referrer_mobile).single();
-                if (refUser) {
-                    await dbClient.from('users').update({ wallet: (refUser.wallet || 0) + 7 }).eq('mobile', currentUser.referrer_mobile);
-                }
-                // Bonus dene ke baad user record se referrer_mobile clear kar sakte hain (optional)
-                await dbClient.from('users').update({ referrer_mobile: null }).eq('mobile', currentUser.mobile);
-            }
-
-            // --- LOCALSTORAGE REPLACEMENT 2: Clear Cart from Supabase ---
-            // LocalStorage clear karne ki bajaye, DB se user ka cart delete karein
-            const { error: cartError } = await dbClient.from('cart').delete().eq('mobile', currentUser.mobile);
-            if (cartError) console.error("Cart clear error:", cartError);
-
-            // Success UI
-            showToast('Order Placed Successfully! 🛍️');
-            
-            // Refresh local variables
+            showToast('Order Placed! 🛍️');
+            // Cart clear logic...
+            await dbClient.from('cart').delete().eq('mobile', currentUser.mobile);
             cart = []; 
             updateCartCount();
-            
-            // Redirect
             setTimeout(() => navigate('profile', 'orders'), 1500);
         }
     } catch (err) {
@@ -1721,6 +1738,7 @@
     /* ===== ORDERS LIST ===== */
     function renderOrdersList() {
         const container = document.getElementById('orders-list-container');
+        if (!container) return;
         if (ordersDb.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-10">No orders placed yet.</div>'; return; }
         container.innerHTML = [...ordersDb].reverse().map(order => `
             <div class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition">
@@ -1744,94 +1762,85 @@
     }
 
     /* ===== PINCODE ===== */
-    /* FIX: fetchPincodeDetails now writes to correct IDs: addr-city & addr-state */
-   // Isse apne purane fetchPincodeDetails function se replace karein
-async function fetchPincodeDetails(pin) {
-    if (pin.length !== 6) return;
-    
-    const cityInput = document.getElementById('addr-city');
-    const stateInput = document.getElementById('addr-state');
-    const loader = document.getElementById('pincode-loader');
-
-    if (loader) loader.classList.remove('hidden');
-
-    try {
-        const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-        const data = await res.json();
-        
-        if (data[0].Status === 'Success') {
-            const details = data[0].PostOffice[0];
-            cityInput.value = details.District;
-            stateInput.value = details.State;
-            
-            // Manual update triggers for some browsers
-            cityInput.dispatchEvent(new Event('input'));
-            stateInput.dispatchEvent(new Event('input'));
-            
-            showToast("Location detected! 📍");
+    async function fetchPincodeDetails(pin) {
+        if (pin.length !== 6) return;
+        const cityInput  = document.getElementById('addr-city');
+        const stateInput = document.getElementById('addr-state');
+        const loader     = document.getElementById('pincode-loader');
+        if (loader) loader.classList.remove('hidden');
+        try {
+            const res  = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+            const data = await res.json();
+            if (data && data[0] && data[0].Status === 'Success') {
+                const details = data[0].PostOffice[0];
+                if (cityInput)  cityInput.value  = details.District;
+                if (stateInput) stateInput.value = details.State;
+                showToast('Location detected! 📍');
+            }
+        } catch(e) {
+            console.error('Pincode error', e);
+        } finally {
+            if (loader) loader.classList.add('hidden');
         }
-    } catch(e) {
-        console.error("Pincode error", e);
-    } finally {
-        if (loader) loader.classList.add('hidden');
     }
-}
-/* FIX: preFillUserAddress function added to auto-fill address form if user has saved address in profile. Call this function when navigating to checkout page. */
-// Is function ko navigate('checkout') ke andar call karein
-async function preFillUserAddress() {
-    if (!currentUser) return;
 
-    // Supabase se latest user data lein (kyunki ho sakta hai address update hua ho)
-    const { data: user } = await dbClient
-        .from('users')
-        .select('*')
-        .eq('mobile', currentUser.mobile)
-        .single();
-
-    if (user && user.address) {
-        // Agar address save hai, toh details bharein
-        document.getElementById('addr-fullname').value = user.name || '';
-        document.getElementById('addr-mobile').value = user.mobile || '';
-        
-        // Agar aapne address ko alag columns mein save kiya hai (city, state, house)
-        // Toh unhe bhi yahan fill karein:
-        if(user.pincode) document.getElementById('addr-pincode').value = user.pincode;
-        if(user.city) document.getElementById('addr-city').value = user.city;
-        if(user.state) document.getElementById('addr-state').value = user.state;
-        
-        // Agar address ek hi string mein hai, toh use landmark ya road mein dikha sakte hain
-        document.getElementById('addr-road').value = user.address;
-        
-        showToast("Address auto-filled from profile! ✅");
+    async function preFillUserAddress() {
+        if (!currentUser) return false;
+        const { data: user } = await dbClient.from('users').select('*').eq('mobile', currentUser.mobile).single();
+        if (user && user.pincode && user.city && user.state) {
+            const n = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+            n('addr-fullname', user.name);
+            n('addr-mobile',   user.mobile);
+            n('addr-pincode',  user.pincode);
+            n('addr-city',     user.city);
+            n('addr-state',    user.state);
+            n('addr-road',     user.address);
+            const house    = document.getElementById('addr-house')    ? document.getElementById('addr-house').value    : '';
+            const landmark = document.getElementById('addr-landmark') ? document.getElementById('addr-landmark').value : '';
+            const road     = user.address || '';
+            addressFormData = {
+                fullname:    user.name    || '',
+                mobile:      user.mobile  || '',
+                pincode:     user.pincode || '',
+                city:        user.city    || '',
+                state:       user.state   || '',
+                fullAddress: `${house}${house ? ', ' : ''}${road}${landmark ? ', ' + landmark : ''}, ${user.city}, ${user.state} - ${user.pincode}`
+            };
+            return true;
+        }
+        return false;
     }
-}
-    /* FIX: useCurrentLocation now defined */
+
     function useCurrentLocation() {
         if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
         showToast('Getting your location...');
         navigator.geolocation.getCurrentPosition(async (pos) => {
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+                const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
                 const data = await res.json();
                 const addr = data.address;
-                document.getElementById('addr-city').value = addr.city || addr.town || addr.village || addr.district || '';
-                document.getElementById('addr-state').value = addr.state || '';
-                if (addr.postcode) document.getElementById('addr-pincode').value = addr.postcode;
+                const cityEl  = document.getElementById('addr-city');
+                const stateEl = document.getElementById('addr-state');
+                const pinEl   = document.getElementById('addr-pincode');
+                if (cityEl)  cityEl.value  = addr.city || addr.town || addr.village || addr.district || '';
+                if (stateEl) stateEl.value = addr.state || '';
+                if (addr.postcode && pinEl) pinEl.value = addr.postcode;
                 showToast('Location fetched! ✅');
             } catch(e) { showToast('Could not fetch location details'); }
         }, () => showToast('Location access denied'));
     }
 
     /* ===== SEARCH ===== */
-    /* FIX: Search results now call openProductPage(p.id) instead of navigate('shop', category) */
     function handleSearch(q) {
         q = q.toLowerCase().trim();
         const desktopResults = document.getElementById('desktop-search-results');
-        const mobileResults = document.getElementById('mobile-search-results');
+        const mobileResults  = document.getElementById('mobile-search-results');
         if (q.length < 2) {
-            desktopResults.classList.add('hidden'); mobileResults.classList.add('hidden'); return;
+            if (desktopResults) desktopResults.classList.add('hidden');
+            if (mobileResults)  mobileResults.classList.add('hidden');
+            return;
         }
-        const res = products.filter(p => p.name.toLowerCase().includes(q));
+        const res  = products.filter(p => p.name.toLowerCase().includes(q));
         const html = res.length
             ? res.map(p => {
                 const img = (p.imgs && p.imgs.length > 0) ? p.imgs[0] : (p.img || '');
@@ -1841,19 +1850,18 @@ async function preFillUserAddress() {
                 </div>`;
             }).join('')
             : '<div class="p-3 text-sm text-gray-500">No results</div>';
-        desktopResults.innerHTML = html; mobileResults.innerHTML = html;
-        desktopResults.classList.remove('hidden'); mobileResults.classList.remove('hidden');
+        if (desktopResults) { desktopResults.innerHTML = html; desktopResults.classList.remove('hidden'); }
+        if (mobileResults)  { mobileResults.innerHTML  = html; mobileResults.classList.remove('hidden'); }
     }
 
     /* ===== SHARE ===== */
     async function nativeShareProduct(id, name, price) {
-        const shareUrl = `${window.location.origin}${window.location.pathname}?pid=${id}` + (currentUser ? `&ref=${currentUser.mobile}` : '');
+        const shareUrl  = `${window.location.origin}${window.location.pathname}?pid=${id}` + (currentUser ? `&ref=${currentUser.mobile}` : '');
         const shareText = `Check out this awesome ${name} for just ₹${price} at OutfitKart!\n\nShop here:`;
         if (navigator.share) {
             try { await navigator.share({ title: 'OutfitKart Fashion', text: shareText, url: shareUrl }); } catch(err) {}
         } else {
-            navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-            showToast('Link copied to clipboard! 📋');
+            navigator.clipboard.writeText(`${shareText} ${shareUrl}`).then(() => showToast('Link copied to clipboard! 📋'));
         }
     }
 
@@ -1861,7 +1869,9 @@ async function preFillUserAddress() {
     let adminPressTimer;
     function startAdminTimer() { adminPressTimer = setTimeout(() => promptAdminAccess(), 3000); }
     function cancelAdminTimer() { clearTimeout(adminPressTimer); }
-    document.addEventListener('keydown', (e) => { if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); promptAdminAccess(); } });
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); promptAdminAccess(); }
+    });
 
     function promptAdminAccess() {
         const pwd = prompt('Admin Password:');
@@ -1873,9 +1883,9 @@ async function preFillUserAddress() {
         document.getElementById(`admin-tab-${tab}`).classList.remove('hidden');
         ['prod','order','payout'].forEach(t => {
             const btn = document.getElementById(`btn-admin-${t}`);
-            btn.className = t === tab ? 'pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700' : 'pb-2 px-4 text-sm font-bold text-gray-500';
+            if (btn) btn.className = t === tab ? 'pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700' : 'pb-2 px-4 text-sm font-bold text-gray-500';
         });
-        if (tab === 'order') loadAllOrdersAdmin();
+        if (tab === 'order')  n();
         if (tab === 'payout') loadAllWithdrawalsAdmin();
     }
 
@@ -1888,7 +1898,6 @@ async function preFillUserAddress() {
         if (cData) cData.subs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subEl.appendChild(o); });
     }
 
-    /* FIX: adminAddProduct now saves brand + available_sizes */
     async function adminAddProduct(e) {
         e.preventDefault();
         const imgLinks = document.getElementById('ap-imgs').value.split('\n').map(l => l.trim()).filter(Boolean);
@@ -1907,12 +1916,15 @@ async function preFillUserAddress() {
             available_sizes: sizes,
             istrending: true
         };
-        const { data } = await dbClient.from('products').insert([newP]).select().single();
+        const { data, error } = await dbClient.from('products').insert([newP]).select().single();
+        if (error) { showToast('Error: ' + error.message); return; }
         if (data) { products.push(data); e.target.reset(); updateDropdownSubs('ap-category','ap-sub'); renderAdminProducts(); showToast('Product Added! ✅'); }
     }
 
     function renderAdminProducts() {
-        document.getElementById('admin-product-list').innerHTML = [...products].reverse().map(p => `
+        const container = document.getElementById('admin-product-list');
+        if (!container) return;
+        container.innerHTML = [...products].reverse().map(p => `
             <div class="flex justify-between items-center p-2 border-b text-sm hover:bg-gray-50">
                 <div class="flex items-center gap-2 flex-1 min-w-0">
                     <img src="${(p.imgs && p.imgs[0]) || p.img || 'https://placehold.co/32x32/eee/666?text=?'}" class="w-8 h-8 rounded object-cover">
@@ -1952,7 +1964,6 @@ async function preFillUserAddress() {
         document.getElementById('ep-oldprice').value = product.oldprice || '';
         document.getElementById('ep-discount').value = product.checkout_discount || 0;
         document.getElementById('ep-stock').value = product.stock_qty || 50;
-        /* FIX: ep-imgs split uses real newline \n not literal string \\n */
         const imgsStr = Array.isArray(product.imgs) ? product.imgs.join('\n') : (product.imgs || '');
         document.getElementById('ep-imgs').value = imgsStr;
         const sizesGrid = document.getElementById('ep-sizes-grid');
@@ -1965,14 +1976,15 @@ async function preFillUserAddress() {
             label.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${isChecked ? 'checked' : ''}><span>${size}</span>`;
             sizesGrid.appendChild(label);
         });
-        document.getElementById('edit-product-modal').classList.remove('hidden');
+        const modal = document.getElementById('edit-product-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
 
     async function updateProduct(event) {
         event.preventDefault();
         const productId = document.getElementById('edit-product-id').value;
         const checkedSizes = Array.from(document.querySelectorAll('.ep-size-chk:checked')).map(cb => cb.value);
-        /* FIX: split on real newline character */
         const imgLinks = document.getElementById('ep-imgs').value.split('\n').map(l => l.trim()).filter(Boolean);
         const updates = {
             name: document.getElementById('ep-name').value,
@@ -1997,40 +2009,48 @@ async function preFillUserAddress() {
     }
 
     async function deleteProduct(id) {
+        if (!confirm('Delete this product?')) return;
         await dbClient.from('products').delete().eq('id', id);
-        products = products.filter(p => p.id !== id); renderAdminProducts(); showToast('Deleted from DB. 🗑️');
+        products = products.filter(p => p.id !== id);
+        renderAdminProducts();
+        showToast('Deleted from DB. 🗑️');
     }
 
     function autoGenerateDescription() {
         const name = document.getElementById('ap-name').value;
-        if (!name) return showToast('Enter Product Name');
+        if (!name) return showToast('Enter Product Name first');
         document.getElementById('ap-desc').value = `Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, this piece offers unmatched comfort.`;
     }
 
     async function loadAllOrdersAdmin() {
-        const { data } = await dbClient.from('orders').select('*').order('id', { ascending: false });
+        const { data } = await dbClient.from('orders').select('*').order('date', { ascending: false });
         const container = document.getElementById('admin-full-order-list');
+        if (!container) return;
         let totalSales = 0;
         if (data) {
             document.getElementById('admin-order-count').innerText = data.length;
-            container.innerHTML = data.map(o => {
-                totalSales += o.total;
-                return `<div class="bg-white border p-3 rounded-lg shadow-sm text-xs">
-                    <div class="flex justify-between font-bold mb-1"><span>#${o.id}</span><span>${o.status}</span></div>
-                    <p>User: ${o.mobile} | ₹${o.total}</p>
-                    <div class="mt-2 p-2 bg-gray-50 rounded border border-dashed border-gray-300">
-                        <p class="font-bold text-gray-700">Delivery Address:</p>
-                        <p class="text-gray-600">${o.address || 'N/A'}, ${o.city || 'N/A'}, ${o.state || 'N/A'} - ${o.pincode || 'N/A'}</p>
-                    </div>
-                    <div class="text-[10px] text-gray-500 mt-2">${o.items.map(i => `${i.qty}x ${i.name} (${i.size || 'M'})`).join(', ')}</div>
-                    <select onchange="updateOrderStatus('${o.id}', this.value)" class="mt-2 w-full border rounded p-1 font-bold">
-                        <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
-                        <option value="Packed" ${o.status === 'Packed' ? 'selected' : ''}>Packed</option>
-                        <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
-                        <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                    </select>
-                </div>`;
-            }).join('');
+                container.innerHTML = data.map(o => {
+                    totalSales += o.total || 0;
+                    return `<div class="bg-white border p-3 rounded-lg shadow-sm text-xs">
+                        <div class="flex justify-between font-bold mb-1">
+                            <span>#${o.id}</span>
+                            <span class="text-blue-600">${o.status}</span>
+                        </div>
+                        <p class="font-bold text-gray-800 mt-1">Name: ${o.customer_name || 'N/A'}</p> 
+                        <p>Mobile: ${o.mobile} | Total: ₹${o.total}</p>
+                        <div class="mt-2 p-2 bg-gray-50 rounded border border-dashed border-gray-300">
+                            <p class="font-bold text-gray-700">Delivery Address:</p>
+                            <p class="text-gray-600">${o.address || 'N/A'}, ${o.city || 'N/A'}, ${o.state || 'N/A'} - ${o.pincode || 'N/A'}</p>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-2">${(o.items || []).map(i => `${i.qty}x ${i.name} (${i.size || 'M'})`).join(', ')}</div>
+                        <select onchange="updateOrderStatus('${o.id}', this.value)" class="mt-2 w-full border rounded p-1 font-bold">
+                            <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                            <option value="Packed"     ${o.status === 'Packed'     ? 'selected' : ''}>Packed</option>
+                            <option value="Shipped"    ${o.status === 'Shipped'    ? 'selected' : ''}>Shipped</option>
+                            <option value="Delivered"  ${o.status === 'Delivered'  ? 'selected' : ''}>Delivered</option>
+                        </select>
+                    </div>`;
+                }).join('');
             document.getElementById('admin-total-sales').innerText = `₹${totalSales}`;
         }
     }
@@ -2062,13 +2082,17 @@ async function preFillUserAddress() {
         if (!order) { showToast('Order not found'); return; }
         currentTrackingOrder = order;
         renderTrackingContent(order);
-        document.getElementById('tracking-modal').classList.remove('hidden');
+        const modal = document.getElementById('tracking-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
     }
 
     function closeTrackingModal(event) {
-        if (event) event.stopPropagation();
-        document.getElementById('tracking-modal').classList.add('hidden');
+        if (event && event.target !== document.getElementById('tracking-modal')) return;
+        const modal = document.getElementById('tracking-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
         document.body.style.overflow = '';
         currentTrackingOrder = null;
     }
@@ -2137,7 +2161,7 @@ async function preFillUserAddress() {
             if (file.size > 32e6) continue;
             const fd = new FormData(); fd.append('image', file);
             try {
-                const res = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd });
+                const res  = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd });
                 const json = await res.json();
                 if (json.success && json.data && json.data.url) {
                     urls.push(json.data.url);
@@ -2157,9 +2181,27 @@ async function preFillUserAddress() {
         t.className = 'bg-gray-900 text-white px-5 py-3 rounded-full shadow-2xl text-sm fade-in pointer-events-auto';
         t.innerHTML = msg;
         document.getElementById('toast-container').appendChild(t);
-        setTimeout(() => t.remove(), 3000);
+        setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
     }
     </script>
+
+    <!-- Order Success Modal -->
+    <div id="order-success-modal" class="fixed inset-0 bg-white z-[200] hidden flex flex-col items-center justify-center text-center p-6">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+            <i class="fas fa-check text-5xl text-green-600"></i>
+        </div>
+        <h2 class="text-3xl font-black text-gray-900 mb-2">Order Successful!</h2>
+        <p class="text-gray-500 mb-8">Thank you for shopping with OutfitKart. <br> Aapka order process kiya ja raha hai.</p>
+        
+        <div class="bg-gray-50 rounded-2xl p-4 w-full max-w-xs mb-8 border border-dashed border-gray-300">
+            <p class="text-sm text-gray-600">Order ID</p>
+            <p id="success-order-id" class="font-bold text-lg text-rose-600">ORD-XXXXXX</p>
+        </div>
+
+        <button onclick="closeSuccessAndGoToOrders()" class="w-full max-w-xs bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-rose-700 active:scale-95 transition-all">
+            VIEW MY ORDERS
+        </button>
+    </div>
 
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
@@ -2173,7 +2215,7 @@ async function preFillUserAddress() {
         </div>
     </div>
 
-    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex flex-col">
+    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex-col">
         <div class="p-6 border-b flex items-center gap-3">
             <div class="w-16 h-16 bg-gradient-to-br from-rose-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-2xl"><i class="fas fa-crown text-2xl"></i></div>
             <div><h2 class="text-2xl font-black text-gray-900">Add OutfitKart to Home Screen</h2><p class="text-gray-600 mt-1">Get lightning-fast access</p></div>
@@ -2201,7 +2243,10 @@ async function preFillUserAddress() {
         if (window.innerWidth >= 768) {
             const banner = document.getElementById('pwa-install-banner');
             banner.classList.remove('hidden', 'translate-y-full'); banner.classList.add('translate-y-0');
-        } else { document.getElementById('pwa-install-modal').classList.remove('hidden'); }
+        } else {
+            const modal = document.getElementById('pwa-install-modal');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+        }
     }
     window.installApp = async function() {
         if (!deferredPrompt) return;
@@ -2211,9 +2256,11 @@ async function preFillUserAddress() {
         if (outcome === 'accepted') { showToast('✅ OutfitKart installed!'); deferredPrompt = null; }
     };
     window.hideInstallBanner = function() {
-        document.getElementById('pwa-install-banner').classList.add('translate-y-full');
-        document.getElementById('pwa-install-modal').classList.add('hidden');
-        setTimeout(() => document.getElementById('pwa-install-banner').classList.add('hidden'), 300);
+        const banner = document.getElementById('pwa-install-banner');
+        const modal  = document.getElementById('pwa-install-modal');
+        banner.classList.add('translate-y-full');
+        modal.classList.remove('flex'); modal.classList.add('hidden');
+        setTimeout(() => banner.classList.add('hidden'), 300);
     };
     window.addEventListener('appinstalled', () => hideInstallBanner());
     </script>
