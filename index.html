@@ -75,7 +75,12 @@
         .share-outfitkart-btn { animation: sharePulse 2.5s infinite; }
     </style>
 </head>
+
 <body class="bg-gray-50 text-gray-800 pb-20 flex flex-col min-h-screen overflow-x-hidden">
+
+<!-- Splash screen removed as requested -->
+
+
 
     <!-- =================== HEADER =================== -->
     <header class="fixed top-0 w-full bg-white shadow-sm z-40 h-16 flex items-center justify-between px-4 md:px-8">
@@ -588,11 +593,54 @@
             <div id="admin-tab-prod" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 mx-2">
                 <h3 class="font-bold text-sm md:text-base mb-3 border-b pb-2">Product List (Live)</h3>
                 <div class="overflow-y-auto h-48 md:h-64 border rounded-lg p-2 mb-8 bg-gray-50" id="admin-product-list"></div>
-                <h3 class="font-bold text-sm md:text-base mt-6 mb-4 border-b pb-2 text-purple-700">Add New Product</h3>
+<h3 class="font-bold text-sm md:text-base mt-6 mb-4 border-b pb-2 text-purple-700">Add New Product</h3>
                 <form id="add-product-form" onsubmit="adminAddProduct(event)" class="space-y-4">
+                    
+                    <!-- ========== DUAL ENTRY TOGGLE ========== -->
+                    <div class="flex items-center justify-center gap-6 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border-2 border-purple-100 mb-6">
+                        <label class="flex items-center gap-2 cursor-pointer font-bold text-sm">
+                            <input type="radio" name="entry-mode" value="auto" id="mode-auto" checked class="w-5 h-5 accent-purple-600" onchange="toggleProductMode('auto')">
+                            <i class="fas fa-magic text-purple-500 text-lg"></i>
+                            <span>🔍 Auto-Import (ScrapingBee)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer font-bold text-sm">
+                            <input type="radio" name="entry-mode" value="manual" id="mode-manual" class="w-5 h-5 accent-emerald-600" onchange="toggleProductMode('manual')">
+                            <i class="fas fa-calculator text-emerald-500 text-lg"></i>
+                            <span>✏️ Manual Add</span>
+                        </label>
+                    </div>
+
+                    <!-- ========== MANUAL FIELDS ========== -->
+                    <div id="manual-fields" class="space-y-4 hidden">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Supplier Price</label>
+                                <input type="number" id="ap-supplier-price" min="0" placeholder="₹300" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 font-bold" oninput="updateSellingPreview()">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Margin %</label>
+                                <input type="range" id="ap-margin-pct" min="0" max="100" value="30" class="w-full" oninput="updateSellingPreview()">
+                                <input type="number" id="ap-margin" min="0" placeholder="90" class="w-full border p-2 mt-1 rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 font-bold" oninput="updateSellingPreview()">
+                            </div>
+                        </div>
+                        
+                        <!-- ========== LIVE PREVIEW ========== -->
+                        <div id="selling-price-preview" class="grid grid-cols-2 gap-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-200 hidden">
+                            <div class="text-center">
+                                <div class="text-[12px] text-emerald-700 font-bold uppercase tracking-wider mb-1">Selling Price</div>
+                                <div id="selling-price-value" class="text-2xl font-black text-emerald-600">₹0</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-[12px] text-green-700 font-bold uppercase tracking-wider mb-1">Profit Margin</div>
+                                <div id="margin-amt-preview" class="text-xl font-bold text-green-600">₹0</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <input type="text" id="ap-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
-                        <input type="number" id="ap-price" placeholder="Selling Price" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
+                        <input type="number" id="ap-price" placeholder="Selling Price (Auto-calc)" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
+
                         <select id="ap-category" onchange="updateDropdownSubs('ap-category','ap-sub')" class="w-full border p-2.5 rounded-lg text-sm bg-white" required>
                             <option value="Men">Men</option>
                             <option value="Women">Women</option>
