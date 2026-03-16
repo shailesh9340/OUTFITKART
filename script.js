@@ -1,13 +1,10 @@
 /* ==========================================================
-   OutfitKart — script.js
-   Senior Full-Stack Engineer rewrite:
-   • Code split from index.html
-   • .single() removed from all .update() calls → .select()
-   • cancelOrder / updateOrderStatus bug-fixed
-   • Professional Admin Order view with product thumbnails
-   • Full Exchange & UPI Refund system
-   • Supabase Realtime sync for order status
-   • All data fetched from Supabase, not localStorage
+   OutfitKart — script.js  (FIXED VERSION)
+   Bugs fixed:
+   • updateSellingPreview() duplicate removed
+   • toggleProductMode optional-chain assignment crash fixed
+   • renderAdminProducts mismatched div tags fixed
+   • All functions exposed to window at bottom
    ========================================================== */
 
 'use strict';
@@ -15,54 +12,38 @@
 /* ============================================================
    1. SUPABASE INITIALISATION
    ============================================================ */
-const SUPABASE_URL = 'https://wlgytgwmmefwpljstque.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
-const RAZORPAY_KEY = 'rzp_live_SRZMbmo0aTi8xs';
-const IMGBB_KEY    = '3949e4873d8510691ee63026d22eeb75';
+const SUPABASE_URL    = 'https://wlgytgwmmefwpljstque.supabase.co';
+const SUPABASE_KEY    = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
+const RAZORPAY_KEY    = 'rzp_live_SRZMbmo0aTi8xs';
+const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
+const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
+const SUPPORT_WA      = '918982296773';
+const SUPPORT_EMAIL   = 'shaileshkumarchauhan9340@gmail.com';
 
 const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Ping connection & update dot
 dbClient.from('products').select('count').limit(1)
     .then(({ error }) => updateNetworkStatus(error ? 'error' : 'connected', error?.message || ''))
     .catch(() => updateNetworkStatus('offline'));
 
-/* ============================================================
-   RLS DIAGNOSTIC — call diagnoseSupabaseRLS() from browser
-   console to check if orders table allows UPDATE for anon
-   ============================================================ */
-window.diagnoseSupabaseRLS = async function() {
+window.diagnoseSupabaseRLS = async function () {
     console.group('🔍 Supabase RLS Diagnostic');
     try {
-        /* 1. Can we SELECT orders? */
         const { data: sel, error: selErr } = await dbClient.from('orders').select('id,status').limit(1);
         console.log('SELECT orders:', selErr ? '❌ ' + selErr.message : '✅ OK', sel);
-
-        if (!sel?.length) { console.warn('No orders found to test UPDATE on'); console.groupEnd(); return; }
+        if (!sel?.length) { console.warn('No orders found'); console.groupEnd(); return; }
         const testId = sel[0].id;
         const testStatus = sel[0].status;
-
-        /* 2. Can we UPDATE via supabase-js? */
         const { data: upd, error: updErr } = await dbClient.from('orders').update({ status: testStatus }).eq('id', testId).select();
         console.log('UPDATE via supabase-js:', updErr ? '❌ ' + updErr.message : (upd?.length ? '✅ OK' : '⚠️ 0 rows (RLS blocking silently)'), upd);
-
-        /* 3. Can we UPDATE via REST directly? */
         const restRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(testId)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
             body: JSON.stringify({ status: testStatus })
         });
         const restData = await restRes.json();
-        console.log('UPDATE via REST PATCH:', restRes.ok ? (restData?.length ? '✅ OK' : '⚠️ 0 rows returned') : '❌ ' + restRes.status, restData);
-
-        if (!upd?.length && (!restData?.length || !restRes.ok)) {
-            console.error('🚨 BOTH update methods failed. This is an RLS issue.');
-            console.error('FIX: Go to Supabase Dashboard → Table Editor → orders → RLS Policies');
-            console.error('Add policy: ALTER POLICY "..." ON orders FOR UPDATE TO anon USING (true) WITH CHECK (true);');
-            console.error('OR run this in SQL Editor:');
-            console.error(`CREATE POLICY "allow_update_orders" ON public.orders FOR UPDATE TO anon USING (true) WITH CHECK (true);`);
-        }
-    } catch(e) { console.error('Diagnostic error:', e); }
+        console.log('UPDATE via REST PATCH:', restRes.ok ? (restData?.length ? '✅ OK' : '⚠️ 0 rows') : '❌ ' + restRes.status, restData);
+    } catch (e) { console.error('Diagnostic error:', e); }
     console.groupEnd();
 };
 console.log('💡 Run diagnoseSupabaseRLS() in console to check RLS permissions');
@@ -80,44 +61,90 @@ function updateNetworkStatus(status, details = '') {
 /* ============================================================
    2. GLOBAL STATE
    ============================================================ */
-let products            = [];
-let cart                = [];
-let currentView         = 'home';
-let wishlist            = [];
-let ordersDb            = [];
-let currentUser         = null;
-let globalSortOrder     = 'default';
+let products             = [];
+let cart                 = [];
+let currentView          = 'home';
+let wishlist             = [];
+let ordersDb             = [];
+let currentUser          = null;
+let globalSortOrder      = 'default';
 let currentCategoryFilter = null;
-let currentSubFilter    = null;
+let currentSubFilter     = null;
 let currentCheckoutItems = [];
-let viewingProductId    = null;
-let selectedSize        = 'M';
-let currentCheckoutStep = 1;
+let viewingProductId     = null;
+let selectedSize         = 'M';
+let currentCheckoutStep  = 1;
 let selectedPaymentMethod = 'upi';
-let addressFormData     = {};
+let addressFormData      = {};
 let quickSizeModalProduct = null;
-let quickSelectedSize   = null;
-let realtimeChannel     = null;
+let quickSelectedSize    = null;
+let realtimeChannel      = null;
 let currentTrackingOrder = null;
-let currentRating       = 5;
-let deferredPrompt      = null;
+let currentRating        = 5;
+let deferredPrompt       = null;
+let walletBalance        = 0;
 
-/* Exchange flow */
-let isExchangeProcess   = false;
-let exchangeSourceOrder = null;
-let exchangeOldPrice    = 0;
-
-/* Cancel flow */
+let isExchangeProcess    = false;
+let exchangeSourceOrder  = null;
+let exchangeOldPrice     = 0;
 let _pendingCancelOrderId = null;
 
 /* ============================================================
    3. CONSTANTS
    ============================================================ */
 const CATEGORIES = [
-    { id: 'men',    name: 'Men',    icon: 'fa-male',        subs: ['Shirts','Oversized Shirts','Printed T-Shirts','Polo T-Shirts','Hoodies & Sweatshirts','Denim Jackets','Baggy Jeans','Formal Pant','Cargo Pants','Shorts','Sneakers','Watches & Accessories'] },
-    { id: 'women',  name: 'Women',  icon: 'fa-female',      subs: ['Tops & Crop Tops','Dresses & Gowns','Kurtis & Ethnic','Oversized Tees','Hoodies & Jackets','Wide Leg Jeans','Cargo & Parachute','Skirts','Heels & Flats','Sneakers','Bags & Jewelry'] },
-    { id: 'combos', name: 'Combos', icon: 'fa-layer-group', subs: ['Streetwear Set','Date Night Fit','Gym & Activewear','Airport Look','Vacation Combo','Couple Matching Outfits','Winter Layering Set','Party Ready Combo','Festival Special','Shirt Pant'] }
+    {
+        id: 'men', name: 'Men', icon: 'fa-male',
+        subs: ['T-Shirts','Casual Shirts','Formal Shirts','Oversized Tees','Oversized Shirts','Hoodies',
+               'Baggy Jeans','Straight Fit Jeans','Slim Fit Jeans','Cotton Trousers','Joggers','Cargo Pants',
+               'Sneakers','Formal Shoes','Sports Shoes','Sandals','Slippers',
+               'Watches','Earbuds','Wallets','Sunglasses','Belts',
+               'Formal Combo (Shirt+Trouser+Belt+Tie)','Casual Combo (Tee+Baggy Jeans+Locket)',
+               'Streetwear Combo (Oversized Tee+Cargo+Chain)','Tracksuit (Full Upper & Lower)'],
+        groups: [
+            { label: '👕 Topwear',     items: ['T-Shirts','Casual Shirts','Formal Shirts','Oversized Tees','Oversized Shirts','Hoodies'] },
+            { label: '👖 Bottomwear',  items: ['Baggy Jeans','Straight Fit Jeans','Slim Fit Jeans','Cotton Trousers','Joggers','Cargo Pants'] },
+            { label: '👟 Footwear',    items: ['Sneakers','Formal Shoes','Sports Shoes','Sandals','Slippers'] },
+            { label: '⌚ Accessories', items: ['Watches','Earbuds','Wallets','Sunglasses','Belts'] },
+            { label: '🎁 Full Combos', items: ['Formal Combo (Shirt+Trouser+Belt+Tie)','Casual Combo (Tee+Baggy Jeans+Locket)','Streetwear Combo (Oversized Tee+Cargo+Chain)','Tracksuit (Full Upper & Lower)'] },
+        ]
+    },
+    {
+        id: 'women', name: 'Women', icon: 'fa-female',
+        subs: ['Sarees','Kurtis','Salwar Suits','Lehengas',
+               'Tops','Straight Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts',
+               'Heels','Flats','Sandals','Sneakers','Wedges',
+               'Jewellery Sets','Earrings','Bangles','Handbags','Sunglasses','Watches',
+               'Necklace Sets',
+               'Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)',
+               'Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)'],
+        groups: [
+            { label: '🥻 Ethnic',      items: ['Sarees','Kurtis','Salwar Suits','Lehengas'] },
+            { label: '👗 Western',     items: ['Tops','Straight Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts'] },
+            { label: '👠 Footwear',    items: ['Heels','Flats','Sandals','Sneakers','Wedges'] },
+            { label: '💍 Jewellery',   items: ['Necklace Sets','Earrings','Bangles'] },
+            { label: '👜 Accessories', items: ['Jewellery Sets','Handbags','Sunglasses','Watches'] },
+            { label: '🎁 Full Combos', items: ['Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)','Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)'] },
+        ]
+    },
+    {
+        id: 'kids', name: 'Kids', icon: 'fa-child',
+        subs: ['Baba Suits','Frocks','Kids Denim','Ethnic Sets',
+               'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)'],
+        groups: [
+            { label: '👶 Boys & Girls', items: ['Baba Suits','Frocks','Kids Denim','Ethnic Sets'] },
+            { label: '🎁 Full Combos',  items: ['Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)'] },
+        ]
+    },
 ];
+
+const COMBO_SUBS = new Set([
+    'Formal Combo (Shirt+Trouser+Belt+Tie)','Casual Combo (Tee+Baggy Jeans+Locket)',
+    'Streetwear Combo (Oversized Tee+Cargo+Chain)','Tracksuit (Full Upper & Lower)',
+    'Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)',
+    'Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)',
+    'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)',
+]);
 
 const STATUS_MAP = {
     'Processing':          ['ordered'],
@@ -152,20 +179,34 @@ const STATUS_BADGE = {
    4. DOM READY — INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            setTimeout(() => {
+                splash.style.transform = 'translateY(-100%)';
+                splash.style.opacity = '0';
+                document.body.style.overflow = '';
+                setTimeout(() => splash.remove(), 700);
+            }, 2500);
+            document.body.style.overflow = 'hidden';
+        }
+    } catch (e) { console.error('[splash]', e); }
+
     initCart();
 
-    /* Restore session from localStorage, then always re-fetch from Supabase */
     const saved = localStorage.getItem('outfitkart_session');
     if (saved) {
         try {
             currentUser = JSON.parse(saved);
-            await fetchUserData();   // hydrates from Supabase, not localStorage
+            await fetchUserData();
         } catch (e) {
             localStorage.removeItem('outfitkart_session');
             currentUser = null;
         }
     }
 
+    /* FIX: call toggleProductMode only after DOM is ready */
+    toggleProductMode('auto');
     updateDropdownSubs('ap-category', 'ap-sub');
     renderCategoryBubbles();
     renderProductGrid('trending-grid', [], true);
@@ -174,6 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const pid = new URLSearchParams(window.location.search).get('pid');
     if (pid) openProductPage(parseInt(pid));
+    _setOgTags();
 });
 
 /* ============================================================
@@ -225,7 +267,7 @@ function removeFromCart(productId, size) {
 
 function updateCartCount() {
     const total = cart.reduce((s, i) => s + i.qty, 0);
-    ['cart-count','mobile-cart-badge','tab-cart-count'].forEach(id => {
+    ['cart-count', 'mobile-cart-badge', 'tab-cart-count'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = total;
     });
@@ -285,9 +327,9 @@ function renderCart() {
 }
 
 function toggleCart() {
-    const sidebar  = document.getElementById('cart-sidebar');
-    const overlay  = document.getElementById('cart-overlay');
-    const isOpen   = !sidebar.classList.contains('translate-x-full');
+    const sidebar = document.getElementById('cart-sidebar');
+    const overlay = document.getElementById('cart-overlay');
+    const isOpen  = !sidebar.classList.contains('translate-x-full');
     if (isOpen) {
         sidebar.classList.add('translate-x-full');
         overlay.classList.add('hidden');
@@ -373,39 +415,53 @@ async function fetchProducts(retry = 0) {
 function updateProductCountBadge(count, status = 'live') {
     const el = document.getElementById('products-count');
     if (!el) return;
-    if      (status === 'error') { el.textContent = '!'; el.className = 'absolute -top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
-    else if (status === 'empty') { el.textContent = '0'; el.className = 'absolute -top-1 right-1 bg-gray-400 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
-    else                         { el.textContent = count > 99 ? '99+' : count; el.className = 'absolute -top-1 right-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
+    if (status === 'error')       { el.textContent = '!'; el.className = 'absolute -top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
+    else if (status === 'empty')  { el.textContent = '0'; el.className = 'absolute -top-1 right-1 bg-gray-400 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
+    else                          { el.textContent = count > 99 ? '99+' : count; el.className = 'absolute -top-1 right-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm'; }
 }
 
 function createProductCard(p) {
-    const inWishlist  = wishlist.includes(p.id);
-    const img         = p.imgs?.[0] || p.img || 'https://placehold.co/300x400/eee/333?text=No+Image';
-    const hasDiscount = p.oldprice && p.oldprice > p.price;
-    const discPct     = hasDiscount ? Math.round(((p.oldprice - p.price) / p.oldprice) * 100) : 0;
-    const sizes       = p.available_sizes || getDefaultSizes(p.sub || p.category);
-    return `
-      <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden relative flex flex-col group cursor-pointer" onclick="openProductPage(${p.id})">
-        <button class="absolute top-2 right-2 z-20 ${inWishlist ? 'text-rose-500 scale-110' : 'text-gray-400'} hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all"
+    try {
+        const inWishlist  = wishlist.includes(p.id);
+        const img         = p.imgs?.[0] || p.img || 'https://placehold.co/300x400/e11d48/ffffff?text=OutfitKart';
+        const hasDiscount = p.oldprice && p.oldprice > p.price;
+        const discPct     = hasDiscount ? Math.round(((p.oldprice - p.price) / p.oldprice) * 100) : 0;
+        const sizes       = p.available_sizes || getDefaultSizes(p.sub || p.category);
+        const isCombo     = COMBO_SUBS.has(p.sub || '');
+        const priceStr    = p.price?.toLocaleString('en-IN') || p.price;
+        return `
+      <div class="product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative flex flex-col cursor-pointer hover:shadow-md transition-shadow" onclick="openProductPage(${p.id})">
+        <button class="absolute top-2 right-2 z-20 ${inWishlist ? 'text-rose-500 scale-110' : 'text-gray-300'} hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow border transition-all"
           onclick="event.stopPropagation(); toggleWishlist(${p.id})">
           <i class="${inWishlist ? 'fas' : 'far'} fa-heart text-sm"></i>
         </button>
-        <button class="absolute top-12 right-2 z-20 text-gray-600 hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow-lg border hover:shadow-xl transition-all"
+        <button class="absolute top-12 right-2 z-20 text-gray-400 hover:text-rose-600 bg-white/90 backdrop-blur-sm rounded-full w-9 h-9 flex items-center justify-center shadow border transition-all"
           onclick="event.stopPropagation(); showQuickSizeModal(${p.id})">
           <i class="fas fa-cart-plus text-sm"></i>
         </button>
-        <img src="${img}" loading="lazy" class="w-full h-48 md:h-56 object-cover group-hover:scale-[1.02] transition-transform duration-300" alt="${p.name}">
-        <div class="p-4 flex flex-col flex-grow">
-          ${p.brand ? `<div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">${p.brand}</div>` : ''}
-          <h4 class="text-sm font-semibold leading-tight line-clamp-2 min-h-[2.5rem] text-gray-900">${p.name}</h4>
-          ${sizes.length ? `<p class="text-xs text-blue-600 mb-2 font-medium">Sizes: ${sizes.slice(0,3).join(', ')}${sizes.length > 3 ? '…' : ''}</p>` : ''}
-          <div class="mt-auto flex items-baseline gap-2 pt-2 border-t">
-            <span class="font-black text-lg text-gray-900">₹${p.price}</span>
-            ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">₹${p.oldprice}</span>` : ''}
-            ${hasDiscount ? `<span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">${discPct}% OFF</span>` : ''}
+        ${hasDiscount ? `<div class="absolute top-2 left-2 z-20 bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md">${discPct}% OFF</div>` : ''}
+        ${isCombo ? '<div class="absolute z-20 bg-amber-400 text-gray-900 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide shadow-md" style="bottom:76px;left:8px">🎁 Full Combo</div>' : ''}
+        <div class="overflow-hidden bg-gray-50">
+          <img src="${img}" loading="lazy" class="w-full h-48 md:h-52 object-cover hover:scale-[1.05] transition-transform duration-500"
+               alt="${p.name}" onerror="this.src='https://placehold.co/300x400/f8fafc/94a3b8?text=OutfitKart'">
+        </div>
+        <div class="p-3 flex flex-col flex-grow">
+          ${p.brand ? `<div class="text-[10px] font-black text-rose-500 uppercase tracking-wider mb-0.5">${p.brand}</div>` : ''}
+          <h4 class="text-sm font-semibold leading-snug line-clamp-2 text-gray-900 mb-1" style="min-height:2.4rem">${p.name}</h4>
+          ${sizes.length ? `<p class="text-[10px] text-blue-500 font-semibold mb-1">Sizes: ${sizes.slice(0,3).join(' · ')}${sizes.length > 3 ? ' +more' : ''}</p>` : ''}
+          <div class="mt-auto pt-2 border-t border-gray-100">
+            <div class="flex items-baseline gap-1.5 mb-1.5">
+              <span class="font-black text-base text-gray-900">₹${priceStr}</span>
+              ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">₹${p.oldprice}</span>` : ''}
+              ${hasDiscount ? `<span class="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">${discPct}% off</span>` : ''}
+            </div>
+            <span class="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <i class="fas fa-truck text-[8px]"></i> Cash on Delivery
+            </span>
           </div>
         </div>
       </div>`;
+    } catch (e) { console.error('[createProductCard]', e); return ''; }
 }
 
 function renderProductGrid(containerId, list, loading = false) {
@@ -423,25 +479,44 @@ function renderProductGrid(containerId, list, loading = false) {
 }
 
 function renderCategoryBubbles() {
-    document.getElementById('category-bubbles').innerHTML = CATEGORIES.map(c =>
-        `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[80px]" onclick="navigate('shop','${c.name}')">
-           <div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border"><i class="fas ${c.icon}"></i></div>
-           <span class="text-xs font-semibold text-gray-700">${c.name}</span>
-         </div>`
-    ).join('');
+    try {
+        document.getElementById('category-bubbles').innerHTML = CATEGORIES.map(c =>
+            `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px]" onclick="navigate('shop','${c.name}')">
+               <div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border border-rose-100 hover:bg-rose-100 hover:scale-105 transition-all shadow-sm">
+                 <i class="fas ${c.icon}"></i>
+               </div>
+               <span class="text-xs font-semibold text-gray-700">${c.name}</span>
+             </div>`
+        ).join('');
+    } catch (e) { console.error('[renderCategoryBubbles]', e); }
 }
 
 function renderShopSubcategories() {
-    const el = document.getElementById('subcategory-filters');
-    if (!el) return;
-    if (!currentCategoryFilter) { el.innerHTML = ''; return; }
-    const cData = CATEGORIES.find(c => c.name === currentCategoryFilter);
-    if (!cData) return;
-    el.innerHTML =
-        `<button class="px-3 py-1 text-xs border rounded-full whitespace-nowrap ${!currentSubFilter ? 'bg-rose-600 text-white' : 'bg-white text-gray-600'}" onclick="filterSub(null)">All</button>` +
-        cData.subs.map(s =>
-            `<button class="px-3 py-1 text-xs border rounded-full whitespace-nowrap ${currentSubFilter === s ? 'bg-rose-600 text-white' : 'bg-white text-gray-600'}" onclick="filterSub('${s}')">${s}</button>`
-        ).join('');
+    try {
+        const el = document.getElementById('subcategory-filters'); if (!el) return;
+        if (!currentCategoryFilter) { el.innerHTML = ''; return; }
+        const cData = CATEGORIES.find(c => c.name === currentCategoryFilter); if (!cData) return;
+
+        let html = `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${!currentSubFilter ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'}" onclick="filterSub(null)">All</button>`;
+
+        if (cData.groups) {
+            cData.groups.forEach(group => {
+                html += `<span class="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center ml-2 mr-0.5 whitespace-nowrap">${group.label}</span>`;
+                html += group.items.map(s => {
+                    const isCombo = COMBO_SUBS.has(s);
+                    const active  = currentSubFilter === s;
+                    const safe    = s.replace(/'/g, "\\'");
+                    return `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${active ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'} ${isCombo ? 'ring-1 ring-yellow-400 ring-offset-1' : ''}" onclick="filterSub('${safe}')">${isCombo ? '🎁 ' : ''}${s}</button>`;
+                }).join('');
+            });
+        } else {
+            html += cData.subs.map(s => {
+                const safe = s.replace(/'/g, "\\'");
+                return `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap ${currentSubFilter === s ? 'bg-rose-600 text-white' : 'bg-white text-gray-600'}" onclick="filterSub('${safe}')">${s}</button>`;
+            }).join('');
+        }
+        el.innerHTML = html;
+    } catch (e) { console.error('[renderShopSubcategories]', e); }
 }
 
 function filterSub(sub) { currentSubFilter = sub; renderShopSubcategories(); renderShopProducts(); }
@@ -462,7 +537,7 @@ function shopSortProducts(val) { globalSortOrder = val; renderShopProducts(); }
 
 function sortProducts(val) {
     globalSortOrder = val;
-    ['price-sort-desktop','price-sort-mobile'].forEach(id => {
+    ['price-sort-desktop', 'price-sort-mobile'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = val;
     });
@@ -490,7 +565,7 @@ function handleSearch(q) {
               <img src="${img}" class="w-10 h-10 rounded object-cover" loading="lazy">
               <div><div class="text-sm font-semibold">${p.name}</div><div class="text-xs text-gray-500">₹${p.price}</div></div>
             </div>`;
-          }).join('')
+        }).join('')
         : '<div class="p-3 text-sm text-gray-500">No results found</div>';
     [dRes, mRes].forEach(el => { if (el) { el.innerHTML = html; el.classList.remove('hidden'); } });
 }
@@ -550,7 +625,7 @@ function navigate(view, cat = null) {
 }
 
 function updateBottomNav() {
-    const views = ['home','shop','cart','profile'];
+    const views = ['home', 'shop', 'cart', 'profile'];
     document.querySelectorAll('nav div').forEach((item, i) => {
         item.style.color = currentView === views[i] ? '#e11d48' : '#6b7280';
     });
@@ -578,9 +653,9 @@ function checkAuthUI() {
         const set = (id, val) => {
             const el = document.getElementById(id);
             if (!el) return;
-            el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ? el.value = val : el.innerText = val;
+            (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') ? el.value = val : el.innerText = val;
         };
-        set('user-greeting',       currentUser.name || 'User');
+        set('user-greeting',       currentUser.name    || 'User');
         set('user-mobile-display', `+91 ${currentUser.mobile}`);
         set('prof-name',           currentUser.name    || '');
         set('prof-email',          currentUser.email   || '');
@@ -588,7 +663,7 @@ function checkAuthUI() {
         set('prof-wallet',         `₹${currentUser.wallet || 0}`);
         const avatar = document.getElementById('user-avatar-img');
         if (avatar) avatar.src = currentUser.profile_pic ||
-            `https://placehold.co/100x100/e11d48/ffffff?text=${(currentUser.name||'U').charAt(0).toUpperCase()}`;
+            `https://placehold.co/100x100/e11d48/ffffff?text=${(currentUser.name || 'U').charAt(0).toUpperCase()}`;
         if (navText) navText.innerText = (currentUser.name || 'User').split(' ')[0];
     } else {
         authForms?.classList.remove('hidden');
@@ -610,7 +685,7 @@ async function handleSignup(e) {
     const name   = document.getElementById('signup-name').value.trim();
     const pass   = document.getElementById('signup-password').value;
     if (mobile.length !== 10) return showToast('Enter valid 10-digit mobile number');
-    if (!name)                 return showToast('Enter your full name');
+    if (!name) return showToast('Enter your full name');
     try {
         const { data: exist } = await dbClient.from('users').select('mobile').eq('mobile', mobile).maybeSingle();
         if (exist) return showToast('Mobile already registered! Please login. 📱');
@@ -657,7 +732,7 @@ async function changePassword() {
     const oldP = document.getElementById('sec-old-pass').value;
     const newP = document.getElementById('sec-new-pass').value;
     if (oldP !== currentUser.password) return showToast('Incorrect Current Password');
-    if (newP.length < 6)               return showToast('New password must be at least 6 characters');
+    if (newP.length < 6) return showToast('New password must be at least 6 characters');
     try {
         const { data } = await dbClient.from('users').update({ password: newP }).eq('mobile', currentUser.mobile).select().single();
         if (data) {
@@ -699,25 +774,25 @@ function handleLogout() {
 }
 
 /* ============================================================
-   11. FETCH USER DATA — always from Supabase, never localStorage
+   11. FETCH USER DATA
    ============================================================ */
 async function fetchUserData() {
     if (!currentUser) return;
-
-    // Always fetch fresh user data from Supabase
     try {
         const { data: freshUser } = await dbClient.from('users').select('*').eq('mobile', currentUser.mobile).maybeSingle();
-        if (freshUser) { currentUser = freshUser; localStorage.setItem('outfitkart_session', JSON.stringify(freshUser)); }
+        if (freshUser) {
+            currentUser   = freshUser;
+            walletBalance = freshUser.wallet || 0;
+            localStorage.setItem('outfitkart_session', JSON.stringify(freshUser));
+        }
     } catch (e) { console.error('[fetchUserData] user error:', e); }
 
-    // Always fetch wishlist from Supabase
     try {
         const { data: wData } = await dbClient.from('wishlist').select('*').eq('mobile', currentUser.mobile);
         wishlist = wData ? wData.map(w => w.product_id) : [];
         updateWishlistCount();
     } catch (e) { console.error('[fetchUserData] wishlist error:', e); }
 
-    // Always fetch orders from Supabase
     try {
         const { data: oData } = await dbClient.from('orders').select('*').eq('mobile', currentUser.mobile).order('date', { ascending: false });
         ordersDb = oData || [];
@@ -766,9 +841,9 @@ async function openProductPage(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
     viewingProductId = p.id;
-    const sizeArray  = p.available_sizes?.length ? p.available_sizes : getDefaultSizes(p.sub || p.category);
-    selectedSize     = sizeArray[1] || sizeArray[0];
-    const imgList    = p.imgs?.length ? p.imgs : (p.img ? [p.img] : ['https://placehold.co/600x420/eee/333?text=No+Image']);
+    const sizeArray = p.available_sizes?.length ? p.available_sizes : getDefaultSizes(p.sub || p.category);
+    selectedSize    = sizeArray[1] || sizeArray[0];
+    const imgList   = p.imgs?.length ? p.imgs : (p.img ? [p.img] : ['https://placehold.co/600x420/eee/333?text=No+Image']);
 
     let sliderHtml;
     if (imgList.length === 1) {
@@ -777,10 +852,10 @@ async function openProductPage(id) {
         sliderHtml = `
           <div>
             <div class="pdp-img-slider hide-scrollbar" id="pdp-slider-${id}">
-              ${imgList.map((src, i) => `<img src="${src}" alt="${p.name} ${i+1}" data-index="${i}">`).join('')}
+              ${imgList.map((src, i) => `<img src="${src}" alt="${p.name} ${i + 1}" data-index="${i}">`).join('')}
             </div>
             <div class="pdp-thumb-strip mt-2" id="pdp-thumbs-${id}">
-              ${imgList.map((src, i) => `<img src="${src}" alt="thumb ${i+1}" class="pdp-thumb ${i===0?'active':''}" data-index="${i}" onclick="pdpScrollToSlide(${i})">`).join('')}
+              ${imgList.map((src, i) => `<img src="${src}" alt="thumb ${i + 1}" class="pdp-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="pdpScrollToSlide(${i})">`).join('')}
             </div>
           </div>`;
     }
@@ -792,7 +867,7 @@ async function openProductPage(id) {
         ${p.stock_qty ? `<div class="text-xs text-green-600 font-semibold mb-2">📦 Stock: ${p.stock_qty} available</div>` : ''}
         <div class="flex justify-between items-start mb-2">
           <h1 class="text-3xl font-black text-gray-800">${p.name}</h1>
-          <button onclick="nativeShareProduct(${p.id},'${p.name.replace(/'/g,"\\'")}',${p.price})"
+          <button onclick="nativeShareProduct(${p.id},'${p.name.replace(/'/g, "\\'")}',${p.price})"
             class="bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-sm">
             <i class="fas fa-share-alt"></i>
           </button>
@@ -805,7 +880,7 @@ async function openProductPage(id) {
         <div class="mb-6">
           <div class="font-bold text-sm mb-2">Select Size</div>
           <div class="flex flex-wrap gap-3" id="size-selector">
-            ${sizeArray.map(s => `<button onclick="selectSize('${s}')" class="size-btn ${s===selectedSize?'selected':''} w-fit px-4 py-2 min-w-[3rem] rounded-full border border-gray-300 font-bold transition-colors">${s}</button>`).join('')}
+            ${sizeArray.map(s => `<button onclick="selectSize('${s}')" class="size-btn ${s === selectedSize ? 'selected' : ''} w-fit px-4 py-2 min-w-[3rem] rounded-full border border-gray-300 font-bold transition-colors">${s}</button>`).join('')}
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mt-auto">
@@ -868,10 +943,7 @@ function renderRecommendedProducts(category, excludeId) {
     const section = document.getElementById('recommended-section');
     const gridEl  = document.getElementById('recommended-products-grid');
     const recs = products.filter(p => p.category === category && p.id !== excludeId).slice(0, 8);
-    if (recs.length === 0) {
-        if (section) section.style.display = 'none';
-        return;
-    }
+    if (recs.length === 0) { if (section) section.style.display = 'none'; return; }
     if (section) section.style.display = '';
     if (gridEl)  gridEl.innerHTML = recs.map(p => createProductCard(p)).join('');
 }
@@ -891,7 +963,7 @@ async function loadReviews(prodId) {
                     <span class="text-xs text-gray-400">${r.date}</span>
                   </div>
                   <div class="text-yellow-400 text-xs mb-1">
-                    ${'<i class="fas fa-star"></i>'.repeat(r.rating)}${'<i class="far fa-star"></i>'.repeat(5-r.rating)}
+                    ${'<i class="fas fa-star"></i>'.repeat(r.rating)}${'<i class="far fa-star"></i>'.repeat(5 - r.rating)}
                   </div>
                   <p class="text-sm text-gray-600">${r.comment}</p>
                 </div>`).join('')
@@ -925,8 +997,8 @@ async function submitReview() {
    15. CHECKOUT
    ============================================================ */
 function proceedToCheckout() {
-    if (cart.length === 0)   return showToast('Cart is empty!');
-    if (!currentUser)        { showToast('Please Login to continue!'); toggleCart(); navigate('profile'); return; }
+    if (cart.length === 0) return showToast('Cart is empty!');
+    if (!currentUser) { showToast('Please Login to continue!'); toggleCart(); navigate('profile'); return; }
     toggleCart();
     currentCheckoutItems = cart.map(c => {
         const p = products.find(x => x.id === c.productId);
@@ -950,7 +1022,7 @@ function renderCheckoutStep() {
     if (!s1 || !s2 || !s3) return;
 
     document.querySelectorAll('.progress-step').forEach((step, i) => {
-        const n = i + 1;
+        const n      = i + 1;
         const circle = step.querySelector('.step-circle');
         const label  = step.querySelector('span');
         if (n < currentCheckoutStep) {
@@ -972,10 +1044,10 @@ function renderCheckoutStep() {
     if (currentCheckoutStep >= 2 && addressFormData.fullname) {
         const nameStr = `${addressFormData.fullname} • +91 ${addressFormData.mobile}`;
         const addrStr = (addressFormData.fullAddress || '').replace(/\n/g, '<br>');
-        ['checkout-user-name','checkout-user-name-step3'].forEach(id => {
+        ['checkout-user-name', 'checkout-user-name-step3'].forEach(id => {
             const el = document.getElementById(id); if (el) el.textContent = nameStr;
         });
-        ['delivery-address-display','delivery-address-display-step3'].forEach(id => {
+        ['delivery-address-display', 'delivery-address-display-step3'].forEach(id => {
             const el = document.getElementById(id); if (el) el.innerHTML = addrStr;
         });
         updateCheckoutTotals();
@@ -1041,9 +1113,9 @@ function updateCheckoutTotals() {
     }
 
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    set('price-mrp',       `₹${mrpTotal.toLocaleString()}`);
-    set('price-discount',  `- ₹${discountTotal.toLocaleString()}`);
-    set('total-save',      discountTotal.toLocaleString());
+    set('price-mrp',         `₹${mrpTotal.toLocaleString()}`);
+    set('price-discount',    `- ₹${discountTotal.toLocaleString()}`);
+    set('total-save',        discountTotal.toLocaleString());
     set('final-total-step2', `₹${finalTotal.toLocaleString()}`);
     set('final-total-step3', `₹${finalTotal.toLocaleString()}`);
     set('place-order-amount', finalTotal.toLocaleString());
@@ -1065,9 +1137,6 @@ function updateCheckoutTotals() {
               </div>`;
         }).join('');
     }
-
-    const upiEl = document.getElementById('payment-upi');
-    if (upiEl) upiEl.checked = selectedPaymentMethod === 'upi';
 }
 
 function updatePaymentSelection(method) { selectedPaymentMethod = method; updateCheckoutTotals(); }
@@ -1124,8 +1193,8 @@ function useCurrentLocation() {
             const c    = document.getElementById('addr-city');
             const s    = document.getElementById('addr-state');
             const pin  = document.getElementById('addr-pincode');
-            if (c)   c.value   = a.city || a.town || a.village || a.district || '';
-            if (s)   s.value   = a.state || '';
+            if (c)             c.value = a.city || a.town || a.village || a.district || '';
+            if (s)             s.value = a.state || '';
             if (pin && a.postcode) pin.value = a.postcode;
             showToast('Location fetched! ✅');
         } catch { showToast('Could not fetch location details'); }
@@ -1136,24 +1205,21 @@ function useCurrentLocation() {
    16. PAYMENT & ORDER PLACEMENT
    ============================================================ */
 async function initiatePayment() {
-    if (!addressFormData.fullname)         { showToast('Please fill address first!'); goToStep(1); return; }
-    if (!currentCheckoutItems?.length)     { showToast('Cart is empty!'); return; }
+    if (!addressFormData.fullname)     { showToast('Please fill address first!'); goToStep(1); return; }
+    if (!currentCheckoutItems?.length) { showToast('Cart is empty!'); return; }
 
     const priceTotal  = currentCheckoutItems.reduce((t, i) => t + (i.price * i.qty), 0);
     const platformFee = 7;
     const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
 
-    /* ---- Exchange payment flow ---- */
     if (isExchangeProcess && exchangeOldPrice > 0) {
         const diff = priceTotal - exchangeOldPrice;
         if (diff > 0) {
-            /* User pays the extra */
             _openRazorpay(diff + platformFee + handlingFee, 'OutfitKart Exchange', async (payId) => {
                 showToast('Payment Successful! 🚀');
                 await placeOrder(payId);
             });
         } else if (diff < 0) {
-            /* We owe the user a refund */
             const upiId = document.getElementById('refund-upi-input')?.value.trim();
             if (!upiId) return showToast('Please enter your UPI ID for refund');
             await placeOrder(`EXCHANGE-REFUND-${exchangeSourceOrder.id}`, upiId);
@@ -1163,9 +1229,12 @@ async function initiatePayment() {
         return;
     }
 
-    /* ---- Normal payment ---- */
     const finalAmount = priceTotal + platformFee + handlingFee;
-    if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
+    if (selectedPaymentMethod === 'wallet') {
+        if (walletBalance < finalAmount) { showToast(`❌ Wallet balance ₹${walletBalance} is insufficient. Need ₹${finalAmount}`); return; }
+        showToast('💰 Paying via Wallet...');
+        await placeOrder('WALLET-PAY');
+    } else if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
         _openRazorpay(finalAmount, 'OutfitKart Premium Fashion', async (payId) => {
             showToast('Payment Successful! 🚀');
             await placeOrder(payId);
@@ -1201,51 +1270,61 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
 
     if (isExchangeProcess && exchangeOldPrice > 0) {
         const diff = subtotal - exchangeOldPrice;
-        if (diff > 0)       finalTotal = diff + 7 + handlingFee;
-        else if (diff < 0)  finalTotal = 0;
-        else                finalTotal = 7;
+        if (diff > 0)      finalTotal = diff + 7 + handlingFee;
+        else if (diff < 0) finalTotal = 0;
+        else               finalTotal = 7;
     }
 
-    const itemsToSave = currentCheckoutItems.map(i => ({
-        id:    i.id,
-        name:  i.name,
-        img:   i.imgs?.[0] || i.img || '',
-        qty:   i.qty,
-        price: i.price,
-        size:  i.size || 'M'
-    }));
+    if (selectedPaymentMethod === 'wallet') {
+        if (walletBalance < finalTotal) { showToast(`❌ Wallet balance ₹${walletBalance} is less than order total ₹${finalTotal}`); return; }
+        txId = 'WALLET-PAY';
+    }
+
+    const orderMarginTotal = currentCheckoutItems.reduce((sum, i) => {
+        const prod = products.find(p => p.id === i.id);
+        return sum + ((prod?.margin_amt || 0) * i.qty);
+    }, 0);
+
+    const itemsToSave = currentCheckoutItems.map(i => {
+        const prod = products.find(p => p.id === i.id);
+        return { id: i.id, name: i.name, img: i.imgs?.[0] || i.img || '', qty: i.qty, price: i.price, size: i.size || 'M', margin_amt: prod?.margin_amt || 0 };
+    });
 
     const orderId = 'ORD' + Math.floor(Math.random() * 1000000);
     const newOrder = {
-        id:            orderId,
-        mobile:        currentUser.mobile,
-        customer_name: addressFormData.fullname || currentUser.name || '',
-        items:         itemsToSave,
-        total:         finalTotal,
-        paymentmode:   selectedPaymentMethod.toUpperCase(),
-        status:        'Processing',
+        id:             orderId,
+        mobile:         currentUser.mobile,
+        customer_name:  addressFormData.fullname || currentUser.name || '',
+        items:          itemsToSave,
+        total:          finalTotal,
+        margin_total:   orderMarginTotal,
+        paymentmode:    selectedPaymentMethod.toUpperCase(),
+        status:         'Processing',
         transaction_id: txId,
-        date:          new Date().toLocaleDateString('en-IN'),
-        address:       addressFormData.fullAddress || '',
-        pincode:       addressFormData.pincode || '',
-        city:          addressFormData.city  || '',
-        state:         addressFormData.state || '',
-        notes:         isExchangeProcess ? `EXCHANGE of #${exchangeSourceOrder?.id || ''}` : '',
-        refund_upi:    refundUpiId || null,
+        date:           new Date().toLocaleDateString('en-IN'),
+        address:        addressFormData.fullAddress || '',
+        pincode:        addressFormData.pincode || '',
+        city:           addressFormData.city  || '',
+        state:          addressFormData.state || '',
+        notes:          isExchangeProcess ? `EXCHANGE of #${exchangeSourceOrder?.id || ''}` : '',
+        refund_upi:     refundUpiId || null,
     };
 
     try {
         const { data: savedOrder, error } = await dbClient.from('orders').insert([newOrder]).select().single();
         if (error) throw error;
 
-        /* If exchange: mark the old order as Exchanged */
+        if (selectedPaymentMethod === 'wallet' && currentUser) {
+            const newBal = walletBalance - finalTotal;
+            walletBalance = newBal;
+            await _updateWalletBalance(newBal);
+        }
+
         if (isExchangeProcess && exchangeSourceOrder) {
             try {
-                const { data: exchRows } = await dbClient
-                    .from('orders')
+                const { data: exchRows } = await dbClient.from('orders')
                     .update({ status: 'Exchanged', notes: `Exchanged → New Order: ${orderId}` })
-                    .eq('id', String(exchangeSourceOrder.id))
-                    .select();
+                    .eq('id', String(exchangeSourceOrder.id)).select();
                 if (exchRows?.length) {
                     const idx = ordersDb.findIndex(o => String(o.id) === String(exchangeSourceOrder.id));
                     if (idx > -1) ordersDb[idx] = { ...ordersDb[idx], ...exchRows[0] };
@@ -1259,7 +1338,7 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
 
         const modal = document.getElementById('order-success-modal');
         const idEl  = document.getElementById('success-order-id');
-        if (idEl)   idEl.innerText = orderId;
+        if (idEl)  idEl.innerText = orderId;
         if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
 
     } catch (err) {
@@ -1268,11 +1347,27 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
     }
 }
 
+async function _updateWalletBalance(newBalance) {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
+            body: JSON.stringify({ wallet: newBalance })
+        });
+        if (res.ok) {
+            if (currentUser) currentUser.wallet = newBalance;
+            localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+            const walletEl = document.getElementById('prof-wallet');
+            if (walletEl) walletEl.textContent = `₹${newBalance}`;
+        }
+    } catch (e) { console.error('[_updateWalletBalance]', e); }
+}
+
 function closeSuccessModal() {
     const m = document.getElementById('order-success-modal');
     m?.classList.add('hidden'); m?.classList.remove('flex');
 }
-function closeSuccessAndGoToOrders() { closeSuccessModal(); navigate('profile','orders'); }
+function closeSuccessAndGoToOrders() { closeSuccessModal(); navigate('profile', 'orders'); }
 function closeCancelModal() {
     const m = document.getElementById('order-cancel-modal');
     m?.classList.add('hidden'); m?.classList.remove('flex');
@@ -1280,17 +1375,15 @@ function closeCancelModal() {
 
 /* ============================================================
    17. CANCEL ORDER
-   Critical fix: remove .single() from all .update() calls → use .select()
-   Ensure orderId is always a clean string before querying.
    ============================================================ */
 async function cancelOrder(orderId) {
     orderId = String(orderId || '').trim();
-    if (!orderId) { console.error('[cancelOrder] orderId is empty'); showToast('❌ Invalid order'); return; }
+    if (!orderId) { showToast('❌ Invalid order'); return; }
     if (!confirm(`Cancel order #${orderId}? This cannot be undone.`)) return;
 
     const order = ordersDb.find(o => String(o.id) === orderId);
-    if (!order)                          return showToast('Order not found.');
-    if (order.status !== 'Processing')   return showToast('Only Processing orders can be cancelled.');
+    if (!order)                        return showToast('Order not found.');
+    if (order.status !== 'Processing') return showToast('Only Processing orders can be cancelled.');
 
     const paymode = (order.paymentmode || '').toUpperCase();
     if (paymode === 'UPI' || paymode === 'CARD') {
@@ -1319,12 +1412,9 @@ async function finaliseCancelWithRefund() {
     await _executeCancelOrder(oid, upiId);
 }
 
-/* ============================================================
-   _executeCancelOrder — Direct REST PATCH (bypasses RLS silent-fail)
-   ============================================================ */
 async function _executeCancelOrder(orderId, refundUpiId) {
     orderId = String(orderId || '').trim();
-    if (!orderId) { console.error('[_executeCancelOrder] orderId undefined'); showToast('❌ Invalid order'); return; }
+    if (!orderId) { showToast('❌ Invalid order'); return; }
 
     const order = ordersDb.find(o => String(o.id) === orderId);
     if (!order) return showToast('Order not found.');
@@ -1335,52 +1425,43 @@ async function _executeCancelOrder(orderId, refundUpiId) {
         const payload = { status: 'Cancelled' };
         if (refundUpiId) payload.refund_upi = refundUpiId;
 
-        /* Direct REST PATCH — bypasses JS client RLS silent-fail */
         const restUrl = `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`;
         const res = await fetch(restUrl, {
-            method:  'PATCH',
-            headers: {
-                'Content-Type':  'application/json',
-                'apikey':        SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Prefer':        'return=representation'
-            },
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errText}`);
-        }
+        if (!res.ok) { const errText = await res.text(); throw new Error(`HTTP ${res.status}: ${errText}`); }
 
         const rows = await res.json();
-        console.log('[_executeCancelOrder] REST PATCH result:', rows);
-
         let updated;
         if (rows && rows.length > 0) {
             updated = rows[0];
         } else {
-            /* Fallback: supabase-js */
-            console.warn('[_executeCancelOrder] REST returned 0 rows — possible RLS block. Trying supabase-js...');
-            const { data: rows2, error: err2 } = await dbClient
-                .from('orders').update(payload).eq('id', orderId).select();
+            const { data: rows2, error: err2 } = await dbClient.from('orders').update(payload).eq('id', orderId).select();
             if (err2) throw new Error(err2.message);
             updated = rows2?.[0] || { ...order, ...payload };
-            if (!rows2?.length) {
-                showToast('⚠️ Update returned 0 rows. Go to Supabase → Authentication → Policies → orders table → Add UPDATE policy for anon role.');
-            }
         }
 
-        /* Update local cache */
         const idx = ordersDb.findIndex(o => String(o.id) === orderId);
         if (idx > -1) ordersDb[idx] = { ...ordersDb[idx], ...updated };
 
-        /* Show cancellation screen */
-        const paymode     = (order.paymentmode || '').toUpperCase();
+        const paymode = (order.paymentmode || '').toUpperCase();
+        if (paymode === 'WALLET' || paymode === 'WALLET-PAY') {
+            const newBal = walletBalance + order.total;
+            walletBalance = newBal;
+            await _updateWalletBalance(newBal);
+            showToast(`💰 ₹${order.total} refunded to your Wallet!`);
+        }
+
         const cancelModal = document.getElementById('order-cancel-modal');
         const refundEl    = document.getElementById('cancel-refund-msg');
         if (refundEl) {
-            if ((paymode === 'UPI' || paymode === 'CARD') && refundUpiId) {
+            if (paymode === 'WALLET' || paymode === 'WALLET-PAY') {
+                refundEl.textContent = `💰 ₹${order.total} has been added to your OutfitKart Wallet instantly!`;
+                refundEl.classList.remove('hidden');
+            } else if ((paymode === 'UPI' || paymode === 'CARD') && refundUpiId) {
                 refundEl.textContent = `💰 ₹${order.total} will be refunded to ${refundUpiId} within 24-48 hours.`;
                 refundEl.classList.remove('hidden');
             } else { refundEl.classList.add('hidden'); }
@@ -1404,8 +1485,8 @@ function startExchange(orderId) {
     const oldPrice = order.total || 0;
     const infoEl   = document.getElementById('exchange-confirm-info');
     if (infoEl) infoEl.textContent = `Order #${orderId} • Exchange Value: ₹${oldPrice}`;
-    window._pendingExchangeOrder      = order;
-    window._pendingExchangeOldPrice   = oldPrice;
+    window._pendingExchangeOrder    = order;
+    window._pendingExchangeOldPrice = oldPrice;
     const modal = document.getElementById('exchange-confirm-modal');
     modal?.classList.remove('hidden'); modal?.classList.add('flex');
 }
@@ -1502,46 +1583,32 @@ function promptAdminAccess() {
         navigate('admin');
         renderAdminProducts();
         showToast('Admin Unlocked 🔓');
-        /* Inject RLS fix button into admin panel */
         _injectRlsFixNotice();
     }
 }
 
 function _injectRlsFixNotice() {
-    const existing = document.getElementById('rls-fix-notice');
-    if (existing) return; /* already injected */
-    const adminHeader = document.querySelector('#view-admin .flex.justify-between');
-    if (!adminHeader) return;
+    if (document.getElementById('rls-fix-notice')) return;
+    const adminView = document.getElementById('view-admin');
+    const statsGrid = adminView?.querySelector('.grid.grid-cols-2');
+    if (!statsGrid) return;
     const notice = document.createElement('div');
     notice.id = 'rls-fix-notice';
     notice.className = 'mx-2 mb-3 mt-1 p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs';
     notice.innerHTML = `
         <p class="font-bold text-amber-800 mb-1">⚠️ If order status updates are not saving:</p>
-        <p class="text-amber-700 mb-2">Supabase RLS may be blocking UPDATE. Run this SQL in your <a href="https://supabase.com/dashboard" target="_blank" class="underline font-bold">Supabase SQL Editor</a>:</p>
-        <code class="block bg-white border border-amber-200 rounded p-2 font-mono text-[10px] select-all text-gray-800 mb-2 leading-relaxed">
-CREATE POLICY "allow_anon_update_orders"<br>
-ON public.orders FOR UPDATE TO anon<br>
-USING (true) WITH CHECK (true);<br><br>
-CREATE POLICY "allow_anon_update_orders"<br>
-ON public.orders FOR ALL TO anon<br>
-USING (true) WITH CHECK (true);
+        <code class="block bg-white border border-amber-200 rounded p-2 font-mono text-[10px] select-all text-gray-800 mb-2">
+CREATE POLICY "allow_anon_update_orders" ON public.orders FOR ALL TO anon USING (true) WITH CHECK (true);
         </code>
-        <button onclick="window.diagnoseSupabaseRLS().then(()=>showToast('Check browser console for results 🔍'))"
-            class="bg-amber-600 text-white px-3 py-1.5 rounded font-bold text-[11px] hover:bg-amber-700">
-            🔍 Run RLS Diagnostic (check console)
-        </button>
-        <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-amber-600 underline text-[11px]">Dismiss</button>
-    `;
-    /* Insert after admin header, before stats */
-    const adminView = document.getElementById('view-admin');
-    const statsGrid = adminView?.querySelector('.grid.grid-cols-2');
-    if (statsGrid) { adminView.insertBefore(notice, statsGrid); }
+        <button onclick="window.diagnoseSupabaseRLS().then(()=>showToast('Check browser console 🔍'))" class="bg-amber-600 text-white px-3 py-1.5 rounded font-bold text-[11px] hover:bg-amber-700">🔍 Run RLS Diagnostic</button>
+        <button onclick="this.parentElement.remove()" class="ml-2 text-amber-600 underline text-[11px]">Dismiss</button>`;
+    adminView.insertBefore(notice, statsGrid);
 }
 
 function switchAdminTab(tab) {
     document.querySelectorAll('.admin-content-tab').forEach(el => el.classList.add('hidden'));
     document.getElementById(`admin-tab-${tab}`)?.classList.remove('hidden');
-    ['prod','order','payout'].forEach(t => {
+    ['prod', 'order', 'payout'].forEach(t => {
         const btn = document.getElementById(`btn-admin-${t}`);
         if (btn) btn.className = t === tab
             ? 'pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700'
@@ -1552,33 +1619,167 @@ function switchAdminTab(tab) {
 }
 
 function updateDropdownSubs(catId, subId) {
-    const catEl = document.getElementById(catId);
-    const subEl = document.getElementById(subId);
-    if (!catEl || !subEl) return;
-    const cData = CATEGORIES.find(c => c.name === catEl.value);
-    subEl.innerHTML = '<option value="">Select Subcategory</option>';
-    cData?.subs.forEach(s => {
-        const o = document.createElement('option');
-        o.value = s; o.textContent = s;
-        subEl.appendChild(o);
-    });
+    try {
+        const catEl = document.getElementById(catId);
+        const subEl = document.getElementById(subId);
+        if (!catEl || !subEl) return;
+        const cData = CATEGORIES.find(c => c.name === catEl.value);
+        subEl.innerHTML = '<option value="">Select Subcategory</option>';
+        if (!cData) return;
+        if (cData.groups) {
+            cData.groups.forEach(group => {
+                const og = document.createElement('optgroup');
+                og.label = group.label;
+                group.items.forEach(s => {
+                    const o = document.createElement('option');
+                    o.value = s; o.textContent = s;
+                    og.appendChild(o);
+                });
+                subEl.appendChild(og);
+            });
+        } else {
+            cData.subs.forEach(s => {
+                const o = document.createElement('option');
+                o.value = s; o.textContent = s;
+                subEl.appendChild(o);
+            });
+        }
+    } catch (e) { console.error('[updateDropdownSubs]', e); }
+}
+
+/* ============================================================
+   ADMIN DUAL ENTRY — toggleProductMode + updateSellingPreview
+   FIX: Only ONE definition of updateSellingPreview
+   FIX: No optional-chain assignment (?.value = x is invalid)
+   ============================================================ */
+function toggleProductMode(mode) {
+    const manualFields = document.getElementById('manual-fields');
+    if (!manualFields) return;
+
+    if (mode === 'manual') {
+        manualFields.classList.remove('hidden');
+        const modeManual = document.getElementById('mode-manual');
+        if (modeManual) modeManual.checked = true;
+        updateSellingPreview();
+    } else {
+        manualFields.classList.add('hidden');
+        const modeAuto = document.getElementById('mode-auto');
+        if (modeAuto) modeAuto.checked = true;
+        /* FIX: safe assignment without optional chaining */
+        const spEl = document.getElementById('ap-supplier-price');
+        const mpEl = document.getElementById('ap-margin-pct');
+        const maEl = document.getElementById('ap-margin');
+        const ppEl = document.getElementById('selling-price-preview');
+        if (spEl) spEl.value = '';
+        if (mpEl) mpEl.value = '30';
+        if (maEl) maEl.value = '';
+        if (ppEl) ppEl.classList.add('hidden');
+    }
+}
+
+/* SINGLE definition — no duplicate */
+function updateSellingPreview() {
+    const supplier  = parseInt(document.getElementById('ap-supplier-price')?.value) || 0;
+    const marginPct = parseFloat(document.getElementById('ap-margin-pct')?.value)   || 0;
+    const marginAmt = Math.round(supplier * marginPct / 100);
+    const selling   = supplier + marginAmt;
+
+    const prev  = document.getElementById('selling-price-preview');
+    const val   = document.getElementById('selling-price-value');
+    const mVal  = document.getElementById('margin-amt-preview');
+    const pEl   = document.getElementById('ap-price');
+    const mEl   = document.getElementById('ap-margin');
+
+    if (prev)  prev.classList.toggle('hidden', selling === 0);
+    if (val)   val.textContent  = `₹${selling.toLocaleString()}`;
+    if (mVal)  mVal.textContent = `₹${marginAmt.toLocaleString()}`;
+    if (pEl)   pEl.value  = selling;
+    if (mEl)   mEl.value  = marginAmt;
+}
+
+/* Supplier selectors for ScrapingBee */
+const SUPPLIER_SELECTORS = {
+    meesho:   { title: 'h1, [class*="pdp-title"], [class*="product-name"]', price: '[class*="price"] span, h4', image: '[class*="pdp-image"] img, img[class*="product"]' },
+    amazon:   { title: '#productTitle', price: '.a-price-whole', image: '#imgBlkFront, #landingImage' },
+    flipkart: { title: 'span.B_NuCI, h1.yhB1nd', price: 'div._30jeq3._16Jk6d', image: 'img._396cs4' },
+    myntra:   { title: 'h1.pdp-name', price: '.pdp-price strong', image: '.image-grid-col2 img' },
+    default:  { title: 'h1, [class*="title"]', price: '[class*="price"] span', image: '[class*="product"] img, main img' }
+};
+
+function detectSupplier(url) {
+    if (!url) return 'default';
+    if (url.includes('meesho'))   return 'meesho';
+    if (url.includes('amazon'))   return 'amazon';
+    if (url.includes('flipkart')) return 'flipkart';
+    if (url.includes('myntra'))   return 'myntra';
+    return 'default';
+}
+
+async function scrapeProductFromUrl() {
+    const urlInput = document.getElementById('scrape-url');
+    const statusEl = document.getElementById('scrape-status');
+    const url      = urlInput?.value.trim();
+    if (!url) return showToast('Enter a Supplier URL first');
+    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Scraping...'; statusEl.className = 'text-xs text-blue-600 font-semibold mt-2'; }
+    showToast('🔍 Scraping product...');
+    const sel = SUPPLIER_SELECTORS[detectSupplier(url)];
+    try {
+        const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_KEY}&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true&country_code=in`;
+        const res    = await fetch(apiUrl);
+        if (!res.ok) throw new Error(`ScrapingBee: ${res.status} ${res.statusText}`);
+        const html = await res.text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const titleEl  = doc.querySelector(sel.title);
+        const title    = titleEl ? titleEl.textContent.trim().replace(/\s+/g, ' ').substring(0, 200) : '';
+        const priceEl  = doc.querySelector(sel.price);
+        const priceNum = parseInt(((priceEl?.textContent || '').match(/[\d,]+/) || ['0'])[0].replace(/,/g, '')) || 0;
+        const imgEl    = doc.querySelector(sel.image);
+        let imgUrl     = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+        if (!title && !priceNum) {
+            if (statusEl) { statusEl.innerHTML = '❌ Could not extract data — fill manually'; statusEl.className = 'text-xs text-red-600 font-semibold mt-2'; }
+            showToast('❌ Scrape failed — fill manually'); return;
+        }
+        const nE = document.getElementById('ap-name');
+        const sE = document.getElementById('ap-supplier-price');
+        const iE = document.getElementById('ap-imgs');
+        const oE = document.getElementById('ap-oldprice');
+        if (nE && title)    nE.value = title;
+        if (sE && priceNum) sE.value = priceNum;
+        if (iE && imgUrl)   iE.value = imgUrl;
+        if (oE && priceNum) oE.value = Math.round(priceNum * 1.5);
+        updateSellingPreview();
+        if (statusEl) { statusEl.innerHTML = `✅ Scraped! "${title.substring(0, 40)}..." — Cost: ₹${priceNum}`; statusEl.className = 'text-xs text-green-600 font-semibold mt-2'; }
+        showToast('✅ Product scraped! Review & save.');
+    } catch (err) {
+        console.error('[scrapeProductFromUrl]', err);
+        if (statusEl) { statusEl.innerHTML = `❌ ${err.message}`; statusEl.className = 'text-xs text-red-600 font-semibold mt-2'; }
+        showToast('❌ Scrape failed: ' + err.message);
+    }
 }
 
 async function adminAddProduct(e) {
     e.preventDefault();
-    const imgLinks = document.getElementById('ap-imgs').value.split('\n').map(l => l.trim()).filter(Boolean);
-    const sizes    = Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb => cb.value);
-    const price    = parseInt(document.getElementById('ap-price').value);
+    const imgLinks      = document.getElementById('ap-imgs').value.split('\n').map(l => l.trim()).filter(Boolean);
+    const sizes         = Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb => cb.value);
+    const supplierPrice = parseInt(document.getElementById('ap-supplier-price')?.value) || 0;
+    const marginPct     = parseFloat(document.getElementById('ap-margin-pct')?.value) || 0;
+    const marginAmt     = Math.round(supplierPrice * marginPct / 100) || parseInt(document.getElementById('ap-margin')?.value) || 0;
+    const sellingPrice  = supplierPrice + marginAmt;
+    if (sellingPrice <= 0) return showToast('Enter a valid Supplier/Cost Price');
+
     const newP = {
-        name:              document.getElementById('ap-name').value,
-        price,
-        oldprice:          parseInt(document.getElementById('ap-oldprice').value) || price + 500,
+        name:              document.getElementById('ap-name').value.trim(),
+        price:             sellingPrice,
+        supplier_price:    supplierPrice,
+        margin_amt:        marginAmt,
+        oldprice:          parseInt(document.getElementById('ap-oldprice').value) || Math.round(sellingPrice * 1.4),
         checkout_discount: parseInt(document.getElementById('ap-discount').value) || 0,
-        brand:             document.getElementById('ap-brand').value,
+        brand:             document.getElementById('ap-brand').value.trim(),
         imgs:              imgLinks,
         category:          document.getElementById('ap-category').value,
         sub:               document.getElementById('ap-sub').value,
-        desc:              document.getElementById('ap-desc').value,
+        desc:              document.getElementById('ap-desc').value.trim(),
         stock_qty:         parseInt(document.getElementById('ap-stock').value) || 50,
         available_sizes:   sizes,
         istrending:        true
@@ -1586,10 +1787,15 @@ async function adminAddProduct(e) {
     try {
         const { data, error } = await dbClient.from('products').insert([newP]).select().single();
         if (error) throw error;
-        if (data) { products.push(data); e.target.reset(); updateDropdownSubs('ap-category','ap-sub'); renderAdminProducts(); showToast('Product Added! ✅'); }
+        if (data) {
+            products.push(data); e.target.reset(); updateDropdownSubs('ap-category', 'ap-sub'); renderAdminProducts();
+            const sEl = document.getElementById('scrape-status'); if (sEl) sEl.classList.add('hidden');
+            showToast(`✅ Added! Sell: ₹${sellingPrice} | Cost: ₹${supplierPrice} | Profit: ₹${marginAmt}`);
+        }
     } catch (err) { showToast('Error: ' + err.message); }
 }
 
+/* FIX: renderAdminProducts — fixed mismatched div tags */
 function renderAdminProducts() {
     const container = document.getElementById('admin-product-list');
     if (!container) return;
@@ -1598,13 +1804,17 @@ function renderAdminProducts() {
         <div class="flex items-center gap-2 flex-1 min-w-0">
           <img src="${p.imgs?.[0] || p.img || 'https://placehold.co/32x32/eee/666?text=?'}" class="w-8 h-8 rounded object-cover" loading="lazy">
           <div class="min-w-0 flex-1">
-            <span class="truncate block">${p.name}</span>
+            <span class="truncate block font-semibold">${p.name}</span>
             <span class="text-xs text-gray-500">${p.category} • ${p.sub || ''}</span>
             ${p.brand ? `<span class="text-xs text-blue-600 block">${p.brand}</span>` : ''}
           </div>
         </div>
         <div class="flex items-center gap-2 text-sm">
-          <span class="font-bold">₹${p.price}</span>
+          <div class="text-right">
+            <div class="font-bold text-gray-800">₹${p.price}</div>
+            ${p.supplier_price ? `<div class="text-[10px] text-gray-400">Cost: ₹${p.supplier_price}</div>` : ''}
+            ${p.margin_amt ? `<div class="text-[10px] text-green-600 font-bold">+₹${p.margin_amt} profit</div>` : ''}
+          </div>
           <button onclick="openEditProduct(${p.id})" class="text-blue-600 hover:text-blue-700 p-1"><i class="fas fa-pen"></i></button>
           <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
         </div>
@@ -1619,19 +1829,21 @@ async function openEditProduct(productId) {
     document.getElementById('edit-product-title').textContent = `(ID: ${p.id})`;
     document.getElementById('ep-name').value     = p.name     || '';
     document.getElementById('ep-price').value    = p.price    || '';
+    const epMarginEl = document.getElementById('ep-margin-amt');
+    if (epMarginEl) epMarginEl.value = p.margin_amt || 0;
     document.getElementById('ep-category').value = p.category || 'Men';
 
     setTimeout(() => {
-        updateDropdownSubs('ep-category','ep-sub');
+        updateDropdownSubs('ep-category', 'ep-sub');
         document.getElementById('ep-sub').value = p.sub || '';
     }, 50);
 
-    document.getElementById('edit-ap-brand').value  = p.brand             || '';
-    document.getElementById('ep-desc').value         = p.desc              || '';
-    document.getElementById('ep-oldprice').value     = p.oldprice          || '';
-    document.getElementById('ep-discount').value     = p.checkout_discount || 0;
-    document.getElementById('ep-stock').value        = p.stock_qty         || 50;
-    document.getElementById('ep-imgs').value         = Array.isArray(p.imgs) ? p.imgs.join('\n') : (p.imgs || '');
+    document.getElementById('edit-ap-brand').value = p.brand             || '';
+    document.getElementById('ep-desc').value        = p.desc              || '';
+    document.getElementById('ep-oldprice').value    = p.oldprice          || '';
+    document.getElementById('ep-discount').value    = p.checkout_discount || 0;
+    document.getElementById('ep-stock').value       = p.stock_qty         || 50;
+    document.getElementById('ep-imgs').value        = Array.isArray(p.imgs) ? p.imgs.join('\n') : (p.imgs || '');
 
     const grid = document.getElementById('ep-sizes-grid');
     grid.innerHTML = '';
@@ -1657,6 +1869,7 @@ async function updateProduct(event) {
     const updates = {
         name:              document.getElementById('ep-name').value,
         price:             parseInt(document.getElementById('ep-price').value),
+        margin_amt:        parseInt(document.getElementById('ep-margin-amt')?.value) || 0,
         oldprice:          parseInt(document.getElementById('ep-oldprice').value) || 0,
         checkout_discount: parseInt(document.getElementById('ep-discount').value) || 0,
         brand:             document.getElementById('edit-ap-brand').value,
@@ -1693,17 +1906,11 @@ function autoGenerateDescription() {
 
 /* ============================================================
    21. ADMIN — ORDERS VIEW
-   Professional layout: thumbnail, name, size, qty per item
-   CRITICAL FIX: updateOrderStatus uses .select() NOT .single()
    ============================================================ */
 async function loadAllOrdersAdmin() {
     const container = document.getElementById('admin-full-order-list');
     if (!container) return;
-    container.innerHTML = `
-      <div class="text-center py-10">
-        <i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i>
-        <p class="text-sm text-gray-500 mt-2">Loading orders...</p>
-      </div>`;
+    container.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i><p class="text-sm text-gray-500 mt-2">Loading orders...</p></div>`;
 
     try {
         const { data, error } = await dbClient.from('orders').select('*').order('date', { ascending: false });
@@ -1722,83 +1929,42 @@ async function loadAllOrdersAdmin() {
         container.innerHTML = data.map(o => {
             const oidSafe  = String(o.id || '').replace(/'/g, "\\'");
             const badge    = STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600';
-
-            /* Rich product items grid */
             const itemsHtml = o.items?.length
                 ? o.items.map(item => `
                     <div class="admin-order-item">
-                      <img src="${item.img || 'https://placehold.co/48x60/e11d48/fff?text=?'}"
-                           alt="${item.name}"
-                           onerror="this.src='https://placehold.co/48x60/eee/999?text=?'"
-                           loading="lazy">
+                      <img src="${item.img || 'https://placehold.co/48x60/e11d48/fff?text=?'}" alt="${item.name}" onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy">
                       <div class="admin-order-item-info">
                         <div class="admin-order-item-name" title="${item.name}">${item.name}</div>
-                        <div class="admin-order-item-meta">
-                          <span class="inline-flex items-center gap-1">
-                            <i class="fas fa-ruler text-blue-400 text-[9px]"></i> Size: <strong>${item.size || 'M'}</strong>
-                          </span>
-                          &nbsp;•&nbsp;
-                          <span class="inline-flex items-center gap-1">
-                            <i class="fas fa-hashtag text-gray-400 text-[9px]"></i> Qty: <strong>${item.qty || 1}</strong>
-                          </span>
-                        </div>
+                        <div class="admin-order-item-meta">Size: <strong>${item.size || 'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty || 1}</strong></div>
                         <div class="admin-order-item-price">₹${((item.price || 0) * (item.qty || 1)).toLocaleString()}</div>
                       </div>
                     </div>`).join('')
-                : '<div class="text-xs text-gray-400 italic py-2 px-1">No item details available</div>';
+                : '<div class="text-xs text-gray-400 italic py-2 px-1">No item details</div>';
 
             return `
               <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-3 hover:shadow-md transition-all">
-
-                <!-- Header row -->
                 <div class="flex justify-between items-start pb-3 mb-3 border-b">
                   <div>
                     <span class="font-bold text-purple-700 font-mono text-sm">#${o.id}</span>
                     <span class="${badge} text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">${o.status || 'Processing'}</span>
-                    <div class="text-xs text-gray-500 mt-1">${o.date || ''} &nbsp;•&nbsp; ${o.paymentmode || ''}</div>
+                    <div class="text-xs text-gray-500 mt-1">${o.date || ''} • ${o.paymentmode || ''}</div>
                   </div>
-                  <div class="text-right">
-                    <div class="font-black text-lg text-rose-600">₹${(o.total || 0).toLocaleString()}</div>
-                  </div>
+                  <div class="font-black text-lg text-rose-600">₹${(o.total || 0).toLocaleString()}</div>
                 </div>
-
-                <!-- Customer info grid -->
                 <div class="grid grid-cols-2 gap-2 text-xs mb-3 bg-gray-50 rounded-lg p-3 border">
-                  <div>
-                    <span class="font-bold text-gray-400 uppercase tracking-wide text-[10px]">Customer</span>
-                    <div class="font-semibold text-gray-800 mt-0.5">${o.customer_name || 'N/A'}</div>
-                  </div>
-                  <div>
-                    <span class="font-bold text-gray-400 uppercase tracking-wide text-[10px]">Mobile</span>
-                    <div class="font-semibold text-gray-800 mt-0.5">${o.mobile || 'N/A'}</div>
-                  </div>
-                  <div class="col-span-2">
-                    <span class="font-bold text-gray-400 uppercase tracking-wide text-[10px]">TX ID</span>
-                    <div class="font-mono text-gray-700 mt-0.5 truncate">${o.transaction_id || 'N/A'}</div>
-                  </div>
-                  ${o.notes    ? `<div class="col-span-2"><span class="font-bold text-orange-600 uppercase tracking-wide text-[10px]">Notes</span><div class="text-orange-700 mt-0.5">${o.notes}</div></div>` : ''}
-                  ${o.refund_upi ? `
-                    <div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200">
-                      <span class="font-bold text-green-700 uppercase tracking-wide text-[10px]">Refund UPI ID</span>
-                      <div class="font-mono font-semibold text-green-800 mt-0.5 select-all">${o.refund_upi}</div>
-                    </div>` : ''}
+                  <div><span class="font-bold text-gray-400 uppercase text-[10px]">Customer</span><div class="font-semibold text-gray-800 mt-0.5">${o.customer_name || 'N/A'}</div></div>
+                  <div><span class="font-bold text-gray-400 uppercase text-[10px]">Mobile</span><div class="font-semibold text-gray-800 mt-0.5">${o.mobile || 'N/A'}</div></div>
+                  <div class="col-span-2"><span class="font-bold text-gray-400 uppercase text-[10px]">TX ID</span><div class="font-mono text-gray-700 mt-0.5 truncate">${o.transaction_id || 'N/A'}</div></div>
+                  ${o.refund_upi ? `<div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200"><span class="font-bold text-green-700 uppercase text-[10px]">Refund UPI</span><div class="font-mono font-semibold text-green-800 mt-0.5 select-all">${o.refund_upi}</div></div>` : ''}
                 </div>
-
-                <!-- Product items -->
                 <div class="mb-3">
-                  <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <i class="fas fa-box text-rose-400"></i> Items Ordered (${(o.items || []).length})
-                  </div>
+                  <div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Items (${(o.items || []).length})</div>
                   <div class="admin-order-items">${itemsHtml}</div>
                 </div>
-
-                <!-- Delivery address -->
                 <div class="text-[10px] text-gray-500 bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3">
                   <i class="fas fa-map-marker-alt text-blue-400 mr-1"></i>
                   ${[o.address, o.city, o.state, o.pincode ? '- ' + o.pincode : ''].filter(Boolean).join(', ') || 'N/A'}
                 </div>
-
-                <!-- Status update dropdown -->
                 <div class="flex items-center gap-2">
                   <span class="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Update Status:</span>
                   <select onchange="updateOrderStatus('${oidSafe}', this.value)"
@@ -1815,67 +1981,26 @@ async function loadAllOrdersAdmin() {
     }
 }
 
-/* ============================================================
-   updateOrderStatus — Direct REST API approach
-   Supabase JS client update() silently fails when RLS blocks it.
-   We use fetch() with the service-role-equivalent publishable key
-   directly against the REST endpoint so the update actually lands.
-   After update we re-fetch the row to confirm, then reload the list.
-   ============================================================ */
 async function updateOrderStatus(orderId, newStatus) {
     orderId = String(orderId || '').trim();
-    if (!orderId) {
-        console.error('[updateOrderStatus] orderId is undefined/empty');
-        showToast('❌ Invalid order ID');
-        return;
-    }
-
+    if (!orderId) { showToast('❌ Invalid order ID'); return; }
     showToast(`⏳ Updating order #${orderId}...`);
-
     try {
-        /* ── Approach 1: Direct REST PATCH (bypasses JS client RLS layer) ── */
         const restUrl = `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`;
         const res = await fetch(restUrl, {
-            method:  'PATCH',
-            headers: {
-                'Content-Type':  'application/json',
-                'apikey':        SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Prefer':        'return=representation'
-            },
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
             body: JSON.stringify({ status: newStatus })
         });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`HTTP ${res.status}: ${errText}`);
-        }
-
+        if (!res.ok) { const errText = await res.text(); throw new Error(`HTTP ${res.status}: ${errText}`); }
         const updated = await res.json();
-        console.log('[updateOrderStatus] REST PATCH result:', updated);
-
         if (!updated || updated.length === 0) {
-            /* ── Approach 2 fallback: supabase-js client ── */
-            console.warn('[updateOrderStatus] REST returned 0 rows, trying supabase-js...');
-            const { data: rows2, error: err2 } = await dbClient
-                .from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId)
-                .select();
-
+            const { data: rows2, error: err2 } = await dbClient.from('orders').update({ status: newStatus }).eq('id', orderId).select();
             if (err2) throw new Error(err2.message);
-            if (!rows2?.length) {
-                showToast(`⚠️ Order #${orderId}: update returned 0 rows. Check Supabase RLS policy on orders table — allow UPDATE for anon role.`);
-                setTimeout(() => loadAllOrdersAdmin(), 300);
-                return;
-            }
-            console.log('[updateOrderStatus] supabase-js fallback succeeded:', rows2[0]);
+            if (!rows2?.length) { showToast(`⚠️ 0 rows updated — check RLS policy`); setTimeout(() => loadAllOrdersAdmin(), 300); return; }
         }
-
         showToast(`✅ Order #${orderId} → "${newStatus}"`);
-        /* Small delay so DB write propagates before we re-fetch */
         setTimeout(() => loadAllOrdersAdmin(), 600);
-
     } catch (err) {
         console.error('[updateOrderStatus] error:', err);
         showToast(`❌ Update failed: ${err.message}`);
@@ -1946,9 +2071,7 @@ function renderTrackingContent(order) {
         else
             titleEl.innerHTML = '<i class="fas fa-map-marker-alt text-green-500"></i> Track Order';
     }
-
     document.getElementById('tracking-order-id').textContent = `Order #${order.id}  •  ${order.status}`;
-
     const item = order.items?.[0] || { img: '', name: 'Item', qty: 1, price: 0, size: 'M' };
     document.getElementById('tracking-product-card').innerHTML = `
       <div class="flex items-center gap-4">
@@ -1959,13 +2082,9 @@ function renderTrackingContent(order) {
           <p class="text-lg font-black text-gray-900 mt-1">₹${item.price * item.qty}</p>
         </div>
       </div>`;
-
     document.getElementById('tracking-address').innerHTML = `
       <div class="text-center">
-        <div class="flex items-center justify-center gap-2 mb-3">
-          <i class="fas fa-map-marker-alt text-blue-500 text-xl"></i>
-          <h4 class="font-bold text-gray-800 text-sm">Shipping Address</h4>
-        </div>
+        <div class="flex items-center justify-center gap-2 mb-3"><i class="fas fa-map-marker-alt text-blue-500 text-xl"></i><h4 class="font-bold text-gray-800 text-sm">Shipping Address</h4></div>
         <div class="text-left text-sm">
           <p class="font-semibold text-gray-900">${order.address || 'N/A'}</p>
           <p class="text-gray-600">${order.city || ''}, ${order.state || ''} - ${order.pincode || ''}</p>
@@ -1974,39 +2093,34 @@ function renderTrackingContent(order) {
       </div>`;
 
     const wrapper = document.getElementById('tracking-timeline-wrapper');
-
     if (order.status === 'Cancelled') {
         const refundLine = order.refund_upi
             ? `<p class="text-sm text-green-600 font-semibold mt-2">💰 ₹${order.total} will be refunded to ${order.refund_upi} within 24-48 hrs.</p>`
             : (order.paymentmode === 'COD' ? '<p class="text-sm text-gray-500 mt-2">COD — no refund needed.</p>' : '');
         wrapper.innerHTML = `
           <div class="px-6 py-8 flex flex-col items-center text-center">
-            <div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4">
-              <i class="fas fa-times text-rose-600 text-4xl"></i>
-            </div>
+            <div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-times text-rose-600 text-4xl"></i></div>
             <h3 class="font-black text-xl text-rose-600 mb-2">Order Cancelled</h3>
             <p class="text-sm text-gray-500">This order has been cancelled.</p>
             ${refundLine}
           </div>`;
         return;
     }
-
     if (_isExchangeStatus(order.status)) {
         const steps = [
-            { key: 'ex-requested',  icon: 'fa-exchange-alt', label: 'Exchange Requested',  sub: 'Request submitted'     },
-            { key: 'ex-processing', icon: 'fa-cogs',          label: 'Exchange Processing', sub: 'Being reviewed'         },
-            { key: 'ex-shipped',    icon: 'fa-truck',          label: 'Exchange Shipped',    sub: 'New item dispatched'    },
-            { key: 'ex-done',       icon: 'fa-check-circle',  label: 'Exchanged',           sub: 'Exchange complete!'    },
+            { key: 'ex-requested',  icon: 'fa-exchange-alt', label: 'Exchange Requested',  sub: 'Request submitted'  },
+            { key: 'ex-processing', icon: 'fa-cogs',          label: 'Exchange Processing', sub: 'Being reviewed'     },
+            { key: 'ex-shipped',    icon: 'fa-truck',          label: 'Exchange Shipped',    sub: 'New item dispatched'},
+            { key: 'ex-done',       icon: 'fa-check-circle',  label: 'Exchanged',           sub: 'Exchange complete!' },
         ];
         wrapper.innerHTML = _buildTimeline(steps, STATUS_MAP[order.status] || [], 'orange');
         return;
     }
-
     const steps = [
-        { key: 'ordered',   icon: 'fa-file-invoice-dollar', label: 'Ordered',   sub: 'Order confirmed'   },
-        { key: 'packed',    icon: 'fa-box',                  label: 'Packed',    sub: 'Ready to ship'     },
-        { key: 'shipped',   icon: 'fa-truck',                label: 'Shipped',   sub: 'Out for delivery'  },
-        { key: 'delivered', icon: 'fa-home',                 label: 'Delivered', sub: 'Order completed'   },
+        { key: 'ordered',   icon: 'fa-file-invoice-dollar', label: 'Ordered',   sub: 'Order confirmed' },
+        { key: 'packed',    icon: 'fa-box',                  label: 'Packed',    sub: 'Ready to ship'   },
+        { key: 'shipped',   icon: 'fa-truck',                label: 'Shipped',   sub: 'Out for delivery'},
+        { key: 'delivered', icon: 'fa-home',                 label: 'Delivered', sub: 'Order completed' },
     ];
     wrapper.innerHTML = _buildTimeline(steps, STATUS_MAP[order.status] || [], 'green');
 }
@@ -2020,12 +2134,11 @@ function _buildTimeline(steps, completedKeys, accentColor) {
         ? 'border-orange-400 bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg scale-110'
         : 'border-emerald-400 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg scale-110';
     const lineDone = accentColor === 'orange' ? 'bg-orange-400' : 'bg-emerald-400';
-
     return `
       <div class="px-6 py-6">
         <div class="flex flex-col items-center space-y-0 relative">
           ${steps.map((step, idx) => {
-              const done  = completedKeys.includes(step.key);
+              const done   = completedKeys.includes(step.key);
               const isLast = idx === steps.length - 1;
               return `
                 <div class="flex flex-col items-center text-center w-full relative" style="min-height:80px">
@@ -2044,51 +2157,31 @@ function _buildTimeline(steps, completedKeys, accentColor) {
 }
 
 /* ============================================================
-   23. REALTIME — live order status updates from admin → user
+   23. REALTIME
    ============================================================ */
 function initRealtimeTracking() {
     if (!currentUser) return;
     if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
-
-    console.log('[Realtime] Subscribing for mobile:', currentUser.mobile);
-
     realtimeChannel = dbClient
         .channel(`orders-user-${currentUser.mobile}-${Date.now()}`)
-        .on('postgres_changes', {
-            event:  'UPDATE',
-            schema: 'public',
-            table:  'orders',
-            filter: `mobile=eq.${currentUser.mobile}`
-        }, payload => {
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `mobile=eq.${currentUser.mobile}` }, payload => {
             const updated = payload.new;
             if (!updated?.id) return;
-            console.log('[Realtime] Update received:', updated.id, '→', updated.status);
-
             const idx = ordersDb.findIndex(o => String(o.id) === String(updated.id));
-            if (idx > -1) {
-                ordersDb[idx] = { ...ordersDb[idx], ...updated, items: updated.items || ordersDb[idx].items };
-            } else { ordersDb.push(updated); }
-
+            if (idx > -1) { ordersDb[idx] = { ...ordersDb[idx], ...updated, items: updated.items || ordersDb[idx].items }; }
+            else { ordersDb.push(updated); }
             const finalOrder = idx > -1 ? ordersDb[idx] : updated;
             showToast(`📦 Order #${updated.id}: "${updated.status}"`);
-
-            /* Update open tracking modal if it's for this order */
-            const modal    = document.getElementById('tracking-modal');
-            const isOpen   = modal && !modal.classList.contains('hidden');
+            const modal  = document.getElementById('tracking-modal');
+            const isOpen = modal && !modal.classList.contains('hidden');
             if (isOpen && String(currentTrackingOrder?.id) === String(updated.id)) {
                 currentTrackingOrder = finalOrder;
                 renderTrackingContent(finalOrder);
             }
-
-            /* Refresh orders list if visible */
             if (!document.getElementById('tab-orders')?.classList.contains('hidden')) renderOrdersList();
         })
         .subscribe((status, err) => {
-            console.log('[Realtime] Channel status:', status, err || '');
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                console.warn('[Realtime] Reconnecting in 5s…');
-                setTimeout(() => initRealtimeTracking(), 5000);
-            }
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setTimeout(() => initRealtimeTracking(), 5000);
         });
 }
 
@@ -2107,9 +2200,7 @@ window.uploadToImgBB = async (event, textareaId) => {
     const textarea = document.getElementById(textareaId);
     if (!textarea) return;
     const existing = textarea.value ? textarea.value.split('\n').filter(Boolean) : [];
-
     if (statusEl) { statusEl.classList.remove('hidden'); statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Uploading…'; }
-
     for (const file of Array.from(files)) {
         if (file.size > 32e6) continue;
         const fd = new FormData(); fd.append('image', file);
@@ -2122,7 +2213,6 @@ window.uploadToImgBB = async (event, textareaId) => {
             }
         } catch { if (statusEl) statusEl.innerHTML = '<i class="fas fa-times text-red-500 mr-1"></i>Upload error'; }
     }
-
     textarea.value = existing.join('\n');
     showToast('✅ Images uploaded!');
     setTimeout(() => statusEl?.classList.add('hidden'), 2500);
@@ -2133,10 +2223,13 @@ window.uploadToImgBB = async (event, textareaId) => {
    25. SHARE
    ============================================================ */
 async function nativeShareProduct(id, name, price) {
-    const url  = `${window.location.origin}${window.location.pathname}?pid=${id}${currentUser ? '&ref=' + currentUser.mobile : ''}`;
-    const text = `Check out ${name} for just ₹${price} at OutfitKart!`;
+    const url  = `${window.location.origin}${window.location.pathname}?pid=${id}`;
+    const text = `Check out ${name} for just ₹${price} on OutfitKart! COD available.`;
+    const p    = products.find(x => x.id === id);
+    const img  = p?.imgs?.[0] || p?.img || '';
+    _setOgTags({ title: `${name} | OutfitKart`, description: `Buy ${name} for ₹${price}. Cash on Delivery available.`, image: img, url });
     if (navigator.share) {
-        try { await navigator.share({ title: 'OutfitKart Fashion', text, url }); } catch { /* user cancelled */ }
+        try { await navigator.share({ title: `${name} | OutfitKart`, text, url }); } catch { /* cancelled */ }
     } else {
         await navigator.clipboard.writeText(`${text}\n${url}`).catch(() => {});
         showToast('Link copied! 📋');
@@ -2144,16 +2237,39 @@ async function nativeShareProduct(id, name, price) {
 }
 
 async function shareOutfitKart() {
-    const url  = window.location.origin + window.location.pathname;
-    const text = `🛍️ OutfitKart — Premium Fashion at Best Prices!\n\nLatest trends, amazing deals. Check it out 👇`;
+    const url   = window.location.origin + window.location.pathname;
+    const title = 'OutfitKart — Premium Fashion at Best Prices';
+    const text  = `🛍️ OutfitKart — Premium Fashion! COD available. Latest trends, amazing deals. 👇`;
+    _setOgTags({ title, description: 'Shop latest trends for men, women & combos. COD available!', image: 'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion', url });
     if (navigator.share) {
-        try { await navigator.share({ title: 'OutfitKart', text, url }); showToast('Thanks for sharing! 🎉'); }
-        catch { /* cancelled */ }
+        try { await navigator.share({ title, text, url }); showToast('Thanks for sharing! 🎉'); } catch { /* cancelled */ }
     } else {
-        try { await navigator.clipboard.writeText(`${text}\n${url}`); showToast('Link copied! Share karo dosto ke saath 🔗'); }
-        catch { window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank'); }
+        try {
+            await navigator.clipboard.writeText(`${text}\n${url}`);
+            showToast('Link copied! Share karo dosto ke saath 🔗');
+        } catch { window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank'); }
     }
 }
+
+function _setOgTags({ title, description, image, url } = {}) {
+    const t   = title       || 'OutfitKart — Premium Fashion at Best Prices';
+    const d   = description || 'Shop latest trends for men, women & combos. COD available. Amazing deals!';
+    const img = image       || 'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion';
+    const u   = url         || window.location.href;
+    const set = (prop, val) => {
+        let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+        if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
+        el.setAttribute('content', val);
+    };
+    set('og:title', t); set('og:description', d); set('og:image', img); set('og:url', u);
+    set('og:type', 'website'); set('og:site_name', 'OutfitKart');
+    set('twitter:card', 'summary_large_image'); set('twitter:title', t); set('twitter:image', img);
+    document.title = t;
+}
+function _updateOgTags(opts) { _setOgTags(opts); }
+
+function openWhatsAppSupport() { window.open(`https://wa.me/${SUPPORT_WA}`, '_blank'); }
+function openEmailSupport()    { window.location.href = `mailto:${SUPPORT_EMAIL}?subject=OutfitKart Support&body=Hi, I need help with my order.`; }
 
 /* ============================================================
    26. TOAST
@@ -2167,7 +2283,7 @@ function showToast(msg) {
 }
 
 /* ============================================================
-   27. PWA — Install banner & prompt
+   27. PWA
    ============================================================ */
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); deferredPrompt = e; _showInstallBanner();
@@ -2212,3 +2328,76 @@ if ('serviceWorker' in navigator) {
             .catch(e => console.warn('[SW] Registration failed:', e));
     });
 }
+
+/* ============================================================
+   29. EXPOSE ALL FUNCTIONS TO GLOBAL SCOPE
+   ============================================================ */
+Object.assign(window, {
+    navigate,
+    toggleCart,
+    handleSearch,
+    sortProducts,
+    shopSortProducts,
+    filterSub,
+    showQuickSizeModal,
+    hideQuickSizeModal,
+    selectQuickSize,
+    addFromQuickModal,
+    toggleWishlist,
+    openProductPage,
+    pdpScrollToSlide,
+    selectSize,
+    addToCartPDP,
+    buyNowPDP,
+    buyNow,
+    submitReview,
+    setRating,
+    switchAuthTab,
+    handleLogin,
+    handleSignup,
+    saveProfile,
+    changePassword,
+    uploadProfilePic,
+    switchProfileTab,
+    handleLogout,
+    shareOutfitKart,
+    nativeShareProduct,
+    cancelOrder,
+    closeRefundUpiModal,
+    finaliseCancelWithRefund,
+    startExchange,
+    closeExchangeModal,
+    confirmExchange,
+    openTrackingModal,
+    closeTrackingModal,
+    proceedToCheckout,
+    goToStep,
+    initiatePayment,
+    saveAddressForm,
+    fetchPincodeDetails,
+    useCurrentLocation,
+    updatePaymentSelection,
+    closeSuccessModal,
+    closeSuccessAndGoToOrders,
+    closeCancelModal,
+    startAdminTimer,
+    cancelAdminTimer,
+    switchAdminTab,
+    updateDropdownSubs,
+    toggleProductMode,
+    updateSellingPreview,
+    adminAddProduct,
+    openEditProduct,
+    closeEditModal,
+    updateProduct,
+    deleteProduct,
+    autoGenerateDescription,
+    scrapeProductFromUrl,
+    loadAllOrdersAdmin,
+    updateOrderStatus,
+    approvePayout,
+    renderOrdersList,
+    updateCartCount,
+    updateQty,
+    removeFromCart,
+});
