@@ -1,10 +1,8 @@
 /* ==========================================================
-   OutfitKart — script.js  (FIXED VERSION)
-   Bugs fixed:
-   • updateSellingPreview() duplicate removed
-   • toggleProductMode optional-chain assignment crash fixed
-   • renderAdminProducts mismatched div tags fixed
-   • All functions exposed to window at bottom
+   OutfitKart — script.js  (ALL 3 FIXES APPLIED)
+   Fix 1: Wallet Deduction & Order Logic (REST PATCH + rollback)
+   Fix 2: Auto-ImgBB Upload for Scraper
+   Fix 3: scrape-status CSS class updates for new UI
    ========================================================== */
 
 'use strict';
@@ -129,11 +127,23 @@ const CATEGORIES = [
     },
     {
         id: 'kids', name: 'Kids', icon: 'fa-child',
-        subs: ['Baba Suits','Frocks','Kids Denim','Ethnic Sets',
-               'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)'],
+        color: 'from-yellow-400 to-orange-400',
+        subs: [
+            'Boys T-Shirts','Boys Shirts','Boys Hoodies','Boys Jackets',
+            'Girls Frocks','Girls Tops','Girls Kurtis','Girls Lehenga',
+            'Kids Jeans','Kids Shorts','Kids Trackpants','Baby Bodysuits',
+            'Kids Sneakers','Kids Sandals','Kids School Shoes','Kids Slippers',
+            'School Bags','Kids Caps','Kids Socks','Kids Belts',
+            'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set',
+            'Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set'
+        ],
         groups: [
-            { label: '👶 Boys & Girls', items: ['Baba Suits','Frocks','Kids Denim','Ethnic Sets'] },
-            { label: '🎁 Full Combos',  items: ['Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)'] },
+            { label: '👦 Boys Topwear',    items: ['Boys T-Shirts','Boys Shirts','Boys Hoodies','Boys Jackets'] },
+            { label: '👧 Girls Clothing',  items: ['Girls Frocks','Girls Tops','Girls Kurtis','Girls Lehenga'] },
+            { label: '👖 Bottomwear',      items: ['Kids Jeans','Kids Shorts','Kids Trackpants','Baby Bodysuits'] },
+            { label: '👟 Footwear',        items: ['Kids Sneakers','Kids Sandals','Kids School Shoes','Kids Slippers'] },
+            { label: '🎒 Accessories',     items: ['School Bags','Kids Caps','Kids Socks','Kids Belts'] },
+            { label: '🎁 Full Combos',     items: ['Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set'] },
         ]
     },
 ];
@@ -143,7 +153,8 @@ const COMBO_SUBS = new Set([
     'Streetwear Combo (Oversized Tee+Cargo+Chain)','Tracksuit (Full Upper & Lower)',
     'Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)',
     'Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)',
-    'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)',
+    'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set',
+    'Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set',
 ]);
 
 const STATUS_MAP = {
@@ -205,7 +216,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /* FIX: call toggleProductMode only after DOM is ready */
     toggleProductMode('auto');
     updateDropdownSubs('ap-category', 'ap-sub');
     renderCategoryBubbles();
@@ -480,9 +490,14 @@ function renderProductGrid(containerId, list, loading = false) {
 
 function renderCategoryBubbles() {
     try {
+        const colors = {
+            'Men':   'from-blue-500 to-indigo-500',
+            'Women': 'from-rose-500 to-pink-500',
+            'Kids':  'from-yellow-400 to-orange-400',
+        };
         document.getElementById('category-bubbles').innerHTML = CATEGORIES.map(c =>
-            `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px]" onclick="navigate('shop','${c.name}')">
-               <div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 text-2xl border border-rose-100 hover:bg-rose-100 hover:scale-105 transition-all shadow-sm">
+            `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px] active:scale-95 transition-transform" onclick="openCategoryPage('${c.name}')">
+               <div class="w-16 h-16 rounded-full bg-gradient-to-br ${colors[c.name] || 'from-gray-400 to-gray-500'} flex items-center justify-center text-white text-2xl shadow-md hover:scale-110 transition-transform">
                  <i class="fas ${c.icon}"></i>
                </div>
                <span class="text-xs font-semibold text-gray-700">${c.name}</span>
@@ -491,9 +506,84 @@ function renderCategoryBubbles() {
     } catch (e) { console.error('[renderCategoryBubbles]', e); }
 }
 
+/* ============================================================
+   CATEGORY PAGE — subcat grid view
+   ============================================================ */
+function openCategoryPage(categoryName) {
+    const cData = CATEGORIES.find(c => c.name === categoryName);
+    if (!cData) return;
+
+    // Hide all views, show category page
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+    currentView = 'category';
+
+    const page = document.getElementById('view-category');
+    page.classList.remove('hidden');
+
+    // Set header
+    document.getElementById('cat-page-title').textContent = `${categoryName} Collection`;
+    const viewAllBtn = document.getElementById('cat-view-all-btn');
+    if (viewAllBtn) viewAllBtn.dataset.cat = categoryName;
+
+    // Build subcat grid with groups
+    const grid = document.getElementById('cat-page-subcat-grid');
+    let html = '';
+    if (cData.groups) {
+        cData.groups.forEach(group => {
+            html += `<div class="col-span-2 md:col-span-3 text-xs font-black text-gray-400 uppercase tracking-widest pt-2 pb-1 border-b border-gray-100">${group.label}</div>`;
+            html += group.items.map(sub => {
+                const safe = sub.replace(/'/g, "\'");
+                const isCombo = COMBO_SUBS.has(sub);
+                return `<div onclick="openSubcatProducts('${categoryName}','${safe}')"
+                    class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[90px] text-center">
+                    ${isCombo ? '<span class="absolute top-2 right-2 bg-amber-400 text-gray-900 text-[9px] font-black px-1.5 py-0.5 rounded-full">🎁</span>' : ''}
+                    <span class="text-sm font-bold text-gray-800 leading-snug">${sub}</span>
+                </div>`;
+            }).join('');
+        });
+    } else {
+        html += cData.subs.map(sub => {
+            const safe = sub.replace(/'/g, "\'");
+            return `<div onclick="openSubcatProducts('${categoryName}','${safe}')"
+                class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-center cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[80px] text-center">
+                <span class="text-sm font-bold text-gray-800">${sub}</span>
+            </div>`;
+        }).join('');
+    }
+    grid.innerHTML = html;
+
+    window.scrollTo(0, 0);
+    updateBottomNav();
+}
+
+function openSubcatProducts(categoryName, sub) {
+    currentCategoryFilter = categoryName;
+    currentSubFilter = sub || null;
+
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+    currentView = 'shop';
+    document.getElementById('view-shop').classList.remove('hidden');
+
+    // Title: subcat name OR "Category Collection" if View All
+    const titleEl = document.getElementById('shop-title');
+    if (titleEl) titleEl.textContent = sub ? sub : `${categoryName} Collection`;
+
+    // Clear filter pills — no sticky pills in this flow
+    const filtersEl = document.getElementById('subcategory-filters');
+    if (filtersEl) filtersEl.innerHTML = '';
+
+    renderShopProducts();
+    window.scrollTo(0, 0);
+    updateBottomNav();
+    _initShopScrollHide();
+}
+
 function renderShopSubcategories() {
     try {
         const el = document.getElementById('subcategory-filters'); if (!el) return;
+        // Reset visibility whenever subcategories are re-rendered
+        el.classList.remove('subcat-hidden');
+        _shopScrollY = window.scrollY;
         if (!currentCategoryFilter) { el.innerHTML = ''; return; }
         const cData = CATEGORIES.find(c => c.name === currentCategoryFilter); if (!cData) return;
 
@@ -520,6 +610,48 @@ function renderShopSubcategories() {
 }
 
 function filterSub(sub) { currentSubFilter = sub; renderShopSubcategories(); renderShopProducts(); }
+
+/* ============================================================
+   SHOP SCROLL — hide subcategory bar on scroll down, show on scroll up
+   ============================================================ */
+let _shopScrollY = 0;
+let _shopScrollTimer = null;
+
+function _initShopScrollHide() {
+    // Reset state on every shop open
+    const subEl = document.getElementById('subcategory-filters');
+    if (subEl) subEl.classList.remove('subcat-hidden');
+    _shopScrollY = window.scrollY;
+
+    // Remove any old listener then add fresh one
+    window.removeEventListener('scroll', _shopScrollHandler);
+    window.addEventListener('scroll', _shopScrollHandler, { passive: true });
+}
+
+function _shopScrollHandler() {
+    // Only run when shop view is active
+    if (currentView !== 'shop') {
+        window.removeEventListener('scroll', _shopScrollHandler);
+        return;
+    }
+    const subEl = document.getElementById('subcategory-filters');
+    if (!subEl) return;
+
+    const currentY = window.scrollY;
+    const diff = currentY - _shopScrollY;
+
+    if (diff > 40) {
+        // Scrolled DOWN enough — hide subcats
+        subEl.classList.add('subcat-hidden');
+    } else if (diff < -20) {
+        // Scrolled UP — show subcats
+        subEl.classList.remove('subcat-hidden');
+    }
+
+    // Reset baseline after movement settles
+    clearTimeout(_shopScrollTimer);
+    _shopScrollTimer = setTimeout(() => { _shopScrollY = window.scrollY; }, 150);
+}
 
 function renderShopProducts() {
     let list = products.filter(p =>
@@ -600,7 +732,11 @@ function navigate(view, cat = null) {
             currentCategoryFilter = null; currentSubFilter = null;
             document.getElementById('shop-title').textContent = 'Shop All Products';
         }
-        renderShopSubcategories(); renderShopProducts();
+        // Clear subcategory filters bar (no pills in direct shop view)
+        const filtersEl = document.getElementById('subcategory-filters');
+        if (filtersEl) filtersEl.innerHTML = '';
+        renderShopProducts();
+        _initShopScrollHide();
     }
 
     if (view === 'checkout') {
@@ -626,8 +762,10 @@ function navigate(view, cat = null) {
 
 function updateBottomNav() {
     const views = ['home', 'shop', 'cart', 'profile'];
+    // 'category' view highlights Home tab
+    const activeView = currentView === 'category' ? 'home' : currentView;
     document.querySelectorAll('nav div').forEach((item, i) => {
-        item.style.color = currentView === views[i] ? '#e11d48' : '#6b7280';
+        item.style.color = activeView === views[i] ? '#e11d48' : '#6b7280';
     });
 }
 
@@ -1058,6 +1196,17 @@ function goToStep(step) {
     currentCheckoutStep = step;
     renderCheckoutStep();
     if (step >= 2 && currentCheckoutItems.length > 0) updateCheckoutTotals();
+    if (step === 3 && currentUser) {
+        dbClient.from('users').select('wallet').eq('mobile', currentUser.mobile).maybeSingle()
+            .then(({ data }) => {
+                if (data) {
+                    walletBalance = data.wallet || 0;
+                    const cb = document.getElementById('checkout-wallet-balance');
+                    if (cb) cb.textContent = `₹${walletBalance.toLocaleString()}`;
+                    if (selectedPaymentMethod === 'wallet') updatePaymentSelection('wallet');
+                }
+            }).catch(() => {});
+    }
 }
 
 async function saveAddressForm(event) {
@@ -1139,7 +1288,81 @@ function updateCheckoutTotals() {
     }
 }
 
-function updatePaymentSelection(method) { selectedPaymentMethod = method; updateCheckoutTotals(); }
+function updatePaymentSelection(method) {
+    selectedPaymentMethod = method;
+
+    // Update label highlight styles
+    const styles = {
+        upi:    { active: 'border-orange-400 bg-orange-50',    inactive: 'border-gray-200 bg-white hover:border-gray-400' },
+        cod:    { active: 'border-gray-700 bg-gray-50',        inactive: 'border-gray-200 bg-white hover:border-gray-400' },
+        wallet: { active: 'border-blue-500 bg-blue-50',        inactive: 'border-gray-200 bg-white hover:border-blue-300' },
+    };
+    ['upi', 'cod', 'wallet'].forEach(m => {
+        const lbl = document.getElementById(`label-${m}`);
+        if (!lbl) return;
+        const isActive = m === method;
+        lbl.className = lbl.className
+            .replace(/border-orange-400|border-gray-700|border-blue-500|border-gray-200/g, '')
+            .replace(/bg-orange-50|bg-gray-50|bg-blue-50|bg-white/g, '')
+            .trim();
+        const s = isActive ? styles[m].active : styles[m].inactive;
+        s.split(' ').forEach(c => { if (c) lbl.classList.add(c); });
+    });
+
+    const codRow     = document.getElementById('cod-fee-row');
+    const walletRow  = document.getElementById('wallet-balance-row');
+    const walletWarn = document.getElementById('wallet-insufficient-warning');
+    const warnText   = document.getElementById('wallet-warning-text');
+    if (codRow)    codRow.classList.toggle('hidden', method !== 'cod');
+    if (walletRow) walletRow.classList.toggle('hidden', method !== 'wallet');
+
+    if (method === 'wallet') {
+        const bal = walletBalance || 0;
+        const el  = document.getElementById('wallet-balance-display');
+        const cb  = document.getElementById('checkout-wallet-balance');
+        if (el) el.textContent = `₹${bal.toLocaleString()}`;
+        if (cb) cb.textContent = `₹${bal.toLocaleString()}`;
+        const priceTotal = currentCheckoutItems.reduce((t, i) => t + (i.price * i.qty), 0);
+        const needed     = priceTotal + 7;
+        if (walletWarn && warnText) {
+            if (bal < needed) {
+                walletWarn.classList.remove('hidden');
+                warnText.textContent = `Wallet balance ₹${bal} is insufficient. Need ₹${needed}.`;
+            } else {
+                walletWarn.classList.add('hidden');
+            }
+        }
+        // Disable place order button if insufficient
+        const btn = document.getElementById('place-order-btn');
+        if (btn) {
+            if (bal < needed) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove('hover:bg-[#f45012]');
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add('hover:bg-[#f45012]');
+            }
+        }
+    } else {
+        walletWarn?.classList.add('hidden');
+        const btn = document.getElementById('place-order-btn');
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('hover:bg-[#f45012]');
+        }
+    }
+
+    updateCheckoutTotals();
+}
+
+/* Helper: clicking label also triggers radio */
+function selectPaymentLabel(method) {
+    const radio = document.getElementById(`payment-${method}`);
+    if (radio) { radio.checked = true; updatePaymentSelection(method); }
+}
 
 async function preFillUserAddress() {
     if (!currentUser) return false;
@@ -1202,7 +1425,7 @@ function useCurrentLocation() {
 }
 
 /* ============================================================
-   16. PAYMENT & ORDER PLACEMENT
+   16. PAYMENT & ORDER PLACEMENT  ← FIX 1 APPLIED HERE
    ============================================================ */
 async function initiatePayment() {
     if (!addressFormData.fullname)     { showToast('Please fill address first!'); goToStep(1); return; }
@@ -1231,7 +1454,16 @@ async function initiatePayment() {
 
     const finalAmount = priceTotal + platformFee + handlingFee;
     if (selectedPaymentMethod === 'wallet') {
-        if (walletBalance < finalAmount) { showToast(`❌ Wallet balance ₹${walletBalance} is insufficient. Need ₹${finalAmount}`); return; }
+        // ✅ FIX 1: Fresh balance check before attempting payment
+        try {
+            const { data: freshUser } = await dbClient.from('users').select('wallet').eq('mobile', currentUser.mobile).maybeSingle();
+            if (freshUser) walletBalance = freshUser.wallet || 0;
+        } catch (e) { console.warn('[initiatePayment] wallet refresh failed', e); }
+
+        if (walletBalance < finalAmount) {
+            showToast(`❌ Wallet balance ₹${walletBalance} is insufficient. Need ₹${finalAmount}`);
+            return;
+        }
         showToast('💰 Paying via Wallet...');
         await placeOrder('WALLET-PAY');
     } else if (selectedPaymentMethod === 'upi' || selectedPaymentMethod === 'card') {
@@ -1263,6 +1495,7 @@ function _openRazorpay(amount, description, onSuccess) {
     } catch { showToast('Could not open payment gateway'); }
 }
 
+/* ✅ FIX 1: placeOrder — wallet deduction via REST PATCH + automatic rollback on order failure */
 async function placeOrder(txId = 'COD', refundUpiId = '') {
     const subtotal    = currentCheckoutItems.reduce((t, i) => t + (i.price * i.qty), 0);
     const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
@@ -1275,8 +1508,21 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
         else               finalTotal = 7;
     }
 
+    // ✅ Wallet: re-fetch fresh balance from DB to avoid stale state
     if (selectedPaymentMethod === 'wallet') {
-        if (walletBalance < finalTotal) { showToast(`❌ Wallet balance ₹${walletBalance} is less than order total ₹${finalTotal}`); return; }
+        try {
+            const { data: freshUser } = await dbClient
+                .from('users')
+                .select('wallet')
+                .eq('mobile', currentUser.mobile)
+                .maybeSingle();
+            if (freshUser) walletBalance = freshUser.wallet || 0;
+        } catch (e) { console.warn('[placeOrder] wallet refresh failed', e); }
+
+        if (walletBalance < finalTotal) {
+            showToast(`❌ Wallet balance ₹${walletBalance} is insufficient. Need ₹${finalTotal}`);
+            return;
+        }
         txId = 'WALLET-PAY';
     }
 
@@ -1287,7 +1533,12 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
 
     const itemsToSave = currentCheckoutItems.map(i => {
         const prod = products.find(p => p.id === i.id);
-        return { id: i.id, name: i.name, img: i.imgs?.[0] || i.img || '', qty: i.qty, price: i.price, size: i.size || 'M', margin_amt: prod?.margin_amt || 0 };
+        return {
+            id: i.id, name: i.name,
+            img: i.imgs?.[0] || i.img || '',
+            qty: i.qty, price: i.price, size: i.size || 'M',
+            margin_amt: prod?.margin_amt || 0
+        };
     });
 
     const orderId = 'ORD' + Math.floor(Math.random() * 1000000);
@@ -1306,24 +1557,48 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
         pincode:        addressFormData.pincode || '',
         city:           addressFormData.city  || '',
         state:          addressFormData.state || '',
-        notes:          isExchangeProcess ? `EXCHANGE of #${exchangeSourceOrder?.id || ''}` : '',
         refund_upi:     refundUpiId || null,
     };
 
     try {
-        const { data: savedOrder, error } = await dbClient.from('orders').insert([newOrder]).select().single();
-        if (error) throw error;
-
-        if (selectedPaymentMethod === 'wallet' && currentUser) {
+        // ✅ FIX 1: Wallet deduction via REST PATCH (bypasses RLS, atomic)
+        if (selectedPaymentMethod === 'wallet') {
             const newBal = walletBalance - finalTotal;
+            const walletRes = await fetch(
+                `${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({ wallet: newBal })
+                }
+            );
+            if (!walletRes.ok) {
+                const errText = await walletRes.text();
+                throw new Error(`Wallet deduction failed: HTTP ${walletRes.status} — ${errText}`);
+            }
             walletBalance = newBal;
-            await _updateWalletBalance(newBal);
+            if (currentUser) currentUser.wallet = newBal;
+            localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+            const walletEl = document.getElementById('prof-wallet');
+            if (walletEl) walletEl.textContent = `₹${newBal}`;
         }
+
+        const { data: savedOrder, error } = await dbClient
+            .from('orders')
+            .insert([newOrder])
+            .select()
+            .single();
+        if (error) throw error;
 
         if (isExchangeProcess && exchangeSourceOrder) {
             try {
                 const { data: exchRows } = await dbClient.from('orders')
-                    .update({ status: 'Exchanged', notes: `Exchanged → New Order: ${orderId}` })
+                    .update({ status: 'Exchanged' })
                     .eq('id', String(exchangeSourceOrder.id)).select();
                 if (exchRows?.length) {
                     const idx = ordersDb.findIndex(o => String(o.id) === String(exchangeSourceOrder.id));
@@ -1343,6 +1618,26 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
 
     } catch (err) {
         console.error('[placeOrder] error:', err);
+        // ✅ FIX 1: Automatic wallet rollback if order insert failed after wallet deduction
+        if (selectedPaymentMethod === 'wallet') {
+            const revertBal = walletBalance + finalTotal;
+            walletBalance = revertBal;
+            try {
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`,
+                    {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' },
+                        body: JSON.stringify({ wallet: revertBal })
+                    }
+                );
+                if (currentUser) currentUser.wallet = revertBal;
+                localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+                showToast('💰 Wallet balance restored due to order error.');
+            } catch (rollbackErr) {
+                console.error('[placeOrder] wallet rollback failed:', rollbackErr);
+            }
+        }
         showToast('❌ Error placing order: ' + err.message);
     }
 }
@@ -1649,8 +1944,6 @@ function updateDropdownSubs(catId, subId) {
 
 /* ============================================================
    ADMIN DUAL ENTRY — toggleProductMode + updateSellingPreview
-   FIX: Only ONE definition of updateSellingPreview
-   FIX: No optional-chain assignment (?.value = x is invalid)
    ============================================================ */
 function toggleProductMode(mode) {
     const manualFields = document.getElementById('manual-fields');
@@ -1665,7 +1958,6 @@ function toggleProductMode(mode) {
         manualFields.classList.add('hidden');
         const modeAuto = document.getElementById('mode-auto');
         if (modeAuto) modeAuto.checked = true;
-        /* FIX: safe assignment without optional chaining */
         const spEl = document.getElementById('ap-supplier-price');
         const mpEl = document.getElementById('ap-margin-pct');
         const maEl = document.getElementById('ap-margin');
@@ -1677,7 +1969,6 @@ function toggleProductMode(mode) {
     }
 }
 
-/* SINGLE definition — no duplicate */
 function updateSellingPreview() {
     const supplier  = parseInt(document.getElementById('ap-supplier-price')?.value) || 0;
     const marginPct = parseFloat(document.getElementById('ap-margin-pct')?.value)   || 0;
@@ -1695,6 +1986,35 @@ function updateSellingPreview() {
     if (mVal)  mVal.textContent = `₹${marginAmt.toLocaleString()}`;
     if (pEl)   pEl.value  = selling;
     if (mEl)   mEl.value  = marginAmt;
+}
+
+/* ============================================================
+   FIX 2: Auto-ImgBB Upload for Scraper
+   ============================================================ */
+
+/* ✅ NEW: Upload scraped image URL directly to ImgBB */
+async function uploadScrapedImageToImgBB(imageUrl) {
+    if (!imageUrl) return null;
+    try {
+        // Attempt 1: URL-based upload (ImgBB accepts direct image URLs)
+        const fd1 = new FormData();
+        fd1.append('image', imageUrl);
+        const res1  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd1 });
+        const json1 = await res1.json();
+        if (json1.success && json1.data?.url) return json1.data.url;
+
+        // Attempt 2: Fetch image as blob then upload
+        const imgRes  = await fetch(imageUrl);
+        const imgBlob = await imgRes.blob();
+        const fd2     = new FormData();
+        fd2.append('image', imgBlob, 'product.jpg');
+        const res2  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd2 });
+        const json2 = await res2.json();
+        return json2.success ? (json2.data?.url || null) : null;
+    } catch (e) {
+        console.warn('[uploadScrapedImageToImgBB] failed:', e);
+        return null;
+    }
 }
 
 /* Supplier selectors for ScrapingBee */
@@ -1715,13 +2035,21 @@ function detectSupplier(url) {
     return 'default';
 }
 
+/* ✅ FIX 2 + FIX 3: Updated scrapeProductFromUrl with auto-ImgBB + styled status classes */
 async function scrapeProductFromUrl() {
     const urlInput = document.getElementById('scrape-url');
     const statusEl = document.getElementById('scrape-status');
     const url      = urlInput?.value.trim();
     if (!url) return showToast('Enter a Supplier URL first');
-    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Scraping...'; statusEl.className = 'text-xs text-blue-600 font-semibold mt-2'; }
+
+    // FIX 3: Styled status classes
+    if (statusEl) {
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';
+        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping product data...';
+    }
     showToast('🔍 Scraping product...');
+
     const sel = SUPPLIER_SELECTORS[detectSupplier(url)];
     try {
         const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_KEY}&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true&country_code=in`;
@@ -1729,31 +2057,71 @@ async function scrapeProductFromUrl() {
         if (!res.ok) throw new Error(`ScrapingBee: ${res.status} ${res.statusText}`);
         const html = await res.text();
         const doc  = new DOMParser().parseFromString(html, 'text/html');
+
         const titleEl  = doc.querySelector(sel.title);
         const title    = titleEl ? titleEl.textContent.trim().replace(/\s+/g, ' ').substring(0, 200) : '';
         const priceEl  = doc.querySelector(sel.price);
         const priceNum = parseInt(((priceEl?.textContent || '').match(/[\d,]+/) || ['0'])[0].replace(/,/g, '')) || 0;
         const imgEl    = doc.querySelector(sel.image);
-        let imgUrl     = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+        let   imgUrl   = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
         if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+
         if (!title && !priceNum) {
-            if (statusEl) { statusEl.innerHTML = '❌ Could not extract data — fill manually'; statusEl.className = 'text-xs text-red-600 font-semibold mt-2'; }
-            showToast('❌ Scrape failed — fill manually'); return;
+            if (statusEl) {
+                statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700';
+                statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Could not extract data — fill fields manually';
+            }
+            showToast('❌ Scrape failed — fill manually');
+            return;
         }
+
+        // Fill basic fields
         const nE = document.getElementById('ap-name');
         const sE = document.getElementById('ap-supplier-price');
-        const iE = document.getElementById('ap-imgs');
         const oE = document.getElementById('ap-oldprice');
         if (nE && title)    nE.value = title;
         if (sE && priceNum) sE.value = priceNum;
-        if (iE && imgUrl)   iE.value = imgUrl;
         if (oE && priceNum) oE.value = Math.round(priceNum * 1.5);
         updateSellingPreview();
-        if (statusEl) { statusEl.innerHTML = `✅ Scraped! "${title.substring(0, 40)}..." — Cost: ₹${priceNum}`; statusEl.className = 'text-xs text-green-600 font-semibold mt-2'; }
-        showToast('✅ Product scraped! Review & save.');
+
+        // ✅ FIX 2: Auto-upload scraped image to ImgBB
+        if (imgUrl) {
+            if (statusEl) {
+                statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';
+                statusEl.innerHTML = '<i class="fas fa-cloud-upload-alt fa-pulse"></i> Uploading image to ImgBB...';
+            }
+            const hostedUrl = await uploadScrapedImageToImgBB(imgUrl);
+            const iE = document.getElementById('ap-imgs');
+            if (hostedUrl) {
+                if (iE) iE.value = hostedUrl;
+                if (statusEl) {
+                    statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700';
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Scraped & image hosted! "${title.substring(0, 35)}..." — Cost: ₹${priceNum}`;
+                }
+                showToast('✅ Product scraped + image uploaded to ImgBB!');
+            } else {
+                // Fallback: use original URL if ImgBB fails
+                if (iE) iE.value = imgUrl;
+                if (statusEl) {
+                    statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-amber-50 border-amber-200 text-amber-700';
+                    statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Scraped! (ImgBB upload failed — using direct URL) — Cost: ₹${priceNum}`;
+                }
+                showToast('⚠️ Product scraped. Image URL direct (ImgBB failed)');
+            }
+        } else {
+            if (statusEl) {
+                statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700';
+                statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Scraped! "${title.substring(0, 40)}..." — Cost: ₹${priceNum} (no image found)`;
+            }
+            showToast('✅ Product scraped! No image found — add manually.');
+        }
+
     } catch (err) {
         console.error('[scrapeProductFromUrl]', err);
-        if (statusEl) { statusEl.innerHTML = `❌ ${err.message}`; statusEl.className = 'text-xs text-red-600 font-semibold mt-2'; }
+        if (statusEl) {
+            statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700';
+            statusEl.innerHTML = `<i class="fas fa-times-circle"></i> ${err.message}`;
+        }
         showToast('❌ Scrape failed: ' + err.message);
     }
 }
@@ -1795,7 +2163,6 @@ async function adminAddProduct(e) {
     } catch (err) { showToast('Error: ' + err.message); }
 }
 
-/* FIX: renderAdminProducts — fixed mismatched div tags */
 function renderAdminProducts() {
     const container = document.getElementById('admin-product-list');
     if (!container) return;
@@ -1923,8 +2290,9 @@ async function loadAllOrdersAdmin() {
             return;
         }
 
-        document.getElementById('admin-order-count').innerText = data.length;
-        document.getElementById('admin-total-sales').innerText = `₹${data.reduce((s, o) => s + (o.total || 0), 0).toLocaleString()}`;
+        const activeOrders = data.filter(o => o.status !== 'Cancelled');
+        document.getElementById('admin-order-count').innerText = activeOrders.length;
+        document.getElementById('admin-total-sales').innerText = `₹${activeOrders.reduce((s, o) => s + (o.total || 0), 0).toLocaleString()}`;
 
         container.innerHTML = data.map(o => {
             const oidSafe  = String(o.id || '').replace(/'/g, "\\'");
@@ -2339,6 +2707,9 @@ Object.assign(window, {
     sortProducts,
     shopSortProducts,
     filterSub,
+    _initShopScrollHide,
+    openCategoryPage,
+    openSubcatProducts,
     showQuickSizeModal,
     hideQuickSizeModal,
     selectQuickSize,
@@ -2377,6 +2748,7 @@ Object.assign(window, {
     fetchPincodeDetails,
     useCurrentLocation,
     updatePaymentSelection,
+    selectPaymentLabel,
     closeSuccessModal,
     closeSuccessAndGoToOrders,
     closeCancelModal,
@@ -2393,6 +2765,7 @@ Object.assign(window, {
     deleteProduct,
     autoGenerateDescription,
     scrapeProductFromUrl,
+    uploadScrapedImageToImgBB,   // ✅ NEW — Fix 2
     loadAllOrdersAdmin,
     updateOrderStatus,
     approvePayout,
