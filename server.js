@@ -10,14 +10,19 @@
 const PORT               = 3000;
 const SUPABASE_URL       = 'https://wlgytgwmmefwpljstque.supabase.co';
 const SUPABASE_KEY       = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsZ3l0Z3dtbWVmd3BsanN0cXVlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzMzNTY3MSwiZXhwIjoyMDg4OTExNjcxfQ.MJ1CYOtgEbJClXHzKOElHg2CcdcoDLP7nKJSNU_sFAg';
-const RAZORPAY_KEY_ID    = 'rzp_live_SSnlkbwQnRuvjP';
-const RAZORPAY_KEY_SECRET = 'DcJHf5lNoszO78k7bMoZ7j5v'; 
+const SUPABASE_SERVICE_KEY = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
+const RAZORPAY_KEY_ID    = 'rzp_live_SRZMbmo0aTi8xs';
+const RAZORPAY_KEY_SECRET = 'your_razorpay_secret_here';
 const IMGBB_KEY          = '3949e4873d8510691ee63026d22eeb75';
 const SCRAPINGBEE_KEY    = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA         = '918982296773';
 const SUPPORT_EMAIL      = 'shaileshkumarchauhan9340@gmail.com';
 const ADMIN_TOKENS       = ['shailesh_admin_token', 'aman_admin_token'];
+
+/* VAPID Keys for Push Notifications */
+const VAPID_PUBLIC_KEY   = 'BDj8O97OwIFvhVPaBKlABWwbq2-BHjXYP-RkKFJYDKqGzaT9LH2oPuKrJ4MNdSwqB1XvDqiTCb_Y5_Qfqq6iEWk';
+const VAPID_PRIVATE_KEY  = 'ocrklMr0D2PHU7iFb1Qc0FeTlFMkSW2PqMWWaZ8oGZc';
+const VAPID_EMAIL        = 'mailto:shaileshkumarchauhan9340@gmail.com';
 
 /* ── REQUIRES ─────────────────────────────────────────────── */
 const express  = require('express');
@@ -70,6 +75,16 @@ async function init() {
 
     Razorpay = require('razorpay');
     multer   = require('multer');
+
+    /* Setup web-push VAPID */
+    try {
+        const webpush = require('web-push');
+        webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+        global.webpush = webpush;
+        console.log('🔔 Push notifications: ✅ Ready');
+    } catch (e) {
+        console.warn('⚠️  web-push not installed. Run: npm install web-push');
+    }
 
     registerRoutes();
     startCrons();
@@ -421,6 +436,94 @@ function registerRoutes() {
                 pendingReferrals:        referrals.filter(r => r.status === 'pending').length,
                 confirmedReferralAmount: referrals.filter(r => r.status === 'confirmed').reduce((s,r) => s+(r.commission||0), 0),
             });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    /* ──────────────────────────────────────────────────────
+       PUSH NOTIFICATIONS
+       ────────────────────────────────────────────────────── */
+
+    /* POST /api/notify/send — Ek ya sabhi users ko notification bhejo */
+    app.post('/api/notify/send', requireAdmin, async (req, res) => {
+        if (!global.webpush) return res.status(503).json({ error: 'web-push not installed. Run: npm install web-push' });
+        try {
+            const { mobile, title, body, url, image, tag } = req.body;
+            if (!title || !body) return res.status(400).json({ error: 'title and body required' });
+
+            /* Extract pid from url if present e.g. ./?pid=123 */
+            let pid = null;
+            try {
+                const urlParams = new URLSearchParams(url?.split('?')[1] || '');
+                pid = urlParams.get('pid');
+            } catch {}
+
+            const payload = JSON.stringify({
+                title,
+                body,
+                url:   url   || './',
+                image: image || null,
+                pid:   pid   || null,
+                tag:   tag   || 'outfitkart',
+                icon:  'https://placehold.co/192x192/e11d48/ffffff?text=OK',
+                badge: 'https://placehold.co/96x96/e11d48/ffffff?text=OK',
+            });
+            let users = [];
+            if (mobile) {
+                const { data } = await supabase.from('users').select('mobile, push_subscription').eq('mobile', mobile).maybeSingle();
+                if (data?.push_subscription) users = [data];
+            } else {
+                const { data } = await supabase.from('users').select('mobile, push_subscription').not('push_subscription', 'is', null);
+                users = (data || []).filter(u => u.push_subscription);
+            }
+            if (!users.length) return res.json({ sent: 0, message: 'No subscribed users' });
+            let sent = 0, failed = 0;
+            for (const user of users) {
+                try {
+                    await global.webpush.sendNotification(JSON.parse(user.push_subscription), payload);
+                    sent++;
+                } catch (err) {
+                    failed++;
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                        await supabase.from('users').update({ push_subscription: null }).eq('mobile', user.mobile);
+                    }
+                }
+            }
+            res.json({ sent, failed, total: users.length });
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
+
+    /* POST /api/notify/order — Order status change notification */
+    app.post('/api/notify/order', async (req, res) => {
+        if (!global.webpush) return res.json({ sent: 0 });
+        try {
+            const { mobile, orderId, status, total } = req.body;
+            if (!mobile || !orderId || !status) return res.status(400).json({ error: 'mobile, orderId, status required' });
+            const { data: user } = await supabase.from('users').select('push_subscription').eq('mobile', mobile).maybeSingle();
+            if (!user?.push_subscription) return res.json({ sent: 0 });
+            const STATUS_MSG = {
+                'Processing': { title: '✅ Order Confirmed!',   body: `Order #${orderId} confirmed!` },
+                'Packed':     { title: '📦 Order Packed!',       body: `Order #${orderId} pack ho gaya!` },
+                'Shipped':    { title: '🚚 Order Shipped!',      body: `Order #${orderId} ship ho gaya!` },
+                'Delivered':  { title: '🎉 Order Delivered!',    body: `Order #${orderId} deliver ho gaya!` },
+                'Cancelled':  { title: '❌ Order Cancelled',      body: `Order #${orderId} cancel. Refund process mein.` },
+            };
+            const msg = STATUS_MSG[status] || { title: 'OutfitKart', body: `Order #${orderId}: ${status}` };
+            const payload = JSON.stringify({ ...msg, url: './?view=orders', tag: `order-${orderId}`, orderId, icon: 'https://placehold.co/192x192/e11d48/ffffff?text=OK', badge: 'https://placehold.co/96x96/e11d48/ffffff?text=OK' });
+            await global.webpush.sendNotification(JSON.parse(user.push_subscription), payload);
+            res.json({ sent: 1 });
+        } catch (err) {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+                await supabase.from('users').update({ push_subscription: null }).eq('mobile', req.body.mobile).catch(() => {});
+            }
+            res.json({ sent: 0, error: err.message });
+        }
+    });
+
+    /* GET /api/notify/stats */
+    app.get('/api/notify/stats', requireAdmin, async (req, res) => {
+        try {
+            const { data } = await supabase.from('users').select('mobile').not('push_subscription', 'is', null);
+            res.json({ subscribed: (data || []).length });
         } catch (err) { res.status(500).json({ error: err.message }); }
     });
 
