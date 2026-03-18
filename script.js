@@ -193,8 +193,8 @@ const STATUS_BADGE = {
    ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
     captureReferralFromUrl();
-    initCart();
 
+    /* Restore session FIRST before initCart so DB cart loads correctly */
     const saved = localStorage.getItem('outfitkart_session');
     if (saved) {
         try {
@@ -205,6 +205,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentUser = null;
         }
     }
+
+    /* Now init cart — currentUser is set, so DB cart will load */
+    initCart();
 
     const adminSession = localStorage.getItem('outfitkart_admin_session');
     if (adminSession === 'true' && isAdminLoggedIn === false) {
@@ -404,7 +407,6 @@ async function recordReferralPurchase(orderId, orderTotal) {
             status:          'pending',
             date:            new Date().toLocaleDateString('en-IN'),
             referral_code:   activeReferralCode,
-            created_at:      new Date().toISOString()
         }]);
         showToast(`🎁 Referral recorded! ₹${commission} pending for referrer`);
         localStorage.removeItem('outfitkart_active_referral');
@@ -426,7 +428,7 @@ async function loadReferrals() {
         if (el) el.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';
     });
     try {
-        const { data: referrals, error } = await dbClient.from('referrals').select('*').eq('referrer_mobile', currentUser.mobile).order('created_at', { ascending: false });
+        const { data: referrals, error } = await dbClient.from('referrals').select('*').eq('referrer_mobile', currentUser.mobile).order('id', { ascending: false });
         if (error) throw error;
         const pending   = referrals?.filter(r => r.status === 'pending')   || [];
         const confirmed = referrals?.filter(r => r.status === 'confirmed') || [];
@@ -489,10 +491,8 @@ function renderReferralList(containerId, items, type) {
     const s = STYLE[type];
     el.innerHTML = items.map(r => {
         let daysInfo = '';
-        if (type === 'pending' && r.created_at) {
-            const confirmAt = new Date(new Date(r.created_at).getTime() + 30 * 24 * 60 * 60 * 1000);
-            const daysLeft  = Math.max(0, Math.ceil((confirmAt - Date.now()) / (1000 * 60 * 60 * 24)));
-            daysInfo = `<div class="text-xs text-blue-600 mt-1 font-medium"><i class="fas fa-clock mr-1"></i>Confirms in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}</div>`;
+        if (type === 'pending') {
+            daysInfo = `<div class="text-xs text-blue-600 mt-1 font-medium"><i class="fas fa-clock mr-1"></i>Confirms after 30 days from order</div>`;
         }
         if (type === 'confirmed' && r.confirmed_at) daysInfo = `<div class="text-xs text-green-600 mt-1"><i class="fas fa-check mr-1"></i>Credited on ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`;
         if (type === 'cancelled') daysInfo = `<div class="text-xs text-red-500 mt-1"><i class="fas fa-ban mr-1"></i>Order cancelled — no commission</div>`;
@@ -554,43 +554,191 @@ function updateHeaderWallet(balance) {
 }
 
 /* ============================================================
-   7. CART
+   7. CART — localStorage primary (instant) + DB sync (background)
+   localStorage se hamesha fast load, DB se sync hota rehta hai
    ============================================================ */
-function initCart() { loadCart(); updateCartCount(); }
+function initCart() {
+    /* ALWAYS load from localStorage first — instant, no async needed */
+    loadCartLocal();
+    updateCartCount();
+    /* If user logged in, sync from DB in background */
+    if (currentUser) {
+        syncCartFromDB();
+    }
+}
 
-function loadCart() {
+function loadCartLocal() {
     try {
         const saved = localStorage.getItem('outfitkart_cart');
         cart = saved ? JSON.parse(saved) : [];
         cart.forEach(i => { if (!i.size) i.size = 'M'; });
-    } catch (e) { cart = []; localStorage.removeItem('outfitkart_cart'); }
+    } catch (e) {
+        cart = [];
+        localStorage.removeItem('outfitkart_cart');
+    }
 }
 
-function saveCart() { localStorage.setItem('outfitkart_cart', JSON.stringify(cart)); }
+function saveCartLocal() {
+    localStorage.setItem('outfitkart_cart', JSON.stringify(
+        cart.map(i => ({ productId: i.productId, size: i.size, qty: i.qty }))
+    ));
+}
 
-window.addToCart = function (productId, size) {
+/* Sync DB → localStorage in background (non-blocking) */
+async function syncCartFromDB() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await dbClient
+            .from('cart')
+            .select('*')
+            .eq('mobile', currentUser.mobile);
+        if (error) throw error;
+        if (!data || !data.length) return;
+        /* Merge DB cart into local — DB wins for qty */
+        const dbCart = data.map(row => ({
+            productId: row.product_id,
+            qty:       row.qty  || 1,
+            size:      row.size || 'M',
+        }));
+        /* Merge: add DB items that are not in local */
+        dbCart.forEach(dbItem => {
+            const key = `${dbItem.productId}-${dbItem.size}`;
+            const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
+            if (idx === -1) cart.push(dbItem);
+            else cart[idx].qty = dbItem.qty; /* DB qty overrides */
+        });
+        saveCartLocal();
+        updateCartCount();
+        const sidebar = document.getElementById('cart-sidebar');
+        if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
+    } catch (err) {
+        console.error('[Cart sync]', err);
+    }
+}
+
+async function loadCartFromDB() {
+    if (!currentUser) { loadCartLocal(); return; }
+    try {
+        const { data, error } = await dbClient
+            .from('cart')
+            .select('*')
+            .eq('mobile', currentUser.mobile);
+        if (error) throw error;
+        cart = (data || []).map(row => ({
+            productId: row.product_id,
+            qty:       row.qty  || 1,
+            size:      row.size || 'M',
+        }));
+        saveCartLocal(); /* Always keep localStorage in sync */
+        updateCartCount();
+        const sidebar = document.getElementById('cart-sidebar');
+        if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
+    } catch (err) {
+        console.error('[Cart DB load]', err);
+        loadCartLocal();
+    }
+}
+
+async function migrateLocalCartToDB() {
+    if (!currentUser) return;
+    let localCart = [];
+    try { localCart = JSON.parse(localStorage.getItem('outfitkart_cart') || '[]'); } catch {}
+    if (!localCart.length) { await loadCartFromDB(); return; }
+    for (const item of localCart) {
+        await _upsertCartItem(item.productId, item.size, item.qty);
+    }
+    await loadCartFromDB();
+}
+
+async function _upsertCartItem(productId, size, qty) {
+    if (!currentUser) return;
+    try {
+        const { data: existing } = await dbClient
+            .from('cart')
+            .select('id, qty')
+            .eq('mobile', currentUser.mobile)
+            .eq('product_id', productId)
+            .eq('size', size)
+            .maybeSingle();
+        const p     = products.find(x => x.id === productId);
+        const pName = p?.name || '';
+        if (existing) {
+            await dbClient.from('cart').update({ qty }).eq('id', existing.id);
+        } else {
+            await dbClient.from('cart').insert([{
+                mobile:     currentUser.mobile,
+                product_id: productId,
+                qty,
+                size,
+                name:       pName,
+            }]);
+        }
+    } catch (err) { console.error('[Cart upsert]', err); }
+}
+
+async function _removeCartItemDB(productId, size) {
+    if (!currentUser) return;
+    try {
+        await dbClient.from('cart')
+            .delete()
+            .eq('mobile', currentUser.mobile)
+            .eq('product_id', productId)
+            .eq('size', size);
+    } catch (err) { console.error('[Cart remove DB]', err); }
+}
+
+async function clearCartDB() {
+    if (!currentUser) return;
+    try {
+        await dbClient.from('cart').delete().eq('mobile', currentUser.mobile);
+    } catch (err) { console.error('[Cart clear DB]', err); }
+}
+
+function saveCart() {
+    saveCartLocal(); /* Always save to localStorage immediately */
+}
+
+window.addToCart = async function (productId, size) {
     size = size || 'M';
     const key = `${productId}-${size}`;
     const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
-    if (idx > -1) { cart[idx].qty += 1; showToast(`+1 ${size} added (Total: ${cart[idx].qty}) 🛒`); }
-    else { cart.push({ productId, size, qty: 1 }); showToast(`${size} added to cart 🛒`); }
-    saveCart(); updateCartCount();
+    if (idx > -1) {
+        cart[idx].qty += 1;
+        showToast(`+1 ${size} added (Total: ${cart[idx].qty}) 🛒`);
+    } else {
+        cart.push({ productId, size, qty: 1 });
+        showToast(`${size} added to cart 🛒`);
+    }
+    saveCartLocal(); /* Save instantly to localStorage */
+    updateCartCount();
+    if (currentUser) _upsertCartItem(productId, size, cart.find(i=>`${i.productId}-${i.size}`===key)?.qty || 1); /* DB sync in background */
     const sidebar = document.getElementById('cart-sidebar');
     if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
 };
 
-function updateQty(productId, size, delta) {
+async function updateQty(productId, size, delta) {
     const key = `${productId}-${size}`;
     const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
     if (idx === -1) return;
     cart[idx].qty += delta;
-    if (cart[idx].qty <= 0) { cart.splice(idx, 1); showToast('Item removed 🗑️'); }
-    saveCart(); updateCartCount(); renderCart();
+    if (cart[idx].qty <= 0) {
+        cart.splice(idx, 1);
+        showToast('Item removed 🗑️');
+        if (currentUser) _removeCartItemDB(productId, size);
+    } else {
+        if (currentUser) _upsertCartItem(productId, size, cart[idx].qty);
+    }
+    saveCartLocal();
+    updateCartCount();
+    renderCart();
 }
 
-function removeFromCart(productId, size) {
+async function removeFromCart(productId, size) {
     cart = cart.filter(i => `${i.productId}-${i.size}` !== `${productId}-${size}`);
-    saveCart(); updateCartCount(); renderCart();
+    saveCartLocal();
+    if (currentUser) _removeCartItemDB(productId, size);
+    updateCartCount();
+    renderCart();
     showToast('Removed from cart 🗑️');
 }
 
@@ -1014,9 +1162,13 @@ async function handleSignup(e) {
         const refCode=generateReferralCode(name,mobile);
         const {data,error}=await dbClient.from('users').insert([{mobile,name,email:document.getElementById('signup-email').value.trim(),password:pass,wallet:0,referral_code:refCode}]).select().single();
         if (error) throw error;
-        currentUser=data; localStorage.setItem('outfitkart_session',JSON.stringify(data));
-        e.target.reset(); showToast('Account Created! Welcome 🎉');
-        await fetchUserData(); checkAuthUI();
+        currentUser = data;
+        localStorage.setItem('outfitkart_session', JSON.stringify(data));
+        e.target.reset();
+        showToast('Account Created! Welcome 🎉');
+        await fetchUserData();
+        await migrateLocalCartToDB();
+        checkAuthUI();
     } catch (err) { showToast('Error: '+(err.message||'Try again')); }
 }
 
@@ -1028,7 +1180,15 @@ async function handleLogin(e) {
     try {
         const {data,error}=await dbClient.from('users').select('*').eq('mobile',mobile).eq('password',pass).maybeSingle();
         if (error) throw error;
-        if (data) { currentUser=data; localStorage.setItem('outfitkart_session',JSON.stringify(data)); showToast('Login successful! 🚀'); e.target.reset(); await fetchUserData(); checkAuthUI(); }
+        if (data) {
+            currentUser = data;
+            localStorage.setItem('outfitkart_session', JSON.stringify(data));
+            showToast('Login successful! 🚀');
+            e.target.reset();
+            await fetchUserData();
+            await migrateLocalCartToDB(); /* Move guest cart to DB */
+            checkAuthUI();
+        }
         else showToast('Invalid Mobile Number or Password ❌');
     } catch (err) { showToast('Login error: '+err.message); }
 }
@@ -1102,7 +1262,9 @@ async function fetchUserData() {
         const {data:oData}=await dbClient.from('orders').select('*').eq('mobile',currentUser.mobile).order('date',{ascending:false});
         ordersDb=oData||[];
     } catch (e) {}
-    initRealtimeTracking(); loadUserReferralCode();
+    initRealtimeTracking();
+    loadUserReferralCode();
+    /* Cart is loaded by initCart() on startup, or explicitly after login */
 }
 
 /* ============================================================
@@ -1298,7 +1460,10 @@ async function placeOrder(txId='COD',refundUpiId=''){
         if(error)throw error;
         await recordReferralPurchase(orderId, finalTotal);
         if(isExchangeProcess&&exchangeSourceOrder){try{const{data:exchRows}=await dbClient.from('orders').update({status:'Exchanged'}).eq('id',String(exchangeSourceOrder.id)).select();if(exchRows?.length){const idx=ordersDb.findIndex(o=>String(o.id)===String(exchangeSourceOrder.id));if(idx>-1)ordersDb[idx]={...ordersDb[idx],...exchRows[0]};}}catch{}resetExchangeProcess();}
-        cart=[];saveCart();updateCartCount();ordersDb.push(savedOrder||newOrder);
+        cart = [];
+        if (currentUser) await clearCartDB();
+        else saveCartLocal();
+        updateCartCount();ordersDb.push(savedOrder||newOrder);
         const modal=document.getElementById('order-success-modal'),idEl=document.getElementById('success-order-id');
         if(idEl)idEl.innerText=orderId;if(modal){modal.classList.remove('hidden');modal.classList.add('flex');}
     }catch(err){
@@ -1473,7 +1638,7 @@ async function renderAdminDashboard() {
         const [ordersRes, usersRes, referralsRes] = await Promise.all([
             dbClient.from('orders').select('*').order('date', { ascending: false }),
             dbClient.from('users').select('*'),
-            dbClient.from('referrals').select('commission, status').order('created_at', { ascending: false }).limit(500),
+            dbClient.from('referrals').select('commission, status').order('id', { ascending: false }).limit(500),
         ]);
         const allOrders    = ordersRes.data   || [];
         const allUsers     = usersRes.data    || [];
@@ -1784,7 +1949,10 @@ async function loadAdminReferrals() {
     if (!container) return;
     container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
     try {
-        const { data: referrals, error } = await dbClient.from('referrals').select('*').order('created_at', { ascending: false });
+        const { data: referrals, error } = await dbClient
+            .from('referrals')
+            .select('*')
+            .order('id', { ascending: false }); /* id desc — no created_at needed */
         if (error) throw error;
         const all       = referrals || [];
         const pending   = all.filter(r => r.status === 'pending');
@@ -1795,32 +1963,36 @@ async function loadAdminReferrals() {
         const cancelledAmt = cancelled.reduce((s, r) => s + (r.commission || 0), 0);
 
         container.innerHTML = `
-        <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border border-amber-200 text-center">
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
                 <p class="text-xs text-amber-700 font-bold uppercase mb-1">Pending</p>
                 <p class="text-2xl font-black text-amber-600">₹${pendingAmt.toLocaleString()}</p>
                 <p class="text-xs text-amber-500 mt-1">${pending.length} referrals</p>
             </div>
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200 text-center">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
                 <p class="text-xs text-green-700 font-bold uppercase mb-1">Confirmed</p>
                 <p class="text-2xl font-black text-green-600">₹${confirmedAmt.toLocaleString()}</p>
                 <p class="text-xs text-green-500 mt-1">${confirmed.length} referrals</p>
             </div>
-            <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-200 text-center">
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
                 <p class="text-xs text-red-700 font-bold uppercase mb-1">Cancelled</p>
                 <p class="text-2xl font-black text-red-400">₹${cancelledAmt.toLocaleString()}</p>
                 <p class="text-xs text-red-400 mt-1">${cancelled.length} referrals</p>
             </div>
         </div>
         <div class="flex gap-1 mb-4 border-b overflow-x-auto hide-scrollbar">
-            <button onclick="adminFilterReferrals('all',this)" class="pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab">All (${all.length})</button>
-            <button onclick="adminFilterReferrals('pending',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Pending (${pending.length})</button>
+            <button onclick="adminFilterReferrals('pending',this)" id="ref-tab-pending" class="pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab">
+                ⏳ Pending (${pending.length})
+            </button>
+            <button onclick="adminFilterReferrals('all',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">All (${all.length})</button>
             <button onclick="adminFilterReferrals('confirmed',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Confirmed (${confirmed.length})</button>
             <button onclick="adminFilterReferrals('cancelled',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Cancelled (${cancelled.length})</button>
         </div>
         <div id="admin-referrals-list" class="space-y-3"></div>`;
+
         window._allAdminReferrals = all;
-        renderAdminReferralList(all);
+        /* Default: show pending first */
+        renderAdminReferralList(pending.length ? pending : all);
     } catch (err) {
         container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;
     }
@@ -1850,7 +2022,7 @@ function renderAdminReferralList(items) {
                     <div class="text-xs text-gray-500">Buyer: +91 ${r.buyer_mobile}</div>
                     <div class="text-xs text-gray-500">Date: ${r.date||'—'} | Code: <span class="font-mono font-semibold text-purple-700">${r.referral_code||'—'}</span></div>
                     <div class="text-xs text-gray-600 mt-1">Order: ₹${(r.order_total||0).toLocaleString()} | Commission: <strong class="text-green-600">₹${r.commission}</strong> (5%)</div>
-                    ${r.status==='pending'&&r.created_at?`<div class="text-xs text-blue-600 mt-1">Confirms: ${new Date(new Date(r.created_at).getTime()+30*24*60*60*1000).toLocaleDateString('en-IN')}</div>`:''}
+                    ${r.status==='pending'?`<div class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>Pending — confirms after 30 days</div>`:''}
                     ${r.confirmed_at?`<div class="text-xs text-green-600 mt-1">Credited: ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`:''}
                 </div>
                 <div class="flex flex-col gap-1 items-end">
@@ -2824,6 +2996,7 @@ async function loadWalletTransactions() {
    ============================================================ */
 Object.assign(window, {
     navigate, toggleCart, handleSearch, sortProducts, shopSortProducts, filterSub, _initShopScrollHide,
+    loadCartFromDB, migrateLocalCartToDB, clearCartDB,
     openCategoryPage, openSubcatProducts, showQuickSizeModal, hideQuickSizeModal, selectQuickSize, addFromQuickModal,
     toggleWishlist, openProductPage, pdpScrollToSlide, selectSize, addToCartPDP, buyNowPDP, buyNow,
     submitReview, setRating, switchAuthTab, handleLogin, handleSignup, saveProfile, changePassword,
