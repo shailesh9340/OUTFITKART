@@ -18,6 +18,9 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .tab-btn.active { border-left: 4px solid #e11d48; background-color: #fff1f2; color: #e11d48; font-weight: bold; }
+        .admin-nav-btn { color: #6b7280; background-color: transparent; }
+        .admin-nav-btn:hover { background-color: #f3f4f6; color: #374151; }
+        .admin-nav-btn.active { background-color: #f3e8ff; color: #7c3aed; border-left: 3px solid #7c3aed; }
         .size-btn.selected { border-color: #e11d48; background-color: #e11d48; color: white; }
         .payment-modal { backdrop-filter: blur(5px); }
         #tracking-modal { backdrop-filter: blur(8px); }
@@ -45,12 +48,10 @@
         #recommended-products-grid .bg-white { min-width: unset !important; width: 100% !important; }
         @keyframes sharePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0.4); } 50% { box-shadow: 0 0 0 8px rgba(225,29,72,0); } }
         .share-outfitkart-btn { animation: sharePulse 2.5s infinite; }
-        /* FIX 3: scrape-status smooth transition */
         #scrape-status { transition: background 0.25s, border-color 0.25s, color 0.25s; }
-        /* Shop header sticky */
         #shop-header-bar {
             position: sticky;
-            top: 64px; /* below main header (h-16 = 64px) */
+            top: 64px;
             z-index: 10;
             background: white;
         }
@@ -147,10 +148,8 @@
             </div>
         </div>
 
-        <!-- SHOP VIEW -->
         <!-- CATEGORY SUBCAT PAGE -->
         <div id="view-category" class="view-section hidden pb-24">
-            <!-- Sticky header -->
             <div class="sticky top-16 z-10 bg-white border-b shadow-sm">
                 <div class="flex items-center gap-3 px-4 py-3">
                     <button onclick="navigate('home')" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all flex-shrink-0">
@@ -163,12 +162,11 @@
                     </button>
                 </div>
             </div>
-            <!-- Subcat grid -->
             <div id="cat-page-subcat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4"></div>
         </div>
 
+        <!-- SHOP VIEW -->
         <div id="view-shop" class="view-section hidden">
-            <!-- Fixed shop header: title + sort bar -->
             <div id="shop-header-bar" class="bg-white px-4 pt-3 pb-2 border-b shadow-sm">
                 <div class="flex items-center justify-between">
                     <h2 class="font-bold text-xl" id="shop-title">Shop All Products</h2>
@@ -180,7 +178,6 @@
                         <option value="new">What's New</option>
                     </select>
                 </div>
-                <!-- Subcategory pills INSIDE header — hidden on scroll via JS -->
                 <div id="subcategory-filters" class="flex gap-2 mt-2 pb-1 overflow-x-auto hide-scrollbar transition-all duration-300"></div>
             </div>
             <div class="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="shop-grid"></div>
@@ -319,8 +316,6 @@
                             <div class="bg-white p-6 rounded-xl shadow-sm border">
                                 <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-gray-900"><i class="fas fa-credit-card text-orange-500"></i> Payment Method</h3>
                                 <div class="space-y-3">
-
-                                    <!-- UPI Option -->
                                     <label id="label-upi" class="flex items-start gap-4 p-4 border-2 border-orange-400 rounded-xl cursor-pointer bg-orange-50 transition-all" onclick="selectPaymentLabel('upi')">
                                         <input type="radio" name="checkout-payment" value="upi" id="payment-upi" class="accent-orange-500 w-5 h-5 mt-0.5" checked onchange="updatePaymentSelection('upi')">
                                         <div class="flex-1">
@@ -334,8 +329,6 @@
                                         </div>
                                         <span class="text-[10px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 self-start whitespace-nowrap">No extra fee</span>
                                     </label>
-
-                                    <!-- Cash on Delivery Option -->
                                     <label id="label-cod" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-gray-400 transition-all" onclick="selectPaymentLabel('cod')">
                                         <input type="radio" name="checkout-payment" value="cod" id="payment-cod" class="accent-gray-700 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('cod')">
                                         <div class="flex-1">
@@ -348,8 +341,6 @@
                                         </div>
                                         <span class="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 self-start whitespace-nowrap">+₹9 fee</span>
                                     </label>
-
-                                    <!-- Wallet Option -->
                                     <label id="label-wallet" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-blue-300 transition-all" onclick="selectPaymentLabel('wallet')">
                                         <input type="radio" name="checkout-payment" value="wallet" id="payment-wallet" class="accent-blue-600 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('wallet')">
                                         <div class="flex-1">
@@ -362,13 +353,10 @@
                                         </div>
                                         <span class="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200 self-start whitespace-nowrap">Instant</span>
                                     </label>
-
-                                    <!-- Wallet insufficient warning -->
                                     <div id="wallet-insufficient-warning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 font-semibold flex items-center gap-2">
                                         <i class="fas fa-exclamation-circle text-red-500"></i>
                                         <span id="wallet-warning-text">Wallet balance is insufficient for this order.</span>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -377,12 +365,10 @@
                                 <h4 class="font-bold text-sm uppercase tracking-wide text-gray-700 mb-4">Order Total</h4>
                                 <div class="space-y-2 text-sm">
                                     <div id="exchange-value-row" class="hidden justify-between font-bold text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200"><span>Exchange Value Applied</span><span id="exchange-value-display">-₹0</span></div>
-                                    <!-- COD handling fee row -->
                                     <div id="cod-fee-row" class="hidden flex justify-between text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
                                         <span class="flex items-center gap-1"><i class="fas fa-hand-holding-usd text-xs"></i> COD Handling Fee</span>
                                         <span class="font-bold">+₹9</span>
                                     </div>
-                                    <!-- Wallet balance row -->
                                     <div id="wallet-balance-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
                                         <span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Balance</span>
                                         <span class="font-bold" id="wallet-balance-display">₹0</span>
@@ -434,9 +420,24 @@
                             <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('orders',this)"><i class="fas fa-box-open w-6"></i> My Orders</button>
                             <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('wishlist',this)"><i class="fas fa-heart w-6"></i> Wishlist</button>
                             <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('cart',this)"><i class="fas fa-shopping-cart w-6"></i> Saved Cart</button>
-                            <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('payments',this)"><i class="fas fa-wallet w-6"></i> Payments &amp; Wallet</button>
+                            <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('wallet',this)"><i class="fas fa-wallet w-6"></i> OutfitKart Wallet</button>
+                            <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('referrals',this)"><i class="fas fa-gift w-6"></i> My Referrals <span class="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold" id="referral-earnings-badge">₹0</span></button>
                             <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('security',this)"><i class="fas fa-shield-alt w-6"></i> Security</button>
                             <button class="tab-btn text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t" onclick="switchProfileTab('help',this)"><i class="fas fa-info-circle w-6"></i> Help &amp; Info</button>
+                            
+                            <!-- Direct Support Buttons -->
+                            <div class="border-t pt-3 px-3 pb-3 bg-gradient-to-br from-gray-50 to-white">
+                                <p class="text-xs text-gray-500 font-bold uppercase px-1 mb-2 tracking-wide">Need Help?</p>
+                                <button onclick="openWhatsAppSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 active:scale-95 transition-all mb-2 shadow-md">
+                                    <i class="fab fa-whatsapp text-xl"></i>
+                                    <span>WhatsApp Support</span>
+                                </button>
+                                <button onclick="openEmailSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all shadow-md">
+                                    <i class="fas fa-envelope text-lg"></i>
+                                    <span>Email Support</span>
+                                </button>
+                            </div>
+                            
                             <button onclick="shareOutfitKart()" class="share-outfitkart-btn text-left px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 border-t flex items-center gap-2 active:scale-95"><i class="fas fa-share-alt w-5 text-center"></i> Share OutfitKart<span class="ml-auto text-xs bg-white/20 px-1.5 py-0.5 rounded-full">🎁</span></button>
                             <button class="text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 border-t" onclick="handleLogout()"><i class="fas fa-sign-out-alt w-6"></i> Logout</button>
                         </div>
@@ -449,6 +450,35 @@
                                 <div><label class="text-xs text-gray-500">Email Address</label><input type="email" id="prof-email" class="w-full border p-2 rounded outline-none mt-1" placeholder="Add Email"></div>
                                 <div><label class="text-xs text-gray-500">Delivery Address Book</label><textarea id="prof-address" class="w-full border rounded p-2 text-sm mt-1 h-20 outline-none" placeholder="House, Street, Pincode..."></textarea></div>
                             </div>
+                            
+                            <!-- Referral Code Section -->
+                            <div class="mt-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-gift text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold text-gray-800 text-sm">Your Referral Code</h4>
+                                        <p class="text-xs text-gray-500">Earn 5% on every referral purchase!</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white rounded-lg p-3 border-2 border-dashed border-green-300 mb-3">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="text-xs text-gray-500 mb-1">Your Code:</p>
+                                            <p class="text-2xl font-black text-green-600 tracking-wider" id="user-referral-code">LOADING...</p>
+                                        </div>
+                                        <button onclick="copyReferralCode()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-600 active:scale-95 transition-all">
+                                            <i class="fas fa-copy mr-1"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-600 text-center">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Share products with your code & earn when friends buy!
+                                </p>
+                            </div>
+                            
                             <div class="mt-6 p-4 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-xl">
                                 <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center"><i class="fas fa-gift text-rose-600"></i></div><div><h4 class="font-bold text-gray-800 text-sm">Share OutfitKart</h4><p class="text-xs text-gray-500">Tell your friends about premium fashion!</p></div></div>
                                 <button onclick="shareOutfitKart()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"><i class="fas fa-share-nodes"></i> Share with Friends &amp; Family</button>
@@ -457,14 +487,109 @@
                         <div id="tab-orders" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">My Orders</h2><div id="orders-list-container" class="space-y-4"></div></div>
                         <div id="tab-wishlist" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Wishlist &amp; Favorites</h2><div id="wishlist-container" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div></div>
                         <div id="tab-cart" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border text-center"><i class="fas fa-shopping-cart text-5xl text-gray-300 mb-4 mt-10 block"></i><h2 class="text-xl font-bold mb-2">Your Active Cart</h2><p class="text-gray-500 mb-4">You have <span id="tab-cart-count" class="font-bold text-gray-800">0</span> items waiting.</p><button onclick="toggleCart()" class="bg-rose-600 text-white px-6 py-2 rounded shadow font-bold hover:bg-rose-700">Open Cart</button></div>
-                        <div id="tab-payments" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Payments &amp; Wallet</h2><div class="grid md:grid-cols-2 gap-4"><div class="p-4 bg-gray-50 rounded border"><h3 class="font-bold text-sm text-gray-700 mb-2">Saved Payment Methods</h3><p class="text-sm bg-white border p-2 rounded font-bold"><i class="fas fa-mobile-alt text-green-500 w-5"></i> UPI App Linked</p><p class="text-sm bg-white border p-2 rounded mt-2"><i class="fas fa-money-bill-wave text-gray-500 w-5"></i> Cash on Delivery</p></div><div class="p-4 bg-blue-50 rounded border border-blue-100 flex flex-col justify-center"><h3 class="font-bold text-sm text-blue-800"><i class="fas fa-wallet"></i> Store Credit / Wallet</h3><p class="text-3xl font-black mt-1" id="prof-wallet">₹0</p></div></div></div>
+                        <div id="tab-wallet" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                            <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2">
+                                <i class="fas fa-wallet text-blue-600"></i> OutfitKart Wallet
+                            </h2>
+                            <div class="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 flex flex-col items-center justify-center text-center mb-6">
+                                <div class="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                                    <i class="fas fa-wallet text-white text-3xl"></i>
+                                </div>
+                                <h3 class="font-bold text-sm text-blue-800 mb-1">Available Balance</h3>
+                                <p class="text-4xl font-black text-blue-600" id="prof-wallet">₹0</p>
+                                <p class="text-xs text-blue-600 mt-2">Use for instant checkout</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 border">
+                                <h3 class="font-bold text-sm text-gray-700 mb-3">How to use Wallet?</h3>
+                                <ul class="space-y-2 text-sm text-gray-600">
+                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout</span></li>
+                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Instant payment - no OTP needed</span></li>
+                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Refunds credited instantly</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <!-- Referrals Tab -->
+                        <div id="tab-referrals" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
+                            <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2">
+                                <i class="fas fa-gift text-green-600"></i> My Referrals & Earnings
+                            </h2>
+                            
+                            <!-- Earnings Summary -->
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="bg-gradient-to-br from-yellow-50 to-amber-50 p-4 rounded-xl border border-yellow-200">
+                                    <p class="text-xs text-amber-700 font-bold uppercase mb-1">Pending Earnings</p>
+                                    <p class="text-2xl font-black text-amber-600" id="pending-earnings">₹0</p>
+                                    <p class="text-xs text-amber-600 mt-1">Awaiting confirmation</p>
+                                </div>
+                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                                    <p class="text-xs text-green-700 font-bold uppercase mb-1">Confirmed Earnings</p>
+                                    <p class="text-2xl font-black text-green-600" id="confirmed-earnings">₹0</p>
+                                    <p class="text-xs text-green-600 mt-1">Added to wallet</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Info Box -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <div class="flex gap-3">
+                                    <i class="fas fa-info-circle text-blue-500 text-xl mt-1"></i>
+                                    <div class="text-sm text-blue-800">
+                                        <p class="font-bold mb-2">How Referral Earnings Work:</p>
+                                        <ul class="space-y-1 text-xs">
+                                            <li>✓ Share products with your referral code</li>
+                                            <li>✓ Earn 5% profit when friends purchase</li>
+                                            <li>✓ Earnings stay <strong>pending</strong> after delivery</li>
+                                            <li>✓ Confirmed & added to wallet after <strong>30 days</strong></li>
+                                            <li>✓ Track everything in detail below!</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Tabs for Pending/Confirmed -->
+                            <div class="flex gap-2 mb-4 border-b">
+                                <button class="pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600" id="btn-ref-pending" onclick="switchReferralTab('pending')">
+                                    Pending (<span id="pending-count">0</span>)
+                                </button>
+                                <button class="pb-2 px-4 text-sm font-bold text-gray-500" id="btn-ref-confirmed" onclick="switchReferralTab('confirmed')">
+                                    Confirmed (<span id="confirmed-count">0</span>)
+                                </button>
+                            </div>
+                            
+                            <!-- Pending Referrals List -->
+                            <div id="referrals-pending-list" class="space-y-3">
+                                <div class="text-center py-10 text-gray-400">
+                                    <i class="fas fa-hourglass-half text-5xl mb-3"></i>
+                                    <p class="font-semibold">No pending referrals</p>
+                                    <p class="text-sm mt-1">Share products to start earning!</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Confirmed Referrals List -->
+                            <div id="referrals-confirmed-list" class="space-y-3 hidden">
+                                <div class="text-center py-10 text-gray-400">
+                                    <i class="fas fa-check-circle text-5xl mb-3"></i>
+                                    <p class="font-semibold">No confirmed earnings yet</p>
+                                    <p class="text-sm mt-1">Earnings appear here after 30 days</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div id="tab-security" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Security Settings</h2><div class="max-w-md space-y-3"><input type="password" id="sec-old-pass" placeholder="Current Password" class="w-full border p-2 rounded outline-none text-sm"><input type="password" id="sec-new-pass" placeholder="New Password" class="w-full border p-2 rounded outline-none text-sm"><button class="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-900" onclick="changePassword()">Change Password</button></div></div>
                         <div id="tab-help" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2">Help, Info &amp; Policies</h2>
+                            
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <p class="text-sm text-blue-800">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <strong>Need immediate help?</strong> Use the WhatsApp or Email buttons in the sidebar menu on the left!
+                                </p>
+                            </div>
+                            
                             <div class="space-y-3">
                                 <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">FAQs <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Q: How long does delivery take?</strong><br>A: Standard delivery takes 3-5 days.</p><p><strong>Q: How can I track my order?</strong><br>A: Click 'Track Order' in the My Orders tab.</p></div></div>
                                 <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">Our Policies <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Return Policy:</strong> Return unused items within 7 days.</p><p><strong>Privacy Policy:</strong> Your data is secured and never shared.</p></div></div>
-                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">About Us <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p class="font-bold text-gray-800">OutfitKart</p><p>Premium Fashion at Best Prices.</p><p><i class="fas fa-envelope text-rose-500 w-5"></i> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ddaea8adadb2afa99db2a8a9bbb4a9b6bcafa9f3beb2b0">[email&#160;protected]</a></p></div></div>
+                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">About Us <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p class="font-bold text-gray-800">OutfitKart</p><p>Premium Fashion at Best Prices.</p><p><i class="fas fa-envelope text-rose-500 w-5"></i> <a href="/cdn-cgi/l/email-protection#03706b626a6f66706b68766e6271606b62766b626d3a30373343646e626a6f2d606c6e" class="text-blue-600 hover:underline"><span class="__cf_email__" data-cfemail="11627970787d7462797a647c70637279706479707f2822252151767c70787d3f727e7c">[email&#160;protected]</span></a></p></div></div>
                             </div>
                         </div>
                     </div>
@@ -473,30 +598,116 @@
         </div>
 
         <!-- ADMIN VIEW -->
-        <div id="view-admin" class="view-section hidden p-2 md:p-6 max-w-5xl mx-auto mt-4 md:mt-8">
-            <div class="flex justify-between items-center mb-4 md:mb-6 px-2">
-                <h2 class="text-xl md:text-2xl font-bold text-purple-700"><i class="fas fa-database"></i> <span class="hidden md:inline">Database</span> Admin</h2>
-                <button onclick="navigate('home')" class="text-sm text-gray-500 underline hover:text-purple-600">Exit Admin</button>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 px-2">
-                <div class="bg-purple-50 p-3 rounded-lg border border-purple-100 shadow-sm text-center"><p class="text-[10px] md:text-xs uppercase font-bold text-purple-600">Total Sales</p><h3 class="text-lg md:text-xl font-black" id="admin-total-sales">₹0</h3></div>
-                <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 shadow-sm text-center"><p class="text-[10px] md:text-xs uppercase font-bold text-blue-600">Total Orders</p><h3 class="text-lg md:text-xl font-black" id="admin-order-count">0</h3></div>
-                <div class="bg-green-50 p-3 rounded-lg border border-green-100 shadow-sm text-center col-span-2 md:col-span-1"><p class="text-[10px] md:text-xs uppercase font-bold text-green-600">Pending Payouts</p><h3 class="text-lg md:text-xl font-black" id="admin-pending-withdraw">0</h3></div>
-            </div>
-            <div class="flex gap-2 mb-4 overflow-x-auto hide-scrollbar px-2 border-b">
-                <button class="pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700" id="btn-admin-prod" onclick="switchAdminTab('prod')">Inventory</button>
-                <button class="pb-2 px-4 text-sm font-bold text-gray-500" id="btn-admin-order" onclick="switchAdminTab('order')">Orders</button>
-                <button class="pb-2 px-4 text-sm font-bold text-gray-500" id="btn-admin-payout" onclick="switchAdminTab('payout')">Withdrawals</button>
+        <div id="view-admin" class="view-section hidden">
+            <!-- Admin Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white sticky top-16 z-30 shadow-lg">
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleAdminSidebar()" class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 active:scale-95">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <div>
+                            <h2 class="text-xl font-black flex items-center gap-2">
+                                <i class="fas fa-shield-alt"></i> Admin Panel
+                            </h2>
+                            <p class="text-xs text-purple-100">Manage your store</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="exitAdmin()" class="text-xs text-purple-100 hover:text-white underline hidden md:block">
+                            <i class="fas fa-home mr-1"></i>Exit to Store
+                        </button>
+                        <button onclick="adminLogout()" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm">
+                            <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Stats Bar -->
+                <div class="grid grid-cols-3 gap-2 px-4 pb-3">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+                        <p class="text-[10px] text-purple-100 uppercase font-bold">Sales</p>
+                        <h3 class="text-sm font-black" id="admin-total-sales">₹0</h3>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+                        <p class="text-[10px] text-purple-100 uppercase font-bold">Orders</p>
+                        <h3 class="text-sm font-black" id="admin-order-count">0</h3>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center">
+                        <p class="text-[10px] text-purple-100 uppercase font-bold">Payouts</p>
+                        <h3 class="text-sm font-black" id="admin-pending-withdraw">0</h3>
+                    </div>
+                </div>
             </div>
 
-            <!-- Inventory Tab -->
-            <div id="admin-tab-prod" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 mx-2">
-                <h3 class="font-bold text-sm md:text-base mb-3 border-b pb-2">Product List (Live)</h3>
-                <div class="overflow-y-auto h-48 md:h-64 border rounded-lg p-2 mb-8 bg-gray-50" id="admin-product-list"></div>
-                <h3 class="font-bold text-sm md:text-base mt-6 mb-4 border-b pb-2 text-purple-700">Add New Product</h3>
+            <div class="flex min-h-screen bg-gray-50">
+                <!-- Sidebar -->
+                <div id="admin-sidebar" class="fixed md:sticky top-16 md:top-0 left-0 w-64 bg-white border-r shadow-xl z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 h-screen md:h-auto overflow-y-auto">
+                    <!-- Mobile Close Button -->
+                    <div class="md:hidden flex items-center justify-between p-4 border-b bg-purple-50">
+                        <span class="font-bold text-purple-700">Menu</span>
+                        <button onclick="toggleAdminSidebar()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-purple-100">
+                            <i class="fas fa-times text-gray-600"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Navigation -->
+                    <nav class="p-3 space-y-1">
+                        <button onclick="switchAdminTab('dashboard')" id="btn-admin-dashboard" class="admin-nav-btn active w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-chart-line w-5"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        <button onclick="switchAdminTab('products')" id="btn-admin-products" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-box-open w-5"></i>
+                            <span>Products</span>
+                        </button>
+                        <button onclick="switchAdminTab('inventory')" id="btn-admin-inventory" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-plus-circle w-5"></i>
+                            <span>Add Product</span>
+                        </button>
+                        <button onclick="switchAdminTab('order')" id="btn-admin-order" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-shopping-cart w-5"></i>
+                            <span>Orders</span>
+                        </button>
+                        <button onclick="switchAdminTab('users')" id="btn-admin-users" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-users w-5"></i>
+                            <span>Users</span>
+                        </button>
+                        <button onclick="switchAdminTab('payout')" id="btn-admin-payout" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all">
+                            <i class="fas fa-wallet w-5"></i>
+                            <span>Withdrawals</span>
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Sidebar Overlay (Mobile) -->
+                <div id="admin-sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="toggleAdminSidebar()"></div>
+
+                <!-- Main Content -->
+                <div class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+            <!-- Dashboard Tab -->
+            <div id="admin-tab-dashboard" class="admin-content-tab">
+                <div id="admin-dashboard-content"></div>
+            </div>
+
+            <!-- Products Tab (View Only) -->
+            <div id="admin-tab-products" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg text-gray-800">All Products</h3>
+                    <button onclick="renderAdminProducts()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">
+                        <i class="fas fa-sync-alt mr-1"></i>Refresh
+                    </button>
+                </div>
+                <div class="overflow-y-auto max-h-[70vh] border rounded-lg bg-gray-50" id="admin-product-list"></div>
+            </div>
+
+            <!-- Inventory Tab (Add Product Form) -->
+            <div id="admin-tab-inventory" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
+                <h3 class="font-bold text-lg md:text-xl mb-4 border-b pb-3 text-purple-700 flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i> Add New Product
+                </h3>
                 <form id="add-product-form" onsubmit="adminAddProduct(event)" class="space-y-4">
-
-                    <!-- DUAL ENTRY TOGGLE -->
                     <div class="flex items-center justify-center gap-6 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border-2 border-purple-100 mb-2">
                         <label class="flex items-center gap-2 cursor-pointer font-bold text-sm">
                             <input type="radio" name="entry-mode" value="auto" id="mode-auto" checked class="w-5 h-5 accent-purple-600" onchange="toggleProductMode('auto')">
@@ -509,8 +720,6 @@
                             <span>✏️ Manual Add</span>
                         </label>
                     </div>
-
-                    <!-- ✅ FIX 3: SMART AUTO-IMPORT UI -->
                     <div id="auto-import-fields" class="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 border-2 border-indigo-200 rounded-2xl p-5 shadow-sm">
                         <div class="flex items-center gap-3 mb-4">
                             <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
@@ -539,7 +748,6 @@
                                 <span class="hidden sm:inline">Fetch Data</span>
                             </button>
                         </div>
-                        <!-- Status bar — JS injects classes + content dynamically -->
                         <div id="scrape-status" class="hidden mt-3 items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border"></div>
                         <div class="flex flex-wrap gap-1.5 mt-3 items-center">
                             <span class="text-[10px] text-indigo-400 font-bold uppercase tracking-wide mr-1">Works with:</span>
@@ -554,8 +762,6 @@
                             Naam, price aur image auto-fetch hogi. Image ImgBB par host bhi ho jaayegi automatically.
                         </p>
                     </div>
-
-                    <!-- MANUAL FIELDS -->
                     <div id="manual-fields" class="space-y-4 hidden">
                         <div class="grid grid-cols-2 gap-3">
                             <div><label class="block text-[11px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Supplier Price</label><input type="number" id="ap-supplier-price" min="0" placeholder="₹300" class="w-full border p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 font-bold" oninput="updateSellingPreview()"></div>
@@ -566,7 +772,6 @@
                             <div class="text-center"><div class="text-[12px] text-green-700 font-bold uppercase tracking-wider mb-1">Profit Margin</div><div id="margin-amt-preview" class="text-xl font-bold text-green-600">₹0</div></div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <input type="text" id="ap-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
                         <input type="number" id="ap-price" placeholder="Selling Price (Auto-calc)" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
@@ -619,6 +824,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <input type="text" id="ep-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
                             <input type="number" id="ep-price" placeholder="Selling Price" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
+                            <input type="number" id="ep-margin-amt" placeholder="Margin Amount" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold outline-none">
                             <select id="ep-category" onchange="updateDropdownSubs('ep-category','ep-sub')" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="Men">Men</option><option value="Women">Women</option><option value="Kids">Kids</option></select>
                             <select id="ep-sub" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="">Select Subcategory</option></select>
                             <input type="text" id="edit-ap-brand" placeholder="Brand Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
@@ -638,39 +844,79 @@
             </div>
 
             <!-- Orders Tab -->
-            <div id="admin-tab-order" class="admin-content-tab hidden mx-2 space-y-3">
-                <div class="flex items-center justify-between mb-3"><h3 class="font-bold text-sm text-gray-800">All Customer Orders</h3><button onclick="loadAllOrdersAdmin()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button></div>
-                <div id="admin-full-order-list" class="space-y-3"></div>
+            <div id="admin-tab-order" class="admin-content-tab hidden space-y-3">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-3">
+                        <h3 class="font-bold text-sm text-gray-800">All Customer Orders</h3>
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <select id="admin-order-filter" onchange="filterAdminOrders(this.value)" class="flex-1 md:flex-none border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-semibold bg-white focus:ring-2 focus:ring-purple-400 outline-none">
+                                <option value="all">All Orders</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Packed">Packed</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Out for Delivery">Out for Delivery</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                            <button onclick="loadAllOrdersAdmin()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200 whitespace-nowrap">
+                                <i class="fas fa-sync-alt mr-1"></i>Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div id="admin-full-order-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="admin-tab-users" class="admin-content-tab hidden space-y-3">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-sm text-gray-800">Registered Users</h3>
+                        <button onclick="loadAllUsersAdmin()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">
+                            <i class="fas fa-sync-alt mr-1"></i>Refresh
+                        </button>
+                    </div>
+                    <div id="admin-users-list" class="space-y-3"></div>
+                </div>
             </div>
 
             <!-- Payouts Tab -->
-            <div id="admin-tab-payout" class="admin-content-tab hidden mx-2 space-y-3">
-                <h3 class="font-bold text-sm text-green-700">Pending Payout Requests</h3>
-                <div id="admin-withdraw-list" class="space-y-3"></div>
+            <div id="admin-tab-payout" class="admin-content-tab hidden space-y-3">
+                <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
+                    <h3 class="font-bold text-sm text-green-700 mb-3">Pending Payout Requests</h3>
+                    <div id="admin-withdraw-list" class="space-y-3"></div>
+                </div>
             </div>
-        </div>
 
-        <!-- SUCCESS VIEW -->
-        <div id="view-success" class="view-section hidden flex flex-col items-center justify-center min-h-[80vh] text-center p-6">
-            <div class="w-24 h-24 bg-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg animate-bounce"><i class="fas fa-check text-white text-5xl"></i></div>
-            <h2 class="text-3xl font-black text-green-700 mb-2 uppercase">Ordered Successfully!</h2>
-            <p class="text-gray-600 mb-6">Your order has been placed and is being processed.</p>
-            <div class="bg-gray-100 p-4 rounded-xl w-full max-w-xs mb-8 border border-dashed border-gray-400"><p class="text-xs text-gray-500 uppercase font-bold">Transaction ID</p><p id="success-tx-id" class="text-lg font-mono font-bold text-gray-800">----------</p></div>
-            <button onclick="navigate('home')" class="w-full max-w-xs bg-gray-900 text-white py-4 rounded-xl font-bold shadow-xl active:scale-95 mb-3">CONTINUE SHOPPING</button>
-            <button onclick="navigate('profile','orders')" class="w-full max-w-xs border-2 border-gray-900 text-gray-900 bg-white py-4 rounded-xl font-bold active:scale-95">VIEW MY ORDERS</button>
-        </div>
+                </div><!-- End Main Content -->
+            </div><!-- End flex container -->
+        </div><!-- End Admin View -->
 
     </main>
 
     <!-- CART SIDEBAR -->
     <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" onclick="toggleCart()"></div>
     <div id="cart-sidebar" class="fixed top-0 right-0 w-80 max-w-[90vw] h-screen bg-white z-50 transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col overflow-hidden">
-        <div class="p-4 border-b flex justify-between items-center bg-gray-50 shrink-0"><h2 class="font-bold text-lg"><i class="fas fa-shopping-cart"></i> Your Cart</h2><button onclick="toggleCart()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button></div>
-        <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar pb-36"></div>
-        <div class="absolute bottom-0 left-0 right-0 bg-white border-t shadow-2xl px-4 py-5 z-10">
-            <div class="flex justify-between items-baseline mb-3"><span class="text-sm font-semibold text-gray-600 uppercase">Total Amount</span><span id="cart-total-price" class="text-2xl font-black text-gray-900">₹0</span></div>
-            <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-4 rounded-xl font-bold text-lg shadow-2xl hover:from-rose-700 hover:to-rose-800 active:scale-[0.98] transition-all">Proceed to Checkout</button>
+        <!-- Header -->
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50 shrink-0">
+            <h2 class="font-bold text-lg"><i class="fas fa-shopping-cart"></i> Your Cart</h2>
+            <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
         </div>
+        
+        <!-- Checkout Button (MOVED UP) -->
+        <div class="bg-gradient-to-br from-rose-50 to-pink-50 p-4 border-b shrink-0">
+            <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-3.5 rounded-xl font-bold text-base shadow-2xl hover:from-rose-700 hover:to-rose-800 active:scale-[0.98] transition-all mb-3">
+                <i class="fas fa-lock mr-2"></i>Checkout Now
+            </button>
+            <div class="flex justify-between items-baseline bg-white rounded-lg p-3 border border-rose-200">
+                <span class="text-xs font-bold text-gray-600 uppercase">Total Amount</span>
+                <span id="cart-total-price" class="text-xl font-black text-rose-600">₹0</span>
+            </div>
+        </div>
+        
+        <!-- Cart Items -->
+        <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-4 hide-scrollbar"></div>
     </div>
 
     <!-- BOTTOM NAV -->
@@ -685,7 +931,6 @@
     <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[999] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- MODALS -->
-
     <!-- Quick Size Modal -->
     <div id="quick-size-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] hidden items-end md:items-center justify-center flex" onclick="hideQuickSizeModal()">
         <div class="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-w-sm w-full p-6" onclick="event.stopPropagation()">
@@ -762,6 +1007,40 @@
         <div class="bg-gray-50 rounded-2xl p-4 w-full max-w-xs mb-8 border border-dashed border-gray-300"><p class="text-sm text-gray-600">Order ID</p><p id="success-order-id" class="font-bold text-lg text-rose-600">ORD-XXXXXX</p></div>
         <button onclick="closeSuccessAndGoToOrders()" class="w-full max-w-xs bg-rose-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl hover:bg-rose-700 active:scale-95 mb-3">VIEW MY ORDERS</button>
         <button onclick="closeSuccessModal(); navigate('home')" class="w-full max-w-xs border-2 border-gray-800 text-gray-800 py-4 rounded-xl font-bold text-lg active:scale-95">CONTINUE SHOPPING</button>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4 flex backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-purple-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-gray-900 mb-1">Admin Login</h2>
+                <p class="text-sm text-gray-500">Enter credentials to access admin panel</p>
+            </div>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                    <input type="text" id="admin-username" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Enter username">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                    <input type="password" id="admin-password" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Enter password">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold shadow-lg hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all">
+                        <i class="fas fa-lock mr-2"></i>Login
+                    </button>
+                    <button type="button" onclick="closeAdminLogin(true)" class="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            <p class="text-xs text-gray-400 text-center mt-4">
+                <i class="fas fa-info-circle mr-1"></i>Only authorized personnel
+            </p>
+        </div>
     </div>
 
     <!-- PWA Install Banner (Desktop) -->
