@@ -623,6 +623,10 @@
                                 <button onclick="openEmailSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all shadow-md"><i class="fas fa-envelope text-lg"></i><span>Email Support</span></button>
                             </div>
                             <button onclick="shareOutfitKart()" class="share-outfitkart-btn text-left px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 border-t flex items-center gap-2 active:scale-95"><i class="fas fa-share-alt w-5 text-center"></i> Share OutfitKart<span class="ml-auto text-xs bg-white/20 px-1.5 py-0.5 rounded-full">🎁</span></button>
+                            <!-- Notification Toggle -->
+                            <button id="notif-toggle-btn" onclick="toggleNotification()" class="text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t flex items-center gap-2 bg-gray-50 w-full">
+                                <i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>
+                            </button>
                             <button class="text-left px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 border-t" onclick="handleLogout()"><i class="fas fa-sign-out-alt w-6"></i> Logout</button>
                         </div>
                     </div>
@@ -812,7 +816,52 @@
                 <div id="admin-sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="toggleAdminSidebar()"></div>
 
                 <div class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full min-w-0">
-                    <div id="admin-tab-dashboard" class="admin-content-tab"><div id="admin-dashboard-content"></div></div>
+                    <div id="admin-tab-dashboard" class="admin-content-tab">
+                        <div id="admin-dashboard-content"></div>
+                        <!-- Send Notification Panel -->
+                        <div class="bg-white rounded-xl border shadow-sm p-4 mt-4">
+                            <h3 class="font-bold text-sm text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-bell text-purple-600"></i> Send Push Notification</h3>
+                            <div class="space-y-3">
+                                <!-- Product Search -->
+                                <div class="relative">
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">🔍 Search Product (optional)</label>
+                                    <input type="text" id="notif-product-search" placeholder="Type product name to auto-fill..." oninput="searchProductsForNotif(this.value)" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300" autocomplete="off">
+                                    <div id="notif-product-results" class="absolute left-0 right-0 bg-white border rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto mt-1 hidden-empty"></div>
+                                </div>
+                                <!-- Preview -->
+                                <div id="notif-preview" class="hidden"></div>
+                                <!-- Fields -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Title *</label>
+                                        <input type="text" id="notif-title" placeholder="e.g. Sale is Live! 🔥" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Mobile (blank = all)</label>
+                                        <input type="tel" id="notif-mobile" placeholder="Leave blank for all" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Message *</label>
+                                    <textarea id="notif-body" placeholder="Aaj 50% off on all products..." oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300 h-16 resize-none"></textarea>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Product Image URL</label>
+                                        <input type="text" id="notif-image" placeholder="Auto-filled on product select" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Deep Link URL</label>
+                                        <input type="text" id="notif-url" placeholder="./?pid=123 or ./?view=shop" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
+                                    </div>
+                                </div>
+                                <button onclick="sendAdminNotification()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all">
+                                    <i class="fas fa-paper-plane mr-2"></i>Send Notification
+                                </button>
+                                <div id="notif-result" class="hidden text-center text-sm font-semibold py-2 rounded-lg"></div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Products Tab — NO upload section shown here -->
                     <div id="admin-tab-products" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
