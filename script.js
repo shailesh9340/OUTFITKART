@@ -1,8 +1,10 @@
 /* ==========================================================
-   OutfitKart — script.js  (ALL 3 FIXES APPLIED)
-   Fix 1: Wallet Deduction & Order Logic (REST PATCH + rollback)
-   Fix 2: Auto-ImgBB Upload for Scraper
-   Fix 3: scrape-status CSS class updates for new UI
+   OutfitKart — script.js  (Enhanced Admin Panel + UI Updates)
+   - Admin Login (username: shailesh, password: 934398)
+   - Admin Dashboard with statistics
+   - New orders shown first
+   - Separate wallet section
+   - Improved cart checkout placement
    ========================================================== */
 
 'use strict';
@@ -17,6 +19,10 @@ const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
 const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA      = '918982296773';
 const SUPPORT_EMAIL   = 'shaileshkumarchauhan9340@gmail.com';
+
+// Admin credentials
+const ADMIN_USERNAME  = 'shailesh';
+const ADMIN_PASSWORD  = '934398';
 
 const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -81,6 +87,7 @@ let currentTrackingOrder = null;
 let currentRating        = 5;
 let deferredPrompt       = null;
 let walletBalance        = 0;
+let isAdminLoggedIn      = false;
 
 let isExchangeProcess    = false;
 let exchangeSourceOrder  = null;
@@ -214,6 +221,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.removeItem('outfitkart_session');
             currentUser = null;
         }
+    }
+
+    // Restore admin session if exists
+    const adminSession = localStorage.getItem('outfitkart_admin_session');
+    if (adminSession === 'true') {
+        isAdminLoggedIn = true;
+        console.log('✅ Admin session restored from localStorage');
+        // Navigate to admin panel if session exists
+        setTimeout(() => navigate('admin'), 500);
     }
 
     toggleProductMode('auto');
@@ -412,7 +428,7 @@ async function fetchProducts(retry = 0) {
             renderProductGrid('trending-grid', products.filter(p => p.istrending));
             if (!document.getElementById('view-shop').classList.contains('hidden')) renderShopProducts();
         } else {
-            products = [{ id: 1, name: '👑 No Products Yet — Use Admin Panel!', price: 999, oldprice: 1999, category: 'Admin', sub: 'Empty', img: 'https://placehold.co/300x400/e11d48/ffffff?text=Add+Products', istrending: true, desc: 'Hold the OutfitKart logo 3s → Admin Panel → Add products!' }];
+            products = [{ id: 1, name: '👑 No Products Yet — Use Admin Panel!', price: 999, oldprice: 1999, category: 'Admin', sub: 'Empty', img: 'https://placehold.co/300x400/e11d48/ffffff?text=Add+Products', istrending: true, desc: 'Login to Admin Panel → Add products!' }];
             renderProductGrid('trending-grid', products);
             updateProductCountBadge(0, 'empty');
         }
@@ -513,26 +529,23 @@ function openCategoryPage(categoryName) {
     const cData = CATEGORIES.find(c => c.name === categoryName);
     if (!cData) return;
 
-    // Hide all views, show category page
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     currentView = 'category';
 
     const page = document.getElementById('view-category');
     page.classList.remove('hidden');
 
-    // Set header
     document.getElementById('cat-page-title').textContent = `${categoryName} Collection`;
     const viewAllBtn = document.getElementById('cat-view-all-btn');
     if (viewAllBtn) viewAllBtn.dataset.cat = categoryName;
 
-    // Build subcat grid with groups
     const grid = document.getElementById('cat-page-subcat-grid');
     let html = '';
     if (cData.groups) {
         cData.groups.forEach(group => {
             html += `<div class="col-span-2 md:col-span-3 text-xs font-black text-gray-400 uppercase tracking-widest pt-2 pb-1 border-b border-gray-100">${group.label}</div>`;
             html += group.items.map(sub => {
-                const safe = sub.replace(/'/g, "\'");
+                const safe = sub.replace(/'/g, "\\'");
                 const isCombo = COMBO_SUBS.has(sub);
                 return `<div onclick="openSubcatProducts('${categoryName}','${safe}')"
                     class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[90px] text-center">
@@ -543,7 +556,7 @@ function openCategoryPage(categoryName) {
         });
     } else {
         html += cData.subs.map(sub => {
-            const safe = sub.replace(/'/g, "\'");
+            const safe = sub.replace(/'/g, "\\'");
             return `<div onclick="openSubcatProducts('${categoryName}','${safe}')"
                 class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-center cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[80px] text-center">
                 <span class="text-sm font-bold text-gray-800">${sub}</span>
@@ -564,11 +577,9 @@ function openSubcatProducts(categoryName, sub) {
     currentView = 'shop';
     document.getElementById('view-shop').classList.remove('hidden');
 
-    // Title: subcat name OR "Category Collection" if View All
     const titleEl = document.getElementById('shop-title');
     if (titleEl) titleEl.textContent = sub ? sub : `${categoryName} Collection`;
 
-    // Clear filter pills — no sticky pills in this flow
     const filtersEl = document.getElementById('subcategory-filters');
     if (filtersEl) filtersEl.innerHTML = '';
 
@@ -581,7 +592,6 @@ function openSubcatProducts(categoryName, sub) {
 function renderShopSubcategories() {
     try {
         const el = document.getElementById('subcategory-filters'); if (!el) return;
-        // Reset visibility whenever subcategories are re-rendered
         el.classList.remove('subcat-hidden');
         _shopScrollY = window.scrollY;
         if (!currentCategoryFilter) { el.innerHTML = ''; return; }
@@ -611,25 +621,19 @@ function renderShopSubcategories() {
 
 function filterSub(sub) { currentSubFilter = sub; renderShopSubcategories(); renderShopProducts(); }
 
-/* ============================================================
-   SHOP SCROLL — hide subcategory bar on scroll down, show on scroll up
-   ============================================================ */
 let _shopScrollY = 0;
 let _shopScrollTimer = null;
 
 function _initShopScrollHide() {
-    // Reset state on every shop open
     const subEl = document.getElementById('subcategory-filters');
     if (subEl) subEl.classList.remove('subcat-hidden');
     _shopScrollY = window.scrollY;
 
-    // Remove any old listener then add fresh one
     window.removeEventListener('scroll', _shopScrollHandler);
     window.addEventListener('scroll', _shopScrollHandler, { passive: true });
 }
 
 function _shopScrollHandler() {
-    // Only run when shop view is active
     if (currentView !== 'shop') {
         window.removeEventListener('scroll', _shopScrollHandler);
         return;
@@ -641,14 +645,11 @@ function _shopScrollHandler() {
     const diff = currentY - _shopScrollY;
 
     if (diff > 40) {
-        // Scrolled DOWN enough — hide subcats
         subEl.classList.add('subcat-hidden');
     } else if (diff < -20) {
-        // Scrolled UP — show subcats
         subEl.classList.remove('subcat-hidden');
     }
 
-    // Reset baseline after movement settles
     clearTimeout(_shopScrollTimer);
     _shopScrollTimer = setTimeout(() => { _shopScrollY = window.scrollY; }, 150);
 }
@@ -706,6 +707,7 @@ function handleSearch(q) {
    9. NAVIGATION
    ============================================================ */
 function navigate(view, cat = null) {
+    console.log('🧭 Navigate called with view:', view, 'cat:', cat);
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     currentView = view;
 
@@ -722,7 +724,11 @@ function navigate(view, cat = null) {
     }
 
     const viewEl = document.getElementById(`view-${view}`);
-    if (viewEl) viewEl.classList.remove('hidden');
+    console.log(`view-${view} element:`, viewEl);
+    if (viewEl) {
+        viewEl.classList.remove('hidden');
+        console.log(`✅ Showing view-${view}`);
+    }
 
     if (view === 'shop') {
         if (cat) {
@@ -732,7 +738,6 @@ function navigate(view, cat = null) {
             currentCategoryFilter = null; currentSubFilter = null;
             document.getElementById('shop-title').textContent = 'Shop All Products';
         }
-        // Clear subcategory filters bar (no pills in direct shop view)
         const filtersEl = document.getElementById('subcategory-filters');
         if (filtersEl) filtersEl.innerHTML = '';
         renderShopProducts();
@@ -756,13 +761,23 @@ function navigate(view, cat = null) {
         else checkAuthUI();
     }
 
+    if (view === 'admin') {
+        console.log('📊 Navigate to admin. isAdminLoggedIn:', isAdminLoggedIn);
+        if (!isAdminLoggedIn) {
+            console.log('Not logged in, showing admin login modal...');
+            showAdminLogin();
+            return;
+        }
+        console.log('Loading admin dashboard...');
+        loadAdminDashboard();
+    }
+
     window.scrollTo(0, 0);
     updateBottomNav();
 }
 
 function updateBottomNav() {
     const views = ['home', 'shop', 'cart', 'profile'];
-    // 'category' view highlights Home tab
     const activeView = currentView === 'category' ? 'home' : currentView;
     document.querySelectorAll('nav div').forEach((item, i) => {
         item.style.color = activeView === views[i] ? '#e11d48' : '#6b7280';
@@ -774,8 +789,9 @@ function switchProfileTab(tabId, btnEl) {
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${tabId}`)?.classList.remove('hidden');
     if (btnEl) btnEl.classList.add('active');
-    if (tabId === 'orders')   renderOrdersList();
-    if (tabId === 'wishlist') renderWishlist();
+    if (tabId === 'orders')    renderOrdersList();
+    if (tabId === 'wishlist')  renderWishlist();
+    if (tabId === 'referrals') loadReferrals();
 }
 
 /* ============================================================
@@ -937,6 +953,7 @@ async function fetchUserData() {
     } catch (e) { console.error('[fetchUserData] orders error:', e); }
 
     initRealtimeTracking();
+    loadUserReferralCode();
 }
 
 /* ============================================================
@@ -1291,7 +1308,6 @@ function updateCheckoutTotals() {
 function updatePaymentSelection(method) {
     selectedPaymentMethod = method;
 
-    // Update label highlight styles
     const styles = {
         upi:    { active: 'border-orange-400 bg-orange-50',    inactive: 'border-gray-200 bg-white hover:border-gray-400' },
         cod:    { active: 'border-gray-700 bg-gray-50',        inactive: 'border-gray-200 bg-white hover:border-gray-400' },
@@ -1332,7 +1348,6 @@ function updatePaymentSelection(method) {
                 walletWarn.classList.add('hidden');
             }
         }
-        // Disable place order button if insufficient
         const btn = document.getElementById('place-order-btn');
         if (btn) {
             if (bal < needed) {
@@ -1358,7 +1373,6 @@ function updatePaymentSelection(method) {
     updateCheckoutTotals();
 }
 
-/* Helper: clicking label also triggers radio */
 function selectPaymentLabel(method) {
     const radio = document.getElementById(`payment-${method}`);
     if (radio) { radio.checked = true; updatePaymentSelection(method); }
@@ -1425,7 +1439,7 @@ function useCurrentLocation() {
 }
 
 /* ============================================================
-   16. PAYMENT & ORDER PLACEMENT  ← FIX 1 APPLIED HERE
+   16. PAYMENT & ORDER PLACEMENT
    ============================================================ */
 async function initiatePayment() {
     if (!addressFormData.fullname)     { showToast('Please fill address first!'); goToStep(1); return; }
@@ -1454,7 +1468,6 @@ async function initiatePayment() {
 
     const finalAmount = priceTotal + platformFee + handlingFee;
     if (selectedPaymentMethod === 'wallet') {
-        // ✅ FIX 1: Fresh balance check before attempting payment
         try {
             const { data: freshUser } = await dbClient.from('users').select('wallet').eq('mobile', currentUser.mobile).maybeSingle();
             if (freshUser) walletBalance = freshUser.wallet || 0;
@@ -1495,7 +1508,6 @@ function _openRazorpay(amount, description, onSuccess) {
     } catch { showToast('Could not open payment gateway'); }
 }
 
-/* ✅ FIX 1: placeOrder — wallet deduction via REST PATCH + automatic rollback on order failure */
 async function placeOrder(txId = 'COD', refundUpiId = '') {
     const subtotal    = currentCheckoutItems.reduce((t, i) => t + (i.price * i.qty), 0);
     const handlingFee = selectedPaymentMethod === 'cod' ? 9 : 0;
@@ -1508,7 +1520,6 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
         else               finalTotal = 7;
     }
 
-    // ✅ Wallet: re-fetch fresh balance from DB to avoid stale state
     if (selectedPaymentMethod === 'wallet') {
         try {
             const { data: freshUser } = await dbClient
@@ -1561,7 +1572,6 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
     };
 
     try {
-        // ✅ FIX 1: Wallet deduction via REST PATCH (bypasses RLS, atomic)
         if (selectedPaymentMethod === 'wallet') {
             const newBal = walletBalance - finalTotal;
             const walletRes = await fetch(
@@ -1618,7 +1628,6 @@ async function placeOrder(txId = 'COD', refundUpiId = '') {
 
     } catch (err) {
         console.error('[placeOrder] error:', err);
-        // ✅ FIX 1: Automatic wallet rollback if order insert failed after wallet deduction
         if (selectedPaymentMethod === 'wallet') {
             const revertBal = walletBalance + finalTotal;
             walletBalance = revertBal;
@@ -1862,55 +1871,287 @@ function renderOrdersList() {
 }
 
 /* ============================================================
-   20. ADMIN — products + orders
+   20. ADMIN — Login & Dashboard
    ============================================================ */
-let adminPressTimer;
-function startAdminTimer() { adminPressTimer = setTimeout(() => promptAdminAccess(), 3000); }
-function cancelAdminTimer() { clearTimeout(adminPressTimer); }
+function showAdminLogin() {
+    const modal = document.getElementById('admin-login-modal');
+    modal?.classList.remove('hidden'); modal?.classList.add('flex');
+    document.getElementById('admin-username')?.focus();
+}
 
-document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); promptAdminAccess(); }
-});
+function closeAdminLogin(goToHome = false) {
+    const modal = document.getElementById('admin-login-modal');
+    modal?.classList.add('hidden'); modal?.classList.remove('flex');
+    if (goToHome) navigate('home');
+}
 
-function promptAdminAccess() {
-    const pwd = prompt('Admin Password:');
-    if (pwd === '1234') {
-        navigate('admin');
-        renderAdminProducts();
-        showToast('Admin Unlocked 🔓');
-        _injectRlsFixNotice();
+async function handleAdminLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('admin-username').value.trim();
+    const password = document.getElementById('admin-password').value;
+    
+    console.log('Admin login attempt:', { username, password: '***' });
+    
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        console.log('✅ Admin credentials valid, logging in...');
+        isAdminLoggedIn = true;
+        
+        // Save admin session in localStorage
+        localStorage.setItem('outfitkart_admin_session', 'true');
+        
+        showToast('Admin Logged In! 🔓');
+        
+        // Clear form inputs
+        document.getElementById('admin-username').value = '';
+        document.getElementById('admin-password').value = '';
+        
+        // Close modal and navigate to admin
+        closeAdminLogin();
+        console.log('Modal closed, navigating to admin panel...');
+        
+        // Small delay to ensure modal is closed before navigation
+        setTimeout(() => {
+            console.log('Calling navigate("admin") with isAdminLoggedIn =', isAdminLoggedIn);
+            navigate('admin');
+        }, 100);
+    } else {
+        console.log('❌ Invalid admin credentials');
+        showToast('Invalid credentials! ❌');
+        document.getElementById('admin-password').value = '';
     }
 }
 
-function _injectRlsFixNotice() {
-    if (document.getElementById('rls-fix-notice')) return;
-    const adminView = document.getElementById('view-admin');
-    const statsGrid = adminView?.querySelector('.grid.grid-cols-2');
-    if (!statsGrid) return;
-    const notice = document.createElement('div');
-    notice.id = 'rls-fix-notice';
-    notice.className = 'mx-2 mb-3 mt-1 p-3 bg-amber-50 border border-amber-300 rounded-lg text-xs';
-    notice.innerHTML = `
-        <p class="font-bold text-amber-800 mb-1">⚠️ If order status updates are not saving:</p>
-        <code class="block bg-white border border-amber-200 rounded p-2 font-mono text-[10px] select-all text-gray-800 mb-2">
-CREATE POLICY "allow_anon_update_orders" ON public.orders FOR ALL TO anon USING (true) WITH CHECK (true);
-        </code>
-        <button onclick="window.diagnoseSupabaseRLS().then(()=>showToast('Check browser console 🔍'))" class="bg-amber-600 text-white px-3 py-1.5 rounded font-bold text-[11px] hover:bg-amber-700">🔍 Run RLS Diagnostic</button>
-        <button onclick="this.parentElement.remove()" class="ml-2 text-amber-600 underline text-[11px]">Dismiss</button>`;
-    adminView.insertBefore(notice, statsGrid);
+function loadAdminDashboard() {
+    console.log('📊 loadAdminDashboard called');
+    switchAdminTab('dashboard');
+    renderAdminDashboard();
 }
 
+async function renderAdminDashboard() {
+    console.log('📊 renderAdminDashboard called');
+    const dashboardEl = document.getElementById('admin-dashboard-content');
+    console.log('Dashboard element:', dashboardEl);
+    if (!dashboardEl) {
+        console.error('❌ admin-dashboard-content element not found!');
+        return;
+    }
+    
+    dashboardEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i><p class="mt-2 text-gray-500">Loading dashboard...</p></div>';
+    
+    try {
+        // Fetch all data
+        const { data: allOrders } = await dbClient.from('orders').select('*').order('date', { ascending: false });
+        const { data: allUsers } = await dbClient.from('users').select('*');
+        
+        const totalOrders = allOrders?.length || 0;
+        const activeOrders = allOrders?.filter(o => o.status !== 'Cancelled').length || 0;
+        const totalRevenue = allOrders?.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.total || 0), 0) || 0;
+        const totalProfit = allOrders?.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + (o.margin_total || 0), 0) || 0;
+        const totalUsers = allUsers?.length || 0;
+        const totalProducts = products.length;
+        
+        // Recent orders (last 5)
+        const recentOrders = allOrders?.slice(0, 5) || [];
+        
+        dashboardEl.innerHTML = `
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl text-white shadow-lg">
+                    <div class="text-2xl font-black mb-1">₹${totalRevenue.toLocaleString()}</div>
+                    <div class="text-xs opacity-90">Total Revenue</div>
+                </div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-xl text-white shadow-lg">
+                    <div class="text-2xl font-black mb-1">₹${totalProfit.toLocaleString()}</div>
+                    <div class="text-xs opacity-90">Total Profit</div>
+                </div>
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl text-white shadow-lg">
+                    <div class="text-2xl font-black mb-1">${activeOrders}</div>
+                    <div class="text-xs opacity-90">Active Orders</div>
+                </div>
+                <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-xl text-white shadow-lg">
+                    <div class="text-2xl font-black mb-1">${totalUsers}</div>
+                    <div class="text-xs opacity-90">Total Users</div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg border shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shopping-cart text-purple-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Total Orders</div>
+                            <div class="text-2xl font-bold text-gray-900">${totalOrders}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-box text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Total Products</div>
+                            <div class="text-2xl font-bold text-gray-900">${totalProducts}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Avg Order Value</div>
+                            <div class="text-2xl font-bold text-gray-900">₹${activeOrders ? Math.round(totalRevenue / activeOrders) : 0}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="bg-white rounded-lg border shadow-sm p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fas fa-clock text-purple-600"></i> Recent Orders
+                    </h3>
+                    <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-semibold">
+                        Latest 5
+                    </span>
+                </div>
+                ${recentOrders.length ? recentOrders.map(order => {
+                    const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600';
+                    return `
+                        <div class="flex justify-between items-center py-3 border-b last:border-b-0">
+                            <div>
+                                <div class="font-semibold text-sm">#${order.id}</div>
+                                <div class="text-xs text-gray-500">${order.customer_name || 'N/A'} • ${order.date}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-sm">₹${order.total}</div>
+                                <span class="${badge} text-xs px-2 py-0.5 rounded-full">${order.status}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('') : '<div class="text-center text-gray-400 py-8">No orders yet</div>'}
+            </div>
+        `;
+    } catch (err) {
+        console.error('[renderAdminDashboard]', err);
+        dashboardEl.innerHTML = '<div class="text-center text-red-500 py-10">Error loading dashboard</div>';
+    }
+}
+
+let adminPressTimer;
+function startAdminTimer() { adminPressTimer = setTimeout(() => navigate('admin'), 3000); }
+function cancelAdminTimer() { clearTimeout(adminPressTimer); }
+
+document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); navigate('admin'); }
+});
+
 function switchAdminTab(tab) {
-    document.querySelectorAll('.admin-content-tab').forEach(el => el.classList.add('hidden'));
-    document.getElementById(`admin-tab-${tab}`)?.classList.remove('hidden');
-    ['prod', 'order', 'payout'].forEach(t => {
-        const btn = document.getElementById(`btn-admin-${t}`);
-        if (btn) btn.className = t === tab
-            ? 'pb-2 px-4 text-sm font-bold text-purple-700 border-b-2 border-purple-700'
-            : 'pb-2 px-4 text-sm font-bold text-gray-500';
+    console.log('🔄 Switching admin tab to:', tab);
+    
+    // Hide all admin tabs
+    document.querySelectorAll('.admin-content-tab').forEach(el => {
+        el.classList.add('hidden');
+        el.style.display = 'none';
     });
-    if (tab === 'order')  loadAllOrdersAdmin();
-    if (tab === 'payout') loadAllWithdrawalsAdmin();
+    
+    // Show target tab
+    const targetTab = document.getElementById(`admin-tab-${tab}`);
+    console.log('Target tab element:', targetTab);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+        targetTab.style.display = 'block';
+    }
+    
+    // Update sidebar nav button styles
+    document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(`btn-admin-${tab}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Close sidebar on mobile after selection
+    if (window.innerWidth < 768) {
+        toggleAdminSidebar();
+    }
+    
+    // Load content for specific tabs
+    if (tab === 'dashboard')  renderAdminDashboard();
+    if (tab === 'products')   renderAdminProducts();
+    if (tab === 'inventory')  { /* Form is already in HTML */ }
+    if (tab === 'order')      loadAllOrdersAdmin();
+    if (tab === 'payout')     loadAllWithdrawalsAdmin();
+    if (tab === 'users')      loadAllUsersAdmin();
+}
+
+function toggleAdminSidebar() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const overlay = document.getElementById('admin-sidebar-overlay');
+    
+    if (!sidebar || !overlay) return;
+    
+    const isOpen = !sidebar.classList.contains('-translate-x-full');
+    
+    if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+    }
+}
+
+async function loadAllUsersAdmin() {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
+    
+    try {
+        const { data, error } = await dbClient.from('users').select('*').order('mobile', { ascending: false });
+        if (error) throw error;
+        
+        container.innerHTML = data?.length ? data.map(user => `
+            <div class="bg-white border rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex items-center gap-4">
+                    <img src="${user.profile_pic || `https://placehold.co/48x48/e11d48/ffffff?text=${(user.name || 'U').charAt(0)}`}" 
+                         class="w-12 h-12 rounded-full object-cover border-2 border-gray-200">
+                    <div class="flex-1">
+                        <div class="font-bold text-gray-900">${user.name || 'Unknown'}</div>
+                        <div class="text-sm text-gray-500">+91 ${user.mobile}</div>
+                        ${user.email ? `<div class="text-xs text-gray-400">${user.email}</div>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="text-lg font-bold text-purple-600">₹${user.wallet || 0}</div>
+                        <div class="text-xs text-gray-500">Wallet</div>
+                    </div>
+                </div>
+            </div>
+        `).join('') : '<div class="text-center text-gray-400 py-10">No users found</div>';
+    } catch (err) {
+        console.error('[loadAllUsersAdmin]', err);
+        container.innerHTML = '<div class="text-center text-red-500 py-6">Error loading users</div>';
+    }
+}
+
+function adminLogout() {
+    isAdminLoggedIn = false;
+    localStorage.removeItem('outfitkart_admin_session');
+    showToast('Admin Logged Out');
+    navigate('home');
+}
+
+function exitAdmin() {
+    isAdminLoggedIn = false;
+    localStorage.removeItem('outfitkart_admin_session');
+    navigate('home');
 }
 
 function updateDropdownSubs(catId, subId) {
@@ -1942,9 +2183,6 @@ function updateDropdownSubs(catId, subId) {
     } catch (e) { console.error('[updateDropdownSubs]', e); }
 }
 
-/* ============================================================
-   ADMIN DUAL ENTRY — toggleProductMode + updateSellingPreview
-   ============================================================ */
 function toggleProductMode(mode) {
     const manualFields = document.getElementById('manual-fields');
     if (!manualFields) return;
@@ -1988,22 +2226,15 @@ function updateSellingPreview() {
     if (mEl)   mEl.value  = marginAmt;
 }
 
-/* ============================================================
-   FIX 2: Auto-ImgBB Upload for Scraper
-   ============================================================ */
-
-/* ✅ NEW: Upload scraped image URL directly to ImgBB */
 async function uploadScrapedImageToImgBB(imageUrl) {
     if (!imageUrl) return null;
     try {
-        // Attempt 1: URL-based upload (ImgBB accepts direct image URLs)
         const fd1 = new FormData();
         fd1.append('image', imageUrl);
         const res1  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd1 });
         const json1 = await res1.json();
         if (json1.success && json1.data?.url) return json1.data.url;
 
-        // Attempt 2: Fetch image as blob then upload
         const imgRes  = await fetch(imageUrl);
         const imgBlob = await imgRes.blob();
         const fd2     = new FormData();
@@ -2017,7 +2248,6 @@ async function uploadScrapedImageToImgBB(imageUrl) {
     }
 }
 
-/* Supplier selectors for ScrapingBee */
 const SUPPLIER_SELECTORS = {
     meesho:   { title: 'h1, [class*="pdp-title"], [class*="product-name"]', price: '[class*="price"] span, h4', image: '[class*="pdp-image"] img, img[class*="product"]' },
     amazon:   { title: '#productTitle', price: '.a-price-whole', image: '#imgBlkFront, #landingImage' },
@@ -2035,14 +2265,12 @@ function detectSupplier(url) {
     return 'default';
 }
 
-/* ✅ FIX 2 + FIX 3: Updated scrapeProductFromUrl with auto-ImgBB + styled status classes */
 async function scrapeProductFromUrl() {
     const urlInput = document.getElementById('scrape-url');
     const statusEl = document.getElementById('scrape-status');
     const url      = urlInput?.value.trim();
     if (!url) return showToast('Enter a Supplier URL first');
 
-    // FIX 3: Styled status classes
     if (statusEl) {
         statusEl.classList.remove('hidden');
         statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';
@@ -2075,7 +2303,6 @@ async function scrapeProductFromUrl() {
             return;
         }
 
-        // Fill basic fields
         const nE = document.getElementById('ap-name');
         const sE = document.getElementById('ap-supplier-price');
         const oE = document.getElementById('ap-oldprice');
@@ -2084,7 +2311,6 @@ async function scrapeProductFromUrl() {
         if (oE && priceNum) oE.value = Math.round(priceNum * 1.5);
         updateSellingPreview();
 
-        // ✅ FIX 2: Auto-upload scraped image to ImgBB
         if (imgUrl) {
             if (statusEl) {
                 statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';
@@ -2100,7 +2326,6 @@ async function scrapeProductFromUrl() {
                 }
                 showToast('✅ Product scraped + image uploaded to ImgBB!');
             } else {
-                // Fallback: use original URL if ImgBB fails
                 if (iE) iE.value = imgUrl;
                 if (statusEl) {
                     statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-amber-50 border-amber-200 text-amber-700';
@@ -2164,28 +2389,62 @@ async function adminAddProduct(e) {
 }
 
 function renderAdminProducts() {
+    console.log('📦 Rendering admin products, total:', products.length);
     const container = document.getElementById('admin-product-list');
-    if (!container) return;
-    container.innerHTML = [...products].reverse().map(p => `
-      <div class="flex justify-between items-center p-2 border-b text-sm hover:bg-gray-50">
-        <div class="flex items-center gap-2 flex-1 min-w-0">
-          <img src="${p.imgs?.[0] || p.img || 'https://placehold.co/32x32/eee/666?text=?'}" class="w-8 h-8 rounded object-cover" loading="lazy">
-          <div class="min-w-0 flex-1">
-            <span class="truncate block font-semibold">${p.name}</span>
-            <span class="text-xs text-gray-500">${p.category} • ${p.sub || ''}</span>
-            ${p.brand ? `<span class="text-xs text-blue-600 block">${p.brand}</span>` : ''}
-          </div>
+    if (!container) {
+        console.error('❌ admin-product-list container not found!');
+        return;
+    }
+    
+    if (products.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-20">
+                <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-lg font-semibold">No products yet</p>
+                <p class="text-gray-400 text-sm mt-2">Add your first product using the Add Product tab</p>
+            </div>`;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 border-b sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-purple-700">
+                    <i class="fas fa-boxes mr-2"></i>Total Products: ${products.length}
+                </span>
+                <span class="text-xs text-gray-500">Latest products shown first</span>
+            </div>
         </div>
-        <div class="flex items-center gap-2 text-sm">
-          <div class="text-right">
-            <div class="font-bold text-gray-800">₹${p.price}</div>
-            ${p.supplier_price ? `<div class="text-[10px] text-gray-400">Cost: ₹${p.supplier_price}</div>` : ''}
-            ${p.margin_amt ? `<div class="text-[10px] text-green-600 font-bold">+₹${p.margin_amt} profit</div>` : ''}
-          </div>
-          <button onclick="openEditProduct(${p.id})" class="text-blue-600 hover:text-blue-700 p-1"><i class="fas fa-pen"></i></button>
-          <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-600 p-1"><i class="fas fa-trash"></i></button>
-        </div>
-      </div>`).join('');
+        ${[...products].reverse().map(p => `
+          <div class="flex justify-between items-center p-3 border-b text-sm hover:bg-gray-50 transition-colors">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <img src="${p.imgs?.[0] || p.img || 'https://placehold.co/48x48/eee/666?text=?'}" 
+                   class="w-12 h-12 rounded-lg object-cover border shadow-sm" loading="lazy">
+              <div class="min-w-0 flex-1">
+                <span class="truncate block font-semibold text-gray-800">${p.name}</span>
+                <span class="text-xs text-gray-500">${p.category} • ${p.sub || 'N/A'}</span>
+                ${p.brand ? `<span class="text-xs text-blue-600 block font-medium">${p.brand}</span>` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-3 text-sm">
+              <div class="text-right">
+                <div class="font-bold text-gray-900">₹${p.price}</div>
+                ${p.supplier_price ? `<div class="text-[10px] text-gray-400">Cost: ₹${p.supplier_price}</div>` : ''}
+                ${p.margin_amt ? `<div class="text-[10px] text-green-600 font-bold">Profit: +₹${p.margin_amt}</div>` : ''}
+              </div>
+              <button onclick="openEditProduct(${p.id})" 
+                      class="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                      title="Edit Product">
+                <i class="fas fa-pen"></i>
+              </button>
+              <button onclick="deleteProduct(${p.id})" 
+                      class="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      title="Delete Product">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>`).join('')}
+    `;
 }
 
 async function openEditProduct(productId) {
@@ -2271,30 +2530,89 @@ function autoGenerateDescription() {
     document.getElementById('ap-desc').value = `Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, offering unmatched comfort and lasting quality.`;
 }
 
-/* ============================================================
-   21. ADMIN — ORDERS VIEW
-   ============================================================ */
 async function loadAllOrdersAdmin() {
     const container = document.getElementById('admin-full-order-list');
     if (!container) return;
     container.innerHTML = `<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i><p class="text-sm text-gray-500 mt-2">Loading orders...</p></div>`;
 
     try {
+        // NEW: Order by date descending (newest first)
         const { data, error } = await dbClient.from('orders').select('*').order('date', { ascending: false });
         if (error) throw error;
 
-        if (!data?.length) {
-            container.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">No orders found.</div>';
-            document.getElementById('admin-order-count').innerText = '0';
-            document.getElementById('admin-total-sales').innerText = '₹0';
-            return;
-        }
+        // Store all orders globally for filtering
+        window.allAdminOrders = data || [];
+        
+        // Render with current filter
+        const filterValue = document.getElementById('admin-order-filter')?.value || 'all';
+        renderFilteredOrders(filterValue);
 
-        const activeOrders = data.filter(o => o.status !== 'Cancelled');
-        document.getElementById('admin-order-count').innerText = activeOrders.length;
-        document.getElementById('admin-total-sales').innerText = `₹${activeOrders.reduce((s, o) => s + (o.total || 0), 0).toLocaleString()}`;
+    } catch (err) {
+        console.error('[loadAllOrdersAdmin] error:', err);
+        container.innerHTML = `<div class="text-center py-6 text-red-500">Error loading orders: ${err.message}</div>`;
+    }
+}
 
-        container.innerHTML = data.map(o => {
+function filterAdminOrders(status) {
+    renderFilteredOrders(status);
+}
+
+function renderFilteredOrders(filterStatus) {
+    const container = document.getElementById('admin-full-order-list');
+    if (!container) return;
+    
+    const allOrders = window.allAdminOrders || [];
+    const filteredData = filterStatus === 'all' 
+        ? allOrders 
+        : allOrders.filter(o => o.status === filterStatus);
+
+    if (!allOrders.length) {
+        container.innerHTML = `
+            <div class="text-center py-20">
+                <i class="fas fa-receipt text-6xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-lg font-semibold">No orders yet</p>
+                <p class="text-gray-400 text-sm mt-2">Orders will appear here as customers place them</p>
+            </div>`;
+        document.getElementById('admin-order-count').innerText = '0';
+        document.getElementById('admin-total-sales').innerText = '₹0';
+        return;
+    }
+
+    if (!filteredData.length) {
+        container.innerHTML = `
+            <div class="text-center py-16">
+                <i class="fas fa-filter text-5xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 font-semibold">No ${filterStatus} orders found</p>
+                <p class="text-gray-400 text-sm mt-2">Try selecting a different filter</p>
+            </div>`;
+        return;
+    }
+
+    const activeOrders = allOrders.filter(o => o.status !== 'Cancelled');
+    document.getElementById('admin-order-count').innerText = activeOrders.length;
+    document.getElementById('admin-total-sales').innerText = `₹${activeOrders.reduce((s, o) => s + (o.total || 0), 0).toLocaleString()}`;
+
+    // Add header with count
+    const headerHtml = `
+        <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-${filterStatus === 'all' ? 'clock' : 'filter'} text-purple-600 text-xl"></i>
+                    <div>
+                        <span class="text-sm font-black text-purple-700">
+                            ${filterStatus === 'all' ? `Total Orders: ${allOrders.length}` : `${filterStatus}: ${filteredData.length}`}
+                        </span>
+                        <p class="text-xs text-gray-500 mt-0.5">Sorted by latest first</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 font-bold">
+                    Active: ${activeOrders.length}
+                </span>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = headerHtml + filteredData.map(o => {
             const oidSafe  = String(o.id || '').replace(/'/g, "\\'");
             const badge    = STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600';
             const itemsHtml = o.items?.length
@@ -2342,11 +2660,6 @@ async function loadAllOrdersAdmin() {
                 </div>
               </div>`;
         }).join('');
-
-    } catch (err) {
-        console.error('[loadAllOrdersAdmin] error:', err);
-        container.innerHTML = `<div class="text-center py-6 text-red-500">Error loading orders: ${err.message}</div>`;
-    }
 }
 
 async function updateOrderStatus(orderId, newStatus) {
@@ -2401,9 +2714,6 @@ async function approvePayout(id) {
     } catch (err) { showToast('Error: ' + err.message); }
 }
 
-/* ============================================================
-   22. ORDER TRACKING MODAL
-   ============================================================ */
 async function openTrackingModal(orderId) {
     orderId = String(orderId || '').trim();
     let order = ordersDb.find(o => String(o.id) === orderId);
@@ -2524,9 +2834,6 @@ function _buildTimeline(steps, completedKeys, accentColor) {
       </div>`;
 }
 
-/* ============================================================
-   23. REALTIME
-   ============================================================ */
 function initRealtimeTracking() {
     if (!currentUser) return;
     if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
@@ -2557,9 +2864,6 @@ function cleanupRealtime() {
     if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
 }
 
-/* ============================================================
-   24. IMGBB UPLOAD
-   ============================================================ */
 window.uploadToImgBB = async (event, textareaId) => {
     const files = event.target.files;
     if (!files?.length) return;
@@ -2587,9 +2891,6 @@ window.uploadToImgBB = async (event, textareaId) => {
     input.value = '';
 };
 
-/* ============================================================
-   25. SHARE
-   ============================================================ */
 async function nativeShareProduct(id, name, price) {
     const url  = `${window.location.origin}${window.location.pathname}?pid=${id}`;
     const text = `Check out ${name} for just ₹${price} on OutfitKart! COD available.`;
@@ -2640,8 +2941,97 @@ function openWhatsAppSupport() { window.open(`https://wa.me/${SUPPORT_WA}`, '_bl
 function openEmailSupport()    { window.location.href = `mailto:${SUPPORT_EMAIL}?subject=OutfitKart Support&body=Hi, I need help with my order.`; }
 
 /* ============================================================
-   26. TOAST
+   REFERRAL SYSTEM
    ============================================================ */
+
+async function copyReferralCode() {
+    const codeEl = document.getElementById('user-referral-code');
+    if (!codeEl) return;
+    const code = codeEl.textContent;
+    try {
+        await navigator.clipboard.writeText(code);
+        showToast('✅ Referral code copied!');
+    } catch (err) {
+        showToast('❌ Failed to copy code');
+    }
+}
+
+async function loadUserReferralCode() {
+    if (!currentUser) return;
+    const codeEl = document.getElementById('user-referral-code');
+    if (!codeEl) return;
+    
+    try {
+        const { data, error } = await dbClient
+            .from('users')
+            .select('referral_code, name')
+            .eq('mobile', currentUser)
+            .single();
+        
+        if (error) throw error;
+        
+        let refCode = data?.referral_code;
+        
+        // Generate if doesn't exist: 4 letters from name + 3 digits from mobile
+        if (!refCode) {
+            const userName = (data?.name || 'USER').toUpperCase().replace(/[^A-Z]/g, '');
+            const namePart = userName.substring(0, 4).padEnd(4, 'X');
+            const mobilePart = currentUser.substring(currentUser.length - 3);
+            refCode = namePart + mobilePart;
+            
+            await dbClient.from('users').update({ referral_code: refCode }).eq('mobile', currentUser);
+        }
+        
+        codeEl.textContent = refCode;
+    } catch (err) {
+        console.error('Error loading referral code:', err);
+        // Fallback code generation
+        const userName = (currentUser?.name || 'USER').toUpperCase().replace(/[^A-Z]/g, '');
+        const namePart = userName.substring(0, 4).padEnd(4, 'X');
+        const mobilePart = currentUser.substring(currentUser.length - 3);
+        codeEl.textContent = namePart + mobilePart;
+    }
+}
+
+function switchReferralTab(tab) {
+    // Update buttons
+    const btnPending = document.getElementById('btn-ref-pending');
+    const btnConfirmed = document.getElementById('btn-ref-confirmed');
+    
+    if (btnPending) {
+        btnPending.className = tab === 'pending' 
+            ? 'pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600'
+            : 'pb-2 px-4 text-sm font-bold text-gray-500';
+    }
+    
+    if (btnConfirmed) {
+        btnConfirmed.className = tab === 'confirmed' 
+            ? 'pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600'
+            : 'pb-2 px-4 text-sm font-bold text-gray-500';
+    }
+    
+    // Show/hide lists
+    const pendingList = document.getElementById('referrals-pending-list');
+    const confirmedList = document.getElementById('referrals-confirmed-list');
+    
+    if (pendingList) pendingList.classList.toggle('hidden', tab !== 'pending');
+    if (confirmedList) confirmedList.classList.toggle('hidden', tab !== 'confirmed');
+}
+
+async function loadReferrals() {
+    if (!currentUser) return;
+    
+    // Set placeholders (full implementation in REFERRAL_SYSTEM_IMPLEMENTATION.md)
+    document.getElementById('pending-earnings').textContent = '₹0';
+    document.getElementById('confirmed-earnings').textContent = '₹0';
+    document.getElementById('pending-count').textContent = '0';
+    document.getElementById('confirmed-count').textContent = '0';
+    document.getElementById('referral-earnings-badge').textContent = '₹0';
+    
+    showToast('ℹ️ Referral system coming soon! Check REFERRAL_SYSTEM_IMPLEMENTATION.md');
+}
+
+
 function showToast(msg) {
     const t = document.createElement('div');
     t.className = 'bg-gray-900 text-white px-5 py-3 rounded-full shadow-2xl text-sm fade-in pointer-events-auto';
@@ -2650,9 +3040,6 @@ function showToast(msg) {
     setTimeout(() => t.parentNode?.removeChild(t), 3000);
 }
 
-/* ============================================================
-   27. PWA
-   ============================================================ */
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault(); deferredPrompt = e; _showInstallBanner();
 });
@@ -2686,9 +3073,6 @@ window.hideInstallBanner = function () {
 
 window.addEventListener('appinstalled', () => hideInstallBanner());
 
-/* ============================================================
-   28. SERVICE WORKER
-   ============================================================ */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -2697,9 +3081,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-/* ============================================================
-   29. EXPOSE ALL FUNCTIONS TO GLOBAL SCOPE
-   ============================================================ */
 Object.assign(window, {
     navigate,
     toggleCart,
@@ -2755,6 +3136,8 @@ Object.assign(window, {
     startAdminTimer,
     cancelAdminTimer,
     switchAdminTab,
+    toggleAdminSidebar,
+    filterAdminOrders,
     updateDropdownSubs,
     toggleProductMode,
     updateSellingPreview,
@@ -2765,7 +3148,7 @@ Object.assign(window, {
     deleteProduct,
     autoGenerateDescription,
     scrapeProductFromUrl,
-    uploadScrapedImageToImgBB,   // ✅ NEW — Fix 2
+    uploadScrapedImageToImgBB,
     loadAllOrdersAdmin,
     updateOrderStatus,
     approvePayout,
@@ -2773,4 +3156,14 @@ Object.assign(window, {
     updateCartCount,
     updateQty,
     removeFromCart,
+    handleAdminLogin,
+    closeAdminLogin,
+    loadAllUsersAdmin,
+    adminLogout,
+    exitAdmin,
+    openWhatsAppSupport,
+    openEmailSupport,
+    copyReferralCode,
+    switchReferralTab,
+    loadReferrals,
 });
