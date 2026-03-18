@@ -79,7 +79,7 @@ let adminPressTimer       = null;
    3. CONSTANTS — CATEGORIES (Perfumes with ML sizes)
    ============================================================ */
 const CATEGORIES = [
-    {
+   {
         id: 'men', name: 'Men', icon: 'fa-male',
         subs: ['T-Shirts','Casual Shirts','Formal Shirts','Oversized Tees','Oversized Shirts','Hoodies','Denim Jacket',
                'Baggy Jeans','Straight Fit Jeans','Slim Fit Jeans','Cotton Trousers','Joggers','Cargo Pants','Formal Pant','Trousers',
@@ -87,7 +87,7 @@ const CATEGORIES = [
                'Watches','Earbuds','Wallets','Sunglasses','Belts',
                'Formal Combo (Shirt+Trouser+Belt+Tie)','Casual Combo (Tee+Baggy Jeans+Locket)',
                'Streetwear Combo (Oversized Tee+Cargo+Chain)','Tracksuit (Full Upper & Lower)',
-               'Ethnic Combo (Kurta+Pant+Dupatta)','Sherwani Set (Sherwani+Pant+Dupatta)','Nehru Jacket Combo'],
+               'Ethnic Combo (Kurta+Pant Set)','Sherwani Set (Sherwani+Pant Set)','Nehru Jacket Combo'],
         groups: [
             { label: '👕 Topwear',     items: ['T-Shirts','Casual Shirts','Formal Shirts','Oversized Tees','Oversized Shirts','Hoodies','Denim Jacket'] },
             { label: '👖 Bottomwear',  items: ['Baggy Jeans','Straight Fit Jeans','Slim Fit Jeans','Cotton Trousers','Joggers','Cargo Pants','Formal Pant','Trousers'] },
