@@ -1135,6 +1135,7 @@ function checkAuthUI() {
         if (navText) navText.innerText=(currentUser.name||'User').split(' ')[0];
         updateHeaderWallet(currentUser.wallet||0);
         loadUserReferralCode(); renderSidebarReferralWidget();
+        setTimeout(checkNotifStatus, 500); /* Check notification subscription status */
     } else {
         authForms?.classList.remove('hidden'); userDash?.classList.add('hidden');
         if (navText) navText.innerText='Login';
@@ -2885,6 +2886,155 @@ window.hideInstallBanner = function () {
 window.addEventListener('appinstalled', () => hideInstallBanner());
 
 /* ============================================================
+   35b. PUSH NOTIFICATIONS
+   ============================================================ */
+
+/* VAPID Public Key — apni key yahan daalo */
+const VAPID_PUBLIC_KEY = 'BDj8O97OwIFvhVPaBKlABWwbq2-BHjXYP-RkKFJYDKqGzaT9LH2oPuKrJ4MNdSwqB1XvDqiTCb_Y5_Qfqq6iEWk';
+
+/* Convert VAPID key to Uint8Array */
+function _urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw     = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+/* Request push permission & subscribe */
+async function requestPushPermission() {
+    if (!('Notification' in window)) {
+        showToast('❌ Ye browser notifications support nahi karta');
+        return false;
+    }
+    if (!('serviceWorker' in navigator)) {
+        showToast('❌ Service Worker nahi mila');
+        return false;
+    }
+
+    /* Ask permission */
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+        showToast('❌ Notification permission nahi mili');
+        return false;
+    }
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        /* Check if already subscribed */
+        let subscription = await reg.pushManager.getSubscription();
+        if (!subscription) {
+            subscription = await reg.pushManager.subscribe({
+                userVisibleOnly:      true,
+                applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+        }
+
+        /* Save subscription to Supabase */
+        await _savePushSubscription(subscription);
+        showToast('✅ Notifications ON! Aapko updates milenge 🔔');
+        _updateNotifButton(true);
+        return true;
+    } catch (err) {
+        console.error('[Push subscribe]', err);
+        showToast('❌ Subscription failed: ' + err.message);
+        return false;
+    }
+}
+
+async function _savePushSubscription(subscription) {
+    if (!currentUser) return;
+    const subJson = JSON.stringify(subscription);
+    try {
+        /* Save in users table push_subscription column */
+        await dbClient.from('users')
+            .update({ push_subscription: subJson })
+            .eq('mobile', currentUser.mobile);
+        if (currentUser) currentUser.push_subscription = subJson;
+        localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
+    } catch (err) { console.error('[Push save]', err); }
+}
+
+async function unsubscribePush() {
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const subscription = await reg.pushManager.getSubscription();
+        if (subscription) await subscription.unsubscribe();
+        /* Clear from DB */
+        if (currentUser) {
+            await dbClient.from('users').update({ push_subscription: null }).eq('mobile', currentUser.mobile);
+        }
+        showToast('🔕 Notifications OFF');
+        _updateNotifButton(false);
+    } catch (err) { showToast('Error: ' + err.message); }
+}
+
+function _updateNotifButton(enabled) {
+    const btn = document.getElementById('notif-toggle-btn');
+    if (!btn) return;
+    if (enabled) {
+        btn.innerHTML = '<i class="fas fa-bell text-green-600 mr-2"></i><span>Notifications ON</span><span class="ml-auto w-2 h-2 bg-green-500 rounded-full"></span>';
+        btn.className = btn.className.replace('bg-gray-50', 'bg-green-50');
+    } else {
+        btn.innerHTML = '<i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>';
+        btn.className = btn.className.replace('bg-green-50', 'bg-gray-50');
+    }
+}
+
+async function checkNotifStatus() {
+    const btn = document.getElementById('notif-toggle-btn');
+    if (!btn) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        btn.style.display = 'none'; return;
+    }
+    const permission = Notification.permission;
+    if (permission === 'granted') {
+        const reg = await navigator.serviceWorker.ready.catch(() => null);
+        if (reg) {
+            const sub = await reg.pushManager.getSubscription().catch(() => null);
+            _updateNotifButton(!!sub);
+        }
+    }
+}
+
+async function toggleNotification() {
+    if (!currentUser) { showToast('Pehle login karein! 👤'); navigate('profile'); return; }
+    const permission = Notification.permission;
+    if (permission === 'granted') {
+        const reg = await navigator.serviceWorker.ready.catch(() => null);
+        const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
+        if (sub) await unsubscribePush();
+        else await requestPushPermission();
+    } else {
+        await requestPushPermission();
+    }
+}
+
+/* Listen for notification click from SW */
+navigator.serviceWorker?.addEventListener('message', event => {
+    if (event.data?.type === 'NOTIFICATION_CLICK') {
+        const { url, pid, orderId } = event.data;
+        /* Product notification — open product page directly */
+        if (pid) {
+            const productId = parseInt(pid);
+            if (products.length) {
+                openProductPage(productId);
+            } else {
+                /* Products not loaded yet — wait then open */
+                fetchProducts().then(() => openProductPage(productId));
+            }
+            return;
+        }
+        /* Order notification */
+        if (orderId || (url && url.includes('orders'))) {
+            navigate('profile', 'orders'); return;
+        }
+        /* Shop or home */
+        if (url && url.includes('shop')) { navigate('shop'); return; }
+        navigate('home');
+    }
+});
+
+/* ============================================================
    36. WALLET WITHDRAWAL SYSTEM
    ============================================================ */
 function showWithdrawForm() {
@@ -2992,6 +3142,106 @@ async function loadWalletTransactions() {
 }
 
 /* ============================================================
+   38. ADMIN SEND NOTIFICATION
+   ============================================================ */
+
+/* Product search for notification */
+function searchProductsForNotif(query) {
+    const q = query.toLowerCase().trim();
+    if (q.length < 2) { document.getElementById('notif-product-results').innerHTML = ''; return; }
+    const hits = products.filter(p => p.name.toLowerCase().includes(q)).slice(0, 6);
+    const box  = document.getElementById('notif-product-results');
+    if (!hits.length) { box.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">No products found</div>'; return; }
+    box.innerHTML = hits.map(p => {
+        const img = p.imgs?.[0] || p.img || '';
+        return `<div onclick="selectNotifProduct(${p.id})" class="flex items-center gap-2 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b last:border-b-0 active:bg-purple-100">
+            <img src="${img}" class="w-10 h-12 object-cover rounded flex-shrink-0" onerror="this.style.display='none'">
+            <div class="min-w-0 flex-1">
+                <div class="text-xs font-bold text-gray-800 truncate">${p.name}</div>
+                <div class="text-[10px] text-rose-600 font-bold">₹${p.price}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectNotifProduct(productId) {
+    const p = products.find(x => x.id === productId);
+    if (!p) return;
+    const img = p.imgs?.[0] || p.img || '';
+    /* Fill notification fields */
+    document.getElementById('notif-title').value = p.name.length > 50 ? p.name.slice(0,47)+'...' : p.name;
+    document.getElementById('notif-body').value  = `₹${p.price}${p.oldprice ? ' (Was ₹'+p.oldprice+')' : ''} — Abhi kharido! 🛍️`;
+    document.getElementById('notif-url').value   = `./?pid=${p.id}`;
+    document.getElementById('notif-image').value = img;
+    document.getElementById('notif-product-results').innerHTML = '';
+    document.getElementById('notif-product-search').value = p.name.slice(0, 30);
+    /* Show preview */
+    _updateNotifPreview();
+    showToast('✅ Product selected!');
+}
+
+function _updateNotifPreview() {
+    const title  = document.getElementById('notif-title')?.value || '';
+    const body   = document.getElementById('notif-body')?.value  || '';
+    const image  = document.getElementById('notif-image')?.value || '';
+    const prev   = document.getElementById('notif-preview');
+    if (!prev) return;
+    if (!title && !body) { prev.classList.add('hidden'); return; }
+    prev.classList.remove('hidden');
+    prev.innerHTML = `
+        <div class="flex items-start gap-3 p-3 bg-gray-800 rounded-xl text-white">
+            <img src="https://placehold.co/40x40/e11d48/ffffff?text=OK" class="w-10 h-10 rounded-lg flex-shrink-0">
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold truncate">${title || 'Title'}</div>
+                <div class="text-[10px] text-gray-300 mt-0.5 line-clamp-2">${body || 'Message'}</div>
+            </div>
+            ${image ? `<img src="${image}" class="w-12 h-14 object-cover rounded flex-shrink-0" onerror="this.style.display='none'">` : ''}
+        </div>
+        <div class="text-[9px] text-gray-400 text-center mt-1">Preview (actual may vary by device)</div>`;
+}
+
+async function sendAdminNotification() {
+    const title  = document.getElementById('notif-title')?.value.trim();
+    const body   = document.getElementById('notif-body')?.value.trim();
+    const mobile = document.getElementById('notif-mobile')?.value.trim().replace(/\D/g,'');
+    const url    = document.getElementById('notif-url')?.value.trim()   || './';
+    const image  = document.getElementById('notif-image')?.value.trim() || null;
+    const result = document.getElementById('notif-result');
+
+    if (!title) return showToast('Title daalo!');
+    if (!body)  return showToast('Message daalo!');
+
+    const btn = document.querySelector('[onclick="sendAdminNotification()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...'; }
+    if (result) { result.classList.remove('hidden'); result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-blue-50 text-blue-700'; result.textContent = 'Sending...'; }
+
+    try {
+        const res = await fetch('/api/notify/send', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer shailesh_admin_token' },
+            body:    JSON.stringify({ title, body, url, image, mobile: mobile || null }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ Sent to ${data.sent} users!${data.failed ? ` (${data.failed} failed)` : ''}`; }
+            showToast(`✅ Notification sent to ${data.sent} users!`);
+            ['notif-title','notif-body','notif-mobile','notif-image','notif-url','notif-product-search'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            document.getElementById('notif-preview')?.classList.add('hidden');
+            document.getElementById('notif-product-results').innerHTML = '';
+        } else {
+            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-red-50 text-red-700'; result.textContent = '❌ ' + (data.error || 'Failed'); }
+            showToast('❌ ' + (data.error || 'Send failed'));
+        }
+    } catch (err) {
+        if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-red-50 text-red-700'; result.textContent = '❌ Server nahi mila — node server.js run karo'; }
+        showToast('❌ Server nahi mila');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
+        setTimeout(() => result?.classList.add('hidden'), 6000);
+    }
+}
+
+/* ============================================================
    37. GLOBAL EXPORTS
    ============================================================ */
 Object.assign(window, {
@@ -3016,6 +3266,8 @@ Object.assign(window, {
     loadAdminReferrals, adminFilterReferrals, adminConfirmReferral, updateSizeSection,
     showWithdrawForm, hideWithdrawForm, submitWithdrawRequest, loadWalletTransactions,
     goBannerSlide, nextBannerSlide, prevBannerSlide,
+    requestPushPermission, unsubscribePush, toggleNotification, checkNotifStatus,
     renderAdminDashboard, loadAdminDashboard, renderAdminProducts, renderFilteredOrders,
+    sendAdminNotification, searchProductsForNotif, selectNotifProduct, _updateNotifPreview,
     _renderDashboardCharts, _subscribeReferralRealtime,
 });
