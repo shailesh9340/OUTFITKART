@@ -232,7 +232,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pid = new URLSearchParams(window.location.search).get('pid');
     if (pid) openProductPage(parseInt(pid));
     _setOgTags();
+    // Start banner carousel
+    setTimeout(_bannerInit, 300);
 });
+
+
+/* ============================================================
+   BANNER CAROUSEL — 3 slides, auto every 3s, touch swipe
+   ============================================================ */
+let _bannerCurrent  = 0;
+const _bannerTotal  = 3;
+let _bannerInterval = null;
+let _bannerTouchX   = 0;
+
+function _bannerInit() {
+    _bannerApply(0);                              // set initial state
+    _bannerInterval = setInterval(nextBannerSlide, 3000);
+
+    const el = document.getElementById('banner-carousel');
+    if (!el) return;
+    el.addEventListener('touchstart', e => { _bannerTouchX = e.touches[0].clientX; }, { passive: true });
+    el.addEventListener('touchend',   e => {
+        const dx = e.changedTouches[0].clientX - _bannerTouchX;
+        if (Math.abs(dx) > 45) dx < 0 ? nextBannerSlide() : prevBannerSlide();
+    }, { passive: true });
+}
+
+function _bannerApply(idx) {
+    const slides = document.querySelectorAll('#banner-carousel .banner-slide');
+    const dots   = [
+        document.getElementById('banner-dot-0'),
+        document.getElementById('banner-dot-1'),
+        document.getElementById('banner-dot-2'),
+    ];
+    if (!slides.length) return;
+
+    slides.forEach((s, i) => {
+        s.style.opacity = i === idx ? '1' : '0';
+        s.style.zIndex  = i === idx ? '1' : '0';
+    });
+
+    dots.forEach((d, i) => {
+        if (!d) return;
+        d.style.width   = i === idx ? '1.5rem' : '0.5rem';
+        d.style.opacity = i === idx ? '1'      : '0.4';
+    });
+
+    _bannerCurrent = idx;
+}
+
+function goBannerSlide(idx) {
+    _bannerApply(idx);
+    clearInterval(_bannerInterval);
+    _bannerInterval = setInterval(nextBannerSlide, 3000);
+}
+
+function nextBannerSlide() { _bannerApply((_bannerCurrent + 1) % _bannerTotal); }
+function prevBannerSlide() { _bannerApply((_bannerCurrent - 1 + _bannerTotal) % _bannerTotal); }
 
 /* ============================================================
    5. ADMIN ACCESS CONTROL
@@ -464,10 +520,15 @@ function renderSidebarReferralWidget() {
 }
 
 function updateHeaderWallet(balance) {
-    const el = document.getElementById('header-wallet-display');
+    const el   = document.getElementById('header-wallet-display');
+    const pill = document.getElementById('header-wallet-pill');
     if (!el) return;
-    if (balance > 0) { el.textContent = `₹${balance.toLocaleString()}`; el.parentElement?.classList.remove('hidden'); }
-    else { el.parentElement?.classList.add('hidden'); }
+    if (balance > 0) {
+        el.textContent = '₹' + balance.toLocaleString();
+        if (pill) { pill.classList.remove('hidden'); pill.classList.add('flex'); }
+    } else {
+        if (pill) { pill.classList.add('hidden'); pill.classList.remove('flex'); }
+    }
 }
 
 /* ============================================================
@@ -1729,7 +1790,7 @@ async function submitWithdrawRequest() {
     const name   = nameEl?.value.trim();
 
     // Validations
-    if (!amount || amount < 50)      return showToast('Minimum withdrawal amount is ₹50');
+    if (!amount || amount < 120)     return showToast('Minimum withdrawal amount is ₹120');
     if (!upiId)                      return showToast('Please enter your UPI ID');
     if (!name)                       return showToast('Please enter account holder name');
     if (amount > walletBalance)      return showToast(`Insufficient balance. Available: ₹${walletBalance}`);
@@ -1848,4 +1909,5 @@ Object.assign(window,{
     cancelReferralForOrder,recordReferralPurchase,
     loadAdminReferrals,adminFilterReferrals,adminConfirmReferral,updateSizeSection,
     showWithdrawForm,hideWithdrawForm,submitWithdrawRequest,loadWalletTransactions,
+    goBannerSlide,nextBannerSlide,prevBannerSlide,
 });
