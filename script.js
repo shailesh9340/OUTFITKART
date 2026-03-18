@@ -11,9 +11,6 @@ const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S
 const SUPPORT_WA      = '918982296773';
 const SUPPORT_EMAIL   = 'shaileshkumarchauhan9340@gmail.com';
 
-/* ============================================================
-   AUTHORIZED ADMIN USERS — sirf yahi log admin panel khol sakte hain
-   ============================================================ */
 const AUTHORIZED_ADMINS = [
     { mobile: '9343988416', name: 'Shailesh Kumar Chauhan', email: 'shailu@gmail.com' },
     { mobile: '7879245954', name: 'Aman Kumar Chauhan',    email: 'udaipurihacg@gmail.com' },
@@ -21,9 +18,7 @@ const AUTHORIZED_ADMINS = [
 
 function isAuthorizedAdmin(user) {
     if (!user) return false;
-    return AUTHORIZED_ADMINS.some(a =>
-        a.mobile === String(user.mobile).trim()
-    );
+    return AUTHORIZED_ADMINS.some(a => a.mobile === String(user.mobile).trim());
 }
 
 const dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -76,10 +71,10 @@ let activeReferralCode    = null;
 let adminPressTimer       = null;
 
 /* ============================================================
-   3. CONSTANTS — CATEGORIES (Perfumes with ML sizes)
+   3. CONSTANTS — CATEGORIES
    ============================================================ */
 const CATEGORIES = [
-   {
+    {
         id: 'men', name: 'Men', icon: 'fa-male',
         subs: ['T-Shirts','Casual Shirts','Formal Shirts','Oversized Tees','Oversized Shirts','Hoodies','Denim Jacket',
                'Baggy Jeans','Straight Fit Jeans','Slim Fit Jeans','Cotton Trousers','Joggers','Cargo Pants','Formal Pant','Trousers',
@@ -97,7 +92,7 @@ const CATEGORIES = [
         ]
     },
     {
-         id: 'women', name: 'Women', icon: 'fa-female',
+        id: 'women', name: 'Women', icon: 'fa-female',
         subs: ['Sarees','Kurtis','Salwar Suits','Lehengas',
                'Tops','Straight Fit Jeans','Baggy Jeans','Cargo Jeans','Skinny Fit Jeans','Slim Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts',
                'Heels','Flats','Sandals','Sneakers','Wedges',
@@ -120,11 +115,10 @@ const CATEGORIES = [
         subs: ["Men's Perfume","Women's Perfume","Unisex Perfume","Luxury Perfume","Budget Perfume",
                "Attar / Ittar","Body Mist","Deodorant Spray","Gift Set"],
         groups: [
-            { label: '🌸 For Her',    items: ["Women's Perfume","Body Mist","Gift Set"] },
-            { label: '💼 For Him',    items: ["Men's Perfume","Attar / Ittar","Deodorant Spray"] },
-            { label: '✨ Unisex',     items: ["Unisex Perfume","Luxury Perfume","Budget Perfume"] },
+            { label: '🌸 For Her',  items: ["Women's Perfume","Body Mist","Gift Set"] },
+            { label: '💼 For Him',  items: ["Men's Perfume","Attar / Ittar","Deodorant Spray"] },
+            { label: '✨ Unisex',   items: ["Unisex Perfume","Luxury Perfume","Budget Perfume"] },
         ],
-        /* Perfumes use ML sizes instead of S/M/L */
         sizesType: 'ml',
         mlSizes: ['10ml','20ml','30ml','50ml','75ml','100ml','150ml','200ml','250ml'],
     },
@@ -149,7 +143,6 @@ const CATEGORIES = [
     },
 ];
 
-/* Helper: check if a category/sub is Perfume type (use ML instead of sizes) */
 function isPerfumeCategory(cat) {
     return String(cat || '').toLowerCase() === 'perfumes';
 }
@@ -214,13 +207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const adminSession = localStorage.getItem('outfitkart_admin_session');
-    if (adminSession === 'true' && currentUser && isAuthorizedAdmin(currentUser)) {
+    if (adminSession === 'true' && isAdminLoggedIn === false) {
         isAdminLoggedIn = true;
         setTimeout(() => navigate('admin'), 500);
-    } else if (adminSession === 'true') {
-        // Clear invalid admin session
-        localStorage.removeItem('outfitkart_admin_session');
-        isAdminLoggedIn = false;
     }
 
     toggleProductMode('auto');
@@ -233,13 +222,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pid = new URLSearchParams(window.location.search).get('pid');
     if (pid) openProductPage(parseInt(pid));
     _setOgTags();
-    // Start banner carousel
     setTimeout(_bannerInit, 300);
 });
 
-
 /* ============================================================
-   BANNER CAROUSEL — 3 slides, auto every 3s, touch swipe
+   BANNER CAROUSEL
    ============================================================ */
 let _bannerCurrent  = 0;
 const _bannerTotal  = 3;
@@ -247,13 +234,12 @@ let _bannerInterval = null;
 let _bannerTouchX   = 0;
 
 function _bannerInit() {
-    _bannerApply(0);                              // set initial state
+    _bannerApply(0);
     _bannerInterval = setInterval(nextBannerSlide, 3000);
-
     const el = document.getElementById('banner-carousel');
     if (!el) return;
     el.addEventListener('touchstart', e => { _bannerTouchX = e.touches[0].clientX; }, { passive: true });
-    el.addEventListener('touchend',   e => {
+    el.addEventListener('touchend', e => {
         const dx = e.changedTouches[0].clientX - _bannerTouchX;
         if (Math.abs(dx) > 45) dx < 0 ? nextBannerSlide() : prevBannerSlide();
     }, { passive: true });
@@ -267,18 +253,15 @@ function _bannerApply(idx) {
         document.getElementById('banner-dot-2'),
     ];
     if (!slides.length) return;
-
     slides.forEach((s, i) => {
         s.style.opacity = i === idx ? '1' : '0';
         s.style.zIndex  = i === idx ? '1' : '0';
     });
-
     dots.forEach((d, i) => {
         if (!d) return;
         d.style.width   = i === idx ? '1.5rem' : '0.5rem';
         d.style.opacity = i === idx ? '1'      : '0.4';
     });
-
     _bannerCurrent = idx;
 }
 
@@ -287,30 +270,24 @@ function goBannerSlide(idx) {
     clearInterval(_bannerInterval);
     _bannerInterval = setInterval(nextBannerSlide, 3000);
 }
-
 function nextBannerSlide() { _bannerApply((_bannerCurrent + 1) % _bannerTotal); }
 function prevBannerSlide() { _bannerApply((_bannerCurrent - 1 + _bannerTotal) % _bannerTotal); }
 
 /* ============================================================
-   5. ADMIN ACCESS CONTROL
-   Long-press logo: only opens if currentUser is an authorized admin
+   5. ADMIN ACCESS — Long press logo
    ============================================================ */
 function startAdminTimer() {
     adminPressTimer = setTimeout(() => {
-        if (!isAdminLoggedIn) {
-            showAdminLogin();
-        } else {
-            navigate('admin');
-        }
+        if (!isAdminLoggedIn) showAdminLogin();
+        else navigate('admin');
     }, 3000);
 }
-
 function cancelAdminTimer() { clearTimeout(adminPressTimer); }
 
 document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (!isAdminLoggedIn) { showAdminLogin(); } else { navigate('admin'); }
+        if (!isAdminLoggedIn) showAdminLogin(); else navigate('admin');
     }
 });
 
@@ -392,7 +369,10 @@ async function shareWithReferral(productId, productName, price) {
 async function recordReferralPurchase(orderId, orderTotal) {
     if (!activeReferralCode) return;
     try {
-        const { data: referrer, error } = await dbClient.from('users').select('mobile, name, referral_code').eq('referral_code', activeReferralCode).maybeSingle();
+        const { data: referrer, error } = await dbClient.from('users')
+            .select('mobile, name, referral_code')
+            .eq('referral_code', activeReferralCode)
+            .maybeSingle();
         if (error || !referrer) return;
         if (currentUser && referrer.mobile === currentUser.mobile) return;
         const commission = Math.round(orderTotal * 0.05);
@@ -406,11 +386,11 @@ async function recordReferralPurchase(orderId, orderTotal) {
             status:          'pending',
             date:            new Date().toLocaleDateString('en-IN'),
             referral_code:   activeReferralCode,
-            created_at:      new Date().toISOString(),
+            created_at:      new Date().toISOString()
         }]);
         localStorage.removeItem('outfitkart_active_referral');
         activeReferralCode = null;
-    } catch (err) { console.error('[Referral] recordReferralPurchase:', err); }
+    } catch (err) { console.error('[Referral Error]:', err); }
 }
 
 async function cancelReferralForOrder(orderId) {
@@ -481,7 +461,6 @@ function renderReferralList(containerId, items, type) {
                     <div class="text-xs text-gray-500 mt-0.5">Buyer: +91 ${r.buyer_mobile}</div>
                     <div class="text-xs text-gray-500">Date: ${r.date || '—'}</div>
                     <div class="text-xs text-gray-600 mt-1">Order Total: ₹${(r.order_total||0).toLocaleString()}</div>
-                    <div class="text-xs text-gray-400">5% of ₹${(r.order_total||0).toLocaleString()}</div>
                     ${daysInfo}
                 </div>
                 <div class="text-right ml-3 flex-shrink-0">
@@ -610,7 +589,7 @@ function toggleCart() {
 }
 
 /* ============================================================
-   8. QUICK SIZE MODAL — Perfumes show ML
+   8. QUICK SIZE MODAL
    ============================================================ */
 function showQuickSizeModal(productId) {
     const product = products.find(p => p.id === productId);
@@ -669,6 +648,9 @@ async function fetchProducts(retry = 0) {
             updateProductCountBadge(products.length);
             renderProductGrid('trending-grid', products.filter(p => p.istrending));
             if (!document.getElementById('view-shop').classList.contains('hidden')) renderShopProducts();
+            /* Update sidebar count */
+            const countBadge = document.getElementById('sidebar-product-count');
+            if (countBadge) countBadge.textContent = products.length;
         } else {
             products = [{ id: 1, name: '👑 No Products Yet — Use Admin Panel!', price: 999, oldprice: 1999, category: 'Admin', sub: 'Empty', img: 'https://placehold.co/300x400/e11d48/ffffff?text=Add+Products', istrending: true, desc: 'Login to Admin Panel → Add products!' }];
             renderProductGrid('trending-grid', products);
@@ -826,6 +808,7 @@ function renderShopProducts() {
     else if (sortVal === 'high') list.sort((a,b) => b.price-a.price);
     else if (sortVal === 'trending') list = list.filter(p => p.istrending);
     renderProductGrid('shop-grid', list);
+    renderShopSubcategories();
 }
 
 function shopSortProducts(val) { globalSortOrder = val; renderShopProducts(); }
@@ -850,38 +833,71 @@ function handleSearch(q) {
 }
 
 /* ============================================================
-   12. NAVIGATION
+   12. NAVIGATION — FIXED: admin name + admin-active class
    ============================================================ */
 function navigate(view, cat = null) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     currentView = view;
+
     if (view === 'profile' && cat) {
         document.getElementById('view-profile').classList.remove('hidden');
-        if (currentUser) { let matchBtn=null; document.querySelectorAll('.tab-btn').forEach(b => { if (b.getAttribute('onclick')?.includes(`'${cat}'`)) matchBtn=b; }); switchProfileTab(cat, matchBtn); }
+        if (currentUser) {
+            let matchBtn = null;
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                if (b.getAttribute('onclick')?.includes(`'${cat}'`)) matchBtn = b;
+            });
+            switchProfileTab(cat, matchBtn);
+        }
         updateBottomNav(); return;
     }
+
     const viewEl = document.getElementById(`view-${view}`);
     if (viewEl) viewEl.classList.remove('hidden');
+
     if (view === 'shop') {
-        if (cat) { currentCategoryFilter=cat; currentSubFilter=null; document.getElementById('shop-title').textContent=`${cat} Collection`; }
-        else { currentCategoryFilter=null; currentSubFilter=null; document.getElementById('shop-title').textContent='Shop All Products'; }
-        const filtersEl=document.getElementById('subcategory-filters'); if(filtersEl) filtersEl.innerHTML='';
-        renderShopProducts(); _initShopScrollHide();
+        if (cat) {
+            currentCategoryFilter = cat;
+            currentSubFilter = null;
+            const titleEl = document.getElementById('shop-title');
+            if (titleEl) titleEl.textContent = `${cat} Collection`;
+        } else {
+            currentCategoryFilter = null;
+            currentSubFilter = null;
+            const titleEl = document.getElementById('shop-title');
+            if (titleEl) titleEl.textContent = 'Shop All Products';
+        }
+        const filtersEl = document.getElementById('subcategory-filters');
+        if (filtersEl) filtersEl.innerHTML = '';
+        renderShopProducts();
+        _initShopScrollHide();
     }
+
     if (view === 'checkout') {
         currentCheckoutStep = 1;
-        if (currentUser) { preFillUserAddress().then(filled => { if(filled){goToStep(2);showToast('Saved address loaded! 📍');}else renderCheckoutStep(); }).catch(()=>renderCheckoutStep()); }
-        else renderCheckoutStep();
+        if (currentUser) {
+            preFillUserAddress().then(filled => {
+                if (filled) { goToStep(2); showToast('Saved address loaded! 📍'); }
+                else renderCheckoutStep();
+            }).catch(() => renderCheckoutStep());
+        } else renderCheckoutStep();
     }
-    if (view === 'profile') { if(currentUser) fetchUserData().then(()=>checkAuthUI()); else checkAuthUI(); }
+
+    if (view === 'profile') {
+        if (currentUser) fetchUserData().then(() => checkAuthUI());
+        else checkAuthUI();
+    }
+
     if (view === 'admin') {
         if (!isAdminLoggedIn) { showAdminLogin(); return; }
         document.body.classList.add('admin-active');
+        updateAdminNameInHeader();
         loadAdminDashboard();
     } else {
         document.body.classList.remove('admin-active');
     }
-    window.scrollTo(0, 0); updateBottomNav();
+
+    window.scrollTo(0, 0);
+    updateBottomNav();
 }
 
 function updateBottomNav() {
@@ -1009,6 +1025,8 @@ function handleLogout() {
     currentUser=null; wishlist=[]; ordersDb=[];
     localStorage.removeItem('outfitkart_session');
     localStorage.removeItem('outfitkart_admin_session');
+    localStorage.removeItem('outfitkart_admin_name');
+    localStorage.removeItem('outfitkart_admin_username');
     isAdminLoggedIn=false;
     showToast('Logged out successfully.');
     navigate('home'); checkAuthUI(); switchAuthTab('login');
@@ -1061,7 +1079,7 @@ function renderWishlist() {
 }
 
 /* ============================================================
-   16. PRODUCT DETAIL PAGE — Perfumes show ML selector
+   16. PRODUCT DETAIL PAGE
    ============================================================ */
 async function openProductPage(id) {
     const p=products.find(x=>x.id===id); if(!p) return;
@@ -1073,7 +1091,6 @@ async function openProductPage(id) {
     selectedSize     = sizeArray[1]||sizeArray[0];
     const imgList    = p.imgs?.length?p.imgs:(p.img?[p.img]:['https://placehold.co/600x420/eee/333?text=No+Image']);
     const sizeLabel  = isPerf ? 'Select Volume (ML)' : 'Select Size';
-    const sizeTagLabel = isPerf ? 'Volume' : 'Size';
 
     let sliderHtml;
     if (imgList.length===1) {
@@ -1310,20 +1327,30 @@ function renderOrdersList(){
 }
 
 /* ============================================================
-   23. ADMIN — AUTH (only authorized users)
+   23. ADMIN — AUTH + NAME DISPLAY
    ============================================================ */
 function showAdminLogin(){const modal=document.getElementById('admin-login-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');document.getElementById('admin-username')?.focus();}
 function closeAdminLogin(goToHome=false){const modal=document.getElementById('admin-login-modal');modal?.classList.add('hidden');modal?.classList.remove('flex');if(goToHome)navigate('home');}
 
-async function handleAdminLogin(e){
+/* FIX: Show admin name in header after login */
+function updateAdminNameInHeader() {
+    const name     = localStorage.getItem('outfitkart_admin_name') || 'Admin';
+    const nameEl   = document.getElementById('admin-display-name');
+    const avatarEl = document.getElementById('admin-avatar-initial');
+    const pill     = document.getElementById('admin-user-name-pill');
+    if (nameEl)   nameEl.textContent   = name;
+    if (avatarEl) avatarEl.textContent = name.charAt(0).toUpperCase();
+    if (pill) { pill.classList.remove('hidden'); pill.classList.add('flex'); }
+}
+
+async function handleAdminLogin(e) {
     e.preventDefault();
     const username = document.getElementById('admin-username').value.trim().toLowerCase();
     const password = document.getElementById('admin-password').value.trim();
 
-    /* Fixed admin credentials */
     const ADMIN_CREDS = [
-        { username: 'shailesh', password: 'shailesh@934' },
-        { username: 'aman',     password: 'aman@787' },
+        { username: 'shailesh', password: 'shailesh@934', displayName: 'Shailesh Kumar' },
+        { username: 'aman',     password: 'aman@787',     displayName: 'Aman Kumar' },
     ];
 
     const match = ADMIN_CREDS.find(a => a.username === username && a.password === password);
@@ -1331,133 +1358,256 @@ async function handleAdminLogin(e){
     if (match) {
         isAdminLoggedIn = true;
         localStorage.setItem('outfitkart_admin_session', 'true');
-        showToast('Admin access granted! Welcome ' + match.username + '.');
+        localStorage.setItem('outfitkart_admin_name', match.displayName);
+        localStorage.setItem('outfitkart_admin_username', match.username);
+        showToast('Welcome ' + match.displayName + '! 👋');
         document.getElementById('admin-username').value = '';
         document.getElementById('admin-password').value = '';
         closeAdminLogin();
         setTimeout(() => navigate('admin'), 100);
     } else {
-        showToast('Invalid username or password');
+        showToast('Invalid username or password ❌');
         document.getElementById('admin-password').value = '';
     }
 }
 
-function loadAdminDashboard(){switchAdminTab('dashboard');renderAdminDashboard();}
-
-async function renderAdminDashboard(){
-    const dashboardEl=document.getElementById('admin-dashboard-content');if(!dashboardEl)return;
-    dashboardEl.innerHTML='<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i><p class="mt-2 text-gray-500">Loading dashboard...</p></div>';
-    try{
-        const{data:allOrders}=await dbClient.from('orders').select('*').order('date',{ascending:false});
-        const{data:allUsers}=await dbClient.from('users').select('*');
-        const totalOrders=allOrders?.length||0,activeOrders=allOrders?.filter(o=>o.status!=='Cancelled').length||0;
-        const totalRevenue=allOrders?.filter(o=>o.status!=='Cancelled').reduce((sum,o)=>sum+(o.total||0),0)||0;
-        const totalProfit=allOrders?.filter(o=>o.status!=='Cancelled').reduce((sum,o)=>sum+(o.margin_total||0),0)||0;
-        const totalUsers=allUsers?.length||0,recentOrders=allOrders?.slice(0,5)||[];
-        dashboardEl.innerHTML=`
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl text-white shadow-lg"><div class="text-2xl font-black mb-1">₹${totalRevenue.toLocaleString()}</div><div class="text-xs opacity-90">Total Revenue</div></div>
-                <div class="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-xl text-white shadow-lg"><div class="text-2xl font-black mb-1">₹${totalProfit.toLocaleString()}</div><div class="text-xs opacity-90">Total Profit</div></div>
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl text-white shadow-lg"><div class="text-2xl font-black mb-1">${activeOrders}</div><div class="text-xs opacity-90">Active Orders</div></div>
-                <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-xl text-white shadow-lg"><div class="text-2xl font-black mb-1">${totalUsers}</div><div class="text-xs opacity-90">Total Users</div></div>
-            </div>
-            <div class="grid md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white p-4 rounded-lg border shadow-sm"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center"><i class="fas fa-shopping-cart text-purple-600 text-xl"></i></div><div><div class="text-sm text-gray-500">Total Orders</div><div class="text-2xl font-bold text-gray-900">${totalOrders}</div></div></div></div>
-                <div class="bg-white p-4 rounded-lg border shadow-sm"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center"><i class="fas fa-box text-blue-600 text-xl"></i></div><div><div class="text-sm text-gray-500">Total Products</div><div class="text-2xl font-bold text-gray-900">${products.length}</div></div></div></div>
-                <div class="bg-white p-4 rounded-lg border shadow-sm"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center"><i class="fas fa-chart-line text-green-600 text-xl"></i></div><div><div class="text-sm text-gray-500">Avg Order Value</div><div class="text-2xl font-bold text-gray-900">₹${activeOrders?Math.round(totalRevenue/activeOrders):0}</div></div></div></div>
-            </div>
-            <div class="bg-white rounded-lg border shadow-sm p-4"><div class="flex items-center justify-between mb-4"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3><span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-semibold">Latest 5</span></div>
-            ${recentOrders.length?recentOrders.map(order=>{const badge=STATUS_BADGE[order.status]||'bg-gray-100 text-gray-600';return`<div class="flex justify-between items-center py-3 border-b last:border-b-0"><div><div class="font-semibold text-sm">#${order.id}</div><div class="text-xs text-gray-500">${order.customer_name||'N/A'} • ${order.date}</div></div><div class="text-right"><div class="font-bold text-sm">₹${order.total}</div><span class="${badge} text-xs px-2 py-0.5 rounded-full">${order.status}</span></div></div>`;}).join(''):'<div class="text-center text-gray-400 py-8">No orders yet</div>'}</div>`;
-    }catch(err){dashboardEl.innerHTML='<div class="text-center text-red-500 py-10">Error loading dashboard</div>';}
+function loadAdminDashboard() {
+    updateAdminNameInHeader();
+    switchAdminTab('dashboard');
+    renderAdminDashboard();
 }
 
 /* ============================================================
-   24. ADMIN — SWITCH TABS + SIDEBAR
+   24. ADMIN — DASHBOARD: Profit from margin_total + Cancelled count
    ============================================================ */
-function switchAdminTab(tab){
-    document.querySelectorAll('.admin-content-tab').forEach(el=>{el.classList.add('hidden');el.style.display='none';});
-    const targetTab=document.getElementById(`admin-tab-${tab}`);if(targetTab){targetTab.classList.remove('hidden');targetTab.style.display='block';}
-    document.querySelectorAll('.admin-nav-btn').forEach(btn=>btn.classList.remove('active'));
-    const activeBtn=document.getElementById(`btn-admin-${tab}`);if(activeBtn)activeBtn.classList.add('active');
-    /* Close edit modal if switching away from products/inventory */
-    if(tab!=='products'&&tab!=='inventory') closeEditModal();
-    if(window.innerWidth<768)toggleAdminSidebar();
-    if(tab==='dashboard')  renderAdminDashboard();
-    if(tab==='products')   renderAdminProducts();
-    if(tab==='order')      loadAllOrdersAdmin();
-    if(tab==='payout')     loadAllWithdrawalsAdmin();
-    if(tab==='users')      loadAllUsersAdmin();
-    if(tab==='referrals')  loadAdminReferrals();
-}
+async function renderAdminDashboard() {
+    const dashboardEl = document.getElementById('admin-dashboard-content');
+    if (!dashboardEl) return;
+    dashboardEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i><p class="mt-2 text-gray-500">Loading dashboard...</p></div>';
+    try {
+        const { data: allOrders } = await dbClient.from('orders').select('*').order('date', { ascending: false });
+        const { data: allUsers  } = await dbClient.from('users').select('*');
 
-function toggleAdminSidebar(){
-    const sidebar=document.getElementById('admin-sidebar'),overlay=document.getElementById('admin-sidebar-overlay');if(!sidebar||!overlay)return;
-    const isOpen=!sidebar.classList.contains('-translate-x-full');
-    if(isOpen){sidebar.classList.add('-translate-x-full');overlay.classList.add('hidden');}
-    else{sidebar.classList.remove('-translate-x-full');overlay.classList.remove('hidden');}
+        const activeOrders    = (allOrders || []).filter(o => o.status !== 'Cancelled');
+        const cancelledOrders = (allOrders || []).filter(o => o.status === 'Cancelled');
+        const totalRevenue    = activeOrders.reduce((s, o) => s + (o.total || 0), 0);
+        /* FIX: profit = margin_total column sum */
+        const totalProfit     = activeOrders.reduce((s, o) => s + (o.margin_total || 0), 0);
+        const totalUsers      = (allUsers || []).length;
+        const recentOrders    = (allOrders || []).slice(0, 5);
+
+        /* Update sidebar product count badge */
+        const countBadge = document.getElementById('sidebar-product-count');
+        if (countBadge) countBadge.textContent = products.length;
+
+        /* Update header stats */
+        const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+        setEl('admin-order-count',       activeOrders.length);
+        setEl('admin-total-sales',       `₹${totalRevenue.toLocaleString('en-IN')}`);
+
+        dashboardEl.innerHTML = `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-2xl font-black mb-1">₹${totalRevenue.toLocaleString('en-IN')}</div>
+                <div class="text-xs opacity-90 font-semibold">Total Revenue</div>
+                <div class="text-[10px] opacity-70 mt-0.5">${activeOrders.length} active orders</div>
+            </div>
+            <div class="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-2xl font-black mb-1">₹${totalProfit.toLocaleString('en-IN')}</div>
+                <div class="text-xs opacity-90 font-semibold">Total Profit</div>
+                <div class="text-[10px] opacity-70 mt-0.5">From margin_total</div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-2xl font-black mb-1">${activeOrders.length}</div>
+                <div class="text-xs opacity-90 font-semibold">Active Orders</div>
+                <div class="flex items-center gap-1 mt-0.5">
+                    <span class="text-[10px] bg-red-400/60 px-1.5 py-0.5 rounded-full font-bold">${cancelledOrders.length} cancelled</span>
+                </div>
+            </div>
+            <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-2xl font-black mb-1">${totalUsers}</div>
+                <div class="text-xs opacity-90 font-semibold">Total Users</div>
+                <div class="text-[10px] opacity-70 mt-0.5">${products.length} products</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-receipt text-purple-600"></i></div><div><div class="text-xs text-gray-500">Total Orders</div><div class="text-xl font-black">${(allOrders||[]).length}</div></div></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-times-circle text-red-500"></i></div><div><div class="text-xs text-gray-500">Cancelled</div><div class="text-xl font-black text-red-500">${cancelledOrders.length}</div></div></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-chart-bar text-green-600"></i></div><div><div class="text-xs text-gray-500">Avg Order</div><div class="text-xl font-black">₹${activeOrders.length?Math.round(totalRevenue/activeOrders.length).toLocaleString('en-IN'):0}</div></div></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border shadow-sm">
+                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-box text-blue-600"></i></div><div><div class="text-xs text-gray-500">Products</div><div class="text-xl font-black">${products.length}</div></div></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl border shadow-sm p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3>
+                <button onclick="switchAdminTab('order')" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">View All →</button>
+            </div>
+            ${recentOrders.length ? recentOrders.map(order => {
+                const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600';
+                return `<div class="flex justify-between items-center py-3 border-b last:border-b-0">
+                    <div>
+                        <div class="font-semibold text-sm">#${order.id}</div>
+                        <div class="text-xs text-gray-500">${order.customer_name || 'N/A'} • ${order.date || ''}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm">₹${(order.total||0).toLocaleString('en-IN')}</div>
+                        <span class="${badge} text-xs px-2 py-0.5 rounded-full">${order.status}</span>
+                    </div>
+                </div>`;
+            }).join('') : '<div class="text-center text-gray-400 py-8">No orders yet</div>'}
+        </div>`;
+    } catch (err) {
+        dashboardEl.innerHTML = '<div class="text-center text-red-500 py-10"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p>Error loading dashboard</p></div>';
+        console.error('[Dashboard]', err);
+    }
 }
 
 /* ============================================================
-   25. ADMIN — REFERRALS SECTION
+   25. ADMIN — SWITCH TABS + SIDEBAR
    ============================================================ */
-async function loadAdminReferrals(){
-    const container=document.getElementById('admin-referrals-content');if(!container)return;
-    container.innerHTML='<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
-    try{
-        const{data:referrals,error}=await dbClient.from('referrals').select('*').order('created_at',{ascending:false});
-        if(error)throw error;
-        const all=referrals||[];
-        const pending=all.filter(r=>r.status==='pending');
-        const confirmed=all.filter(r=>r.status==='confirmed');
-        const cancelled=all.filter(r=>r.status==='cancelled');
-        const pendingAmt=pending.reduce((s,r)=>s+(r.commission||0),0);
-        const confirmedAmt=confirmed.reduce((s,r)=>s+(r.commission||0),0);
-        const cancelledAmt=cancelled.reduce((s,r)=>s+(r.commission||0),0);
-        container.innerHTML=`
-        <!-- Summary Cards -->
+function switchAdminTab(tab) {
+    /* Hide all tabs */
+    document.querySelectorAll('.admin-content-tab').forEach(el => {
+        el.style.display = 'none';
+        el.classList.add('hidden');
+    });
+
+    /* Show target tab */
+    const targetTab = document.getElementById(`admin-tab-${tab}`);
+    if (targetTab) {
+        targetTab.style.display = 'block';
+        targetTab.classList.remove('hidden');
+    }
+
+    /* Update nav active state */
+    document.querySelectorAll('.admin-nav-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`btn-admin-${tab}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    /* Close edit modal when switching away */
+    if (tab !== 'products' && tab !== 'inventory') closeEditModal();
+
+    /* Close mobile sidebar */
+    if (window.innerWidth < 768) toggleAdminSidebar();
+
+    /* Update sidebar product count badge */
+    const countBadge = document.getElementById('sidebar-product-count');
+    if (countBadge) countBadge.textContent = products.length;
+
+    /* Load tab content */
+    if (tab === 'dashboard') renderAdminDashboard();
+    if (tab === 'products')  renderAdminProducts();
+    if (tab === 'order')     loadAllOrdersAdmin();
+    if (tab === 'payout')    loadAllWithdrawalsAdmin();
+    if (tab === 'users')     loadAllUsersAdmin();
+    if (tab === 'referrals') loadAdminReferrals();
+}
+
+function toggleAdminSidebar() {
+    const sidebar  = document.getElementById('admin-sidebar');
+    const overlay  = document.getElementById('admin-sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    const isOpen = !sidebar.classList.contains('-translate-x-full');
+    if (isOpen) { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+    else { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+}
+
+/* ============================================================
+   26. ADMIN — LOGOUT / EXIT
+   ============================================================ */
+function adminLogout() {
+    isAdminLoggedIn = false;
+    localStorage.removeItem('outfitkart_admin_session');
+    localStorage.removeItem('outfitkart_admin_name');
+    localStorage.removeItem('outfitkart_admin_username');
+    document.body.classList.remove('admin-active');
+    const pill = document.getElementById('admin-user-name-pill');
+    if (pill) { pill.classList.add('hidden'); pill.classList.remove('flex'); }
+    showToast('Admin Logged Out');
+    navigate('home');
+}
+
+function exitAdmin() {
+    isAdminLoggedIn = false;
+    localStorage.removeItem('outfitkart_admin_session');
+    localStorage.removeItem('outfitkart_admin_name');
+    localStorage.removeItem('outfitkart_admin_username');
+    document.body.classList.remove('admin-active');
+    navigate('home');
+}
+
+/* ============================================================
+   27. ADMIN — REFERRALS
+   ============================================================ */
+async function loadAdminReferrals() {
+    const container = document.getElementById('admin-referrals-content');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
+    try {
+        const { data: referrals, error } = await dbClient.from('referrals').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        const all       = referrals || [];
+        const pending   = all.filter(r => r.status === 'pending');
+        const confirmed = all.filter(r => r.status === 'confirmed');
+        const cancelled = all.filter(r => r.status === 'cancelled');
+        const pendingAmt   = pending.reduce((s, r)   => s + (r.commission || 0), 0);
+        const confirmedAmt = confirmed.reduce((s, r) => s + (r.commission || 0), 0);
+        const cancelledAmt = cancelled.reduce((s, r) => s + (r.commission || 0), 0);
+
+        container.innerHTML = `
         <div class="grid grid-cols-3 gap-3 mb-6">
-            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border border-amber-200">
+            <div class="bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-xl border border-amber-200 text-center">
                 <p class="text-xs text-amber-700 font-bold uppercase mb-1">Pending</p>
                 <p class="text-2xl font-black text-amber-600">₹${pendingAmt.toLocaleString()}</p>
                 <p class="text-xs text-amber-500 mt-1">${pending.length} referrals</p>
             </div>
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200 text-center">
                 <p class="text-xs text-green-700 font-bold uppercase mb-1">Confirmed</p>
                 <p class="text-2xl font-black text-green-600">₹${confirmedAmt.toLocaleString()}</p>
                 <p class="text-xs text-green-500 mt-1">${confirmed.length} referrals</p>
             </div>
-            <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-200">
+            <div class="bg-gradient-to-br from-red-50 to-rose-50 p-4 rounded-xl border border-red-200 text-center">
                 <p class="text-xs text-red-700 font-bold uppercase mb-1">Cancelled</p>
                 <p class="text-2xl font-black text-red-400">₹${cancelledAmt.toLocaleString()}</p>
                 <p class="text-xs text-red-400 mt-1">${cancelled.length} referrals</p>
             </div>
         </div>
-        <!-- Filter Tabs -->
         <div class="flex gap-1 mb-4 border-b overflow-x-auto hide-scrollbar">
             <button onclick="adminFilterReferrals('all',this)" class="pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab">All (${all.length})</button>
             <button onclick="adminFilterReferrals('pending',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Pending (${pending.length})</button>
             <button onclick="adminFilterReferrals('confirmed',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Confirmed (${confirmed.length})</button>
             <button onclick="adminFilterReferrals('cancelled',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Cancelled (${cancelled.length})</button>
         </div>
-        <!-- List -->
         <div id="admin-referrals-list" class="space-y-3"></div>`;
-        window._allAdminReferrals=all;
+        window._allAdminReferrals = all;
         renderAdminReferralList(all);
-    }catch(err){container.innerHTML=`<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;}
+    } catch (err) {
+        container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;
+    }
 }
 
-function adminFilterReferrals(status,btn){
-    document.querySelectorAll('.admin-ref-tab').forEach(b=>{b.className='pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab';});
-    btn.className='pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab';
-    const all=window._allAdminReferrals||[];
-    renderAdminReferralList(status==='all'?all:all.filter(r=>r.status===status));
+function adminFilterReferrals(status, btn) {
+    document.querySelectorAll('.admin-ref-tab').forEach(b => { b.className = 'pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab'; });
+    btn.className = 'pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab';
+    const all = window._allAdminReferrals || [];
+    renderAdminReferralList(status === 'all' ? all : all.filter(r => r.status === status));
 }
 
-function renderAdminReferralList(items){
-    const container=document.getElementById('admin-referrals-list');if(!container)return;
-    if(!items.length){container.innerHTML='<div class="text-center py-10 text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>No referrals found</p></div>';return;}
-    const BADGE={pending:'bg-amber-100 text-amber-700',confirmed:'bg-green-100 text-green-700',cancelled:'bg-red-100 text-red-600'};
-    container.innerHTML=items.map(r=>`
+function renderAdminReferralList(items) {
+    const container = document.getElementById('admin-referrals-list');
+    if (!container) return;
+    if (!items.length) { container.innerHTML = '<div class="text-center py-10 text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>No referrals found</p></div>'; return; }
+    const BADGE = { pending: 'bg-amber-100 text-amber-700', confirmed: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-600' };
+    container.innerHTML = items.map(r => `
         <div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1 min-w-0">
@@ -1468,307 +1618,756 @@ function renderAdminReferralList(items){
                     <div class="text-xs text-gray-500">Referrer: <strong>+91 ${r.referrer_mobile}</strong></div>
                     <div class="text-xs text-gray-500">Buyer: +91 ${r.buyer_mobile}</div>
                     <div class="text-xs text-gray-500">Date: ${r.date||'—'} | Code: <span class="font-mono font-semibold text-purple-700">${r.referral_code||'—'}</span></div>
-                    <div class="text-xs text-gray-600 mt-1">Order Total: ₹${(r.order_total||0).toLocaleString()} | Commission: <strong class="text-green-600">₹${r.commission}</strong> (5%)</div>
+                    <div class="text-xs text-gray-600 mt-1">Order: ₹${(r.order_total||0).toLocaleString()} | Commission: <strong class="text-green-600">₹${r.commission}</strong> (5%)</div>
                     ${r.status==='pending'&&r.created_at?`<div class="text-xs text-blue-600 mt-1">Confirms: ${new Date(new Date(r.created_at).getTime()+30*24*60*60*1000).toLocaleDateString('en-IN')}</div>`:''}
                     ${r.confirmed_at?`<div class="text-xs text-green-600 mt-1">Credited: ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`:''}
                 </div>
                 <div class="flex flex-col gap-1 items-end">
-                    ${r.status==='pending'?`<button onclick="adminConfirmReferral(${r.id})" class="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 active:scale-95">✅ Confirm Now</button>`:''}
+                    ${r.status==='pending'?`<button onclick="adminConfirmReferral(${r.id})" class="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 active:scale-95">✅ Confirm</button>`:''}
                 </div>
             </div>
         </div>`).join('');
 }
 
-async function adminConfirmReferral(referralId){
-    if(!confirm('Manually confirm this referral and credit wallet?'))return;
-    try{
-        const{data:ref,error}=await dbClient.from('referrals').select('*').eq('id',referralId).single();
-        if(error||!ref)return showToast('Referral not found');
-        await dbClient.from('referrals').update({status:'confirmed',confirmed_at:new Date().toISOString()}).eq('id',referralId);
-        const{data:user}=await dbClient.from('users').select('wallet').eq('mobile',ref.referrer_mobile).maybeSingle();
-        if(user){const newWallet=(user.wallet||0)+(ref.commission||0);await dbClient.from('users').update({wallet:newWallet}).eq('mobile',ref.referrer_mobile);}
-        showToast(`✅ Referral confirmed! ₹${ref.commission} credited to +91 ${ref.referrer_mobile}`);
+async function adminConfirmReferral(referralId) {
+    if (!confirm('Manually confirm this referral and credit wallet?')) return;
+    try {
+        const { data: ref, error } = await dbClient.from('referrals').select('*').eq('id', referralId).single();
+        if (error || !ref) return showToast('Referral not found');
+        await dbClient.from('referrals').update({ status: 'confirmed', confirmed_at: new Date().toISOString() }).eq('id', referralId);
+        const { data: user } = await dbClient.from('users').select('wallet').eq('mobile', ref.referrer_mobile).maybeSingle();
+        if (user) { const newWallet = (user.wallet||0) + (ref.commission||0); await dbClient.from('users').update({ wallet: newWallet }).eq('mobile', ref.referrer_mobile); }
+        showToast(`✅ ₹${ref.commission} credited to +91 ${ref.referrer_mobile}`);
         loadAdminReferrals();
-    }catch(err){showToast('Error: '+err.message);}
+    } catch (err) { showToast('Error: ' + err.message); }
 }
 
 /* ============================================================
-   26. ADMIN — PRODUCTS with Perfume ML support
+   28. ADMIN — PRODUCTS (Upload only in inventory tab)
    ============================================================ */
-function updateDropdownSubs(catId,subId){
-    try{
-        const catEl=document.getElementById(catId),subEl=document.getElementById(subId);if(!catEl||!subEl)return;
-        const cData=CATEGORIES.find(c=>c.name===catEl.value);subEl.innerHTML='<option value="">Select Subcategory</option>';if(!cData)return;
-        if(cData.groups){cData.groups.forEach(group=>{const og=document.createElement('optgroup');og.label=group.label;group.items.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;og.appendChild(o);});subEl.appendChild(og);});}
-        else{cData.subs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;subEl.appendChild(o);});}
-        /* Show/hide size vs ML section based on category */
+function updateDropdownSubs(catId, subId) {
+    try {
+        const catEl = document.getElementById(catId), subEl = document.getElementById(subId);
+        if (!catEl || !subEl) return;
+        const cData = CATEGORIES.find(c => c.name === catEl.value);
+        subEl.innerHTML = '<option value="">Select Subcategory</option>';
+        if (!cData) return;
+        if (cData.groups) {
+            cData.groups.forEach(group => {
+                const og = document.createElement('optgroup'); og.label = group.label;
+                group.items.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; og.appendChild(o); });
+                subEl.appendChild(og);
+            });
+        } else {
+            cData.subs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subEl.appendChild(o); });
+        }
         updateSizeSection(catEl.value);
-    }catch(e){}
+    } catch (e) {}
 }
 
-function updateSizeSection(categoryName){
-    const sizeSection=document.getElementById('admin-size-section');
-    const mlSection=document.getElementById('admin-ml-section');
-    if(!sizeSection||!mlSection)return;
-    if(isPerfumeCategory(categoryName)){sizeSection.classList.add('hidden');mlSection.classList.remove('hidden');}
-    else{sizeSection.classList.remove('hidden');mlSection.classList.add('hidden');}
+function updateSizeSection(categoryName) {
+    const sizeSection = document.getElementById('admin-size-section');
+    const mlSection   = document.getElementById('admin-ml-section');
+    if (!sizeSection || !mlSection) return;
+    if (isPerfumeCategory(categoryName)) { sizeSection.classList.add('hidden'); mlSection.classList.remove('hidden'); }
+    else { sizeSection.classList.remove('hidden'); mlSection.classList.add('hidden'); }
 }
 
-function toggleProductMode(mode){
-    const manualFields=document.getElementById('manual-fields');if(!manualFields)return;
-    if(mode==='manual'){manualFields.classList.remove('hidden');const modeManual=document.getElementById('mode-manual');if(modeManual)modeManual.checked=true;updateSellingPreview();}
-    else{manualFields.classList.add('hidden');const modeAuto=document.getElementById('mode-auto');if(modeAuto)modeAuto.checked=true;['ap-supplier-price','ap-margin','selling-price-preview'].forEach(id=>{const el=document.getElementById(id);if(!el)return;if(id==='selling-price-preview')el.classList.add('hidden');else el.value=id==='ap-margin-pct'?'30':'';});}
+function toggleProductMode(mode) {
+    const manualFields = document.getElementById('manual-fields');
+    if (!manualFields) return;
+    if (mode === 'manual') {
+        manualFields.classList.remove('hidden');
+        const modeManual = document.getElementById('mode-manual');
+        if (modeManual) modeManual.checked = true;
+        updateSellingPreview();
+    } else {
+        manualFields.classList.add('hidden');
+        const modeAuto = document.getElementById('mode-auto');
+        if (modeAuto) modeAuto.checked = true;
+        ['ap-supplier-price','ap-margin','selling-price-preview'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (id === 'selling-price-preview') el.classList.add('hidden');
+            else el.value = id === 'ap-margin-pct' ? '30' : '';
+        });
+    }
 }
 
-function updateSellingPreview(){
-    const supplier=parseInt(document.getElementById('ap-supplier-price')?.value)||0,marginPct=parseFloat(document.getElementById('ap-margin-pct')?.value)||0;
-    const marginAmt=Math.round(supplier*marginPct/100),selling=supplier+marginAmt;
-    const prev=document.getElementById('selling-price-preview'),val=document.getElementById('selling-price-value'),mVal=document.getElementById('margin-amt-preview'),pEl=document.getElementById('ap-price'),mEl=document.getElementById('ap-margin');
-    if(prev)prev.classList.toggle('hidden',selling===0);if(val)val.textContent=`₹${selling.toLocaleString()}`;if(mVal)mVal.textContent=`₹${marginAmt.toLocaleString()}`;if(pEl)pEl.value=selling;if(mEl)mEl.value=marginAmt;
+function updateSellingPreview() {
+    const supplier  = parseInt(document.getElementById('ap-supplier-price')?.value) || 0;
+    const marginPct = parseFloat(document.getElementById('ap-margin-pct')?.value)   || 0;
+    const marginAmt = Math.round(supplier * marginPct / 100);
+    const selling   = supplier + marginAmt;
+    const prev = document.getElementById('selling-price-preview');
+    const val  = document.getElementById('selling-price-value');
+    const mVal = document.getElementById('margin-amt-preview');
+    const pEl  = document.getElementById('ap-price');
+    const mEl  = document.getElementById('ap-margin');
+    if (prev) prev.classList.toggle('hidden', selling === 0);
+    if (val)  val.textContent  = `₹${selling.toLocaleString()}`;
+    if (mVal) mVal.textContent = `₹${marginAmt.toLocaleString()}`;
+    if (pEl)  pEl.value = selling;
+    if (mEl)  mEl.value = marginAmt;
 }
 
-function autoGenerateDescription(){
-    const name=document.getElementById('ap-name').value;if(!name)return showToast('Enter Product Name first');
-    document.getElementById('ap-desc').value=`Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, offering unmatched comfort and lasting quality.`;
+function autoGenerateDescription() {
+    const name = document.getElementById('ap-name').value;
+    if (!name) return showToast('Enter Product Name first');
+    document.getElementById('ap-desc').value = `Elevate your style with our premium ${name}. Specially crafted for the modern wardrobe, offering unmatched comfort and lasting quality.`;
 }
 
-async function adminAddProduct(e){
+async function adminAddProduct(e) {
     e.preventDefault();
-    const imgLinks=document.getElementById('ap-imgs').value.split('\n').map(l=>l.trim()).filter(Boolean);
-    const catVal=document.getElementById('ap-category').value;
-    const isPerf=isPerfumeCategory(catVal);
-    let sizes=[];
-    if(isPerf){
-        /* Get checked ML sizes */
-        sizes=Array.from(document.querySelectorAll('.ml-admin-chk:checked')).map(cb=>cb.value);
-        if(!sizes.length)sizes=PERFUME_ML_SIZES;
-    }else{
-        sizes=Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb=>cb.value);
+    const imgLinks  = document.getElementById('ap-imgs').value.split('\n').map(l => l.trim()).filter(Boolean);
+    const catVal    = document.getElementById('ap-category').value;
+    const isPerf    = isPerfumeCategory(catVal);
+    let sizes = [];
+    if (isPerf) {
+        sizes = Array.from(document.querySelectorAll('.ml-admin-chk:checked')).map(cb => cb.value);
+        if (!sizes.length) sizes = PERFUME_ML_SIZES;
+    } else {
+        sizes = Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb => cb.value);
     }
-    const supplierPrice=parseInt(document.getElementById('ap-supplier-price')?.value)||0;
-    const marginPct=parseFloat(document.getElementById('ap-margin-pct')?.value)||0;
-    const marginAmt=Math.round(supplierPrice*marginPct/100)||parseInt(document.getElementById('ap-margin')?.value)||0;
-    const sellingPrice=supplierPrice+marginAmt;
-    if(sellingPrice<=0)return showToast('Enter a valid Supplier/Cost Price');
-    const newP={name:document.getElementById('ap-name').value.trim(),price:sellingPrice,supplier_price:supplierPrice,margin_amt:marginAmt,oldprice:parseInt(document.getElementById('ap-oldprice').value)||Math.round(sellingPrice*1.4),checkout_discount:parseInt(document.getElementById('ap-discount').value)||0,brand:document.getElementById('ap-brand').value.trim(),imgs:imgLinks,category:catVal,sub:document.getElementById('ap-sub').value,desc:document.getElementById('ap-desc').value.trim(),stock_qty:parseInt(document.getElementById('ap-stock').value)||50,available_sizes:sizes,istrending:true};
-    try{
-        const{data,error}=await dbClient.from('products').insert([newP]).select().single();if(error)throw error;
-        if(data){products.push(data);e.target.reset();updateDropdownSubs('ap-category','ap-sub');renderAdminProducts();const sEl=document.getElementById('scrape-status');if(sEl)sEl.classList.add('hidden');showToast(`✅ Added! Sell: ₹${sellingPrice} | Cost: ₹${supplierPrice} | Profit: ₹${marginAmt}`);}
-    }catch(err){showToast('Error: '+err.message);}
+    const supplierPrice = parseInt(document.getElementById('ap-supplier-price')?.value) || 0;
+    const marginPct     = parseFloat(document.getElementById('ap-margin-pct')?.value)   || 0;
+    const marginAmt     = Math.round(supplierPrice * marginPct / 100) || parseInt(document.getElementById('ap-margin')?.value) || 0;
+    const sellingPrice  = supplierPrice + marginAmt;
+    if (sellingPrice <= 0) return showToast('Enter a valid Supplier/Cost Price');
+    const newP = {
+        name:              document.getElementById('ap-name').value.trim(),
+        price:             sellingPrice,
+        supplier_price:    supplierPrice,
+        margin_amt:        marginAmt,
+        oldprice:          parseInt(document.getElementById('ap-oldprice').value) || Math.round(sellingPrice * 1.4),
+        checkout_discount: parseInt(document.getElementById('ap-discount').value) || 0,
+        brand:             document.getElementById('ap-brand').value.trim(),
+        imgs:              imgLinks,
+        category:          catVal,
+        sub:               document.getElementById('ap-sub').value,
+        desc:              document.getElementById('ap-desc').value.trim(),
+        stock_qty:         parseInt(document.getElementById('ap-stock').value) || 50,
+        available_sizes:   sizes,
+        istrending:        true
+    };
+    try {
+        const { data, error } = await dbClient.from('products').insert([newP]).select().single();
+        if (error) throw error;
+        if (data) {
+            products.push(data);
+            e.target.reset();
+            updateDropdownSubs('ap-category', 'ap-sub');
+            renderAdminProducts();
+            const sEl = document.getElementById('scrape-status');
+            if (sEl) sEl.classList.add('hidden');
+            showToast(`✅ Added! Sell: ₹${sellingPrice} | Cost: ₹${supplierPrice} | Profit: ₹${marginAmt}`);
+            /* Update sidebar count */
+            const countBadge = document.getElementById('sidebar-product-count');
+            if (countBadge) countBadge.textContent = products.length;
+        }
+    } catch (err) { showToast('Error: ' + err.message); }
 }
 
-function renderAdminProducts(){
-    const container=document.getElementById('admin-product-list');if(!container)return;
-    if(products.length===0){container.innerHTML=`<div class="text-center py-20"><i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No products yet</p></div>`;return;}
-    container.innerHTML=`<div class="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 border-b sticky top-0 z-10"><div class="flex items-center justify-between"><span class="text-sm font-bold text-purple-700"><i class="fas fa-boxes mr-2"></i>Total Products: ${products.length}</span><span class="text-xs text-gray-500">Latest first</span></div></div>`+
-    [...products].reverse().map(p=>{const isPerf=isPerfumeCategory(p.category);return`<div class="flex justify-between items-center p-3 border-b text-sm hover:bg-gray-50 transition-colors"><div class="flex items-center gap-3 flex-1 min-w-0"><img src="${p.imgs?.[0]||p.img||'https://placehold.co/48x48/eee/666?text=?'}" class="w-12 h-12 rounded-lg object-cover border shadow-sm" loading="lazy"><div class="min-w-0 flex-1"><span class="truncate block font-semibold text-gray-800">${p.name}</span><span class="text-xs text-gray-500">${p.category} • ${p.sub||'N/A'}${isPerf?' 🌸':''}</span>${p.brand?`<span class="text-xs text-blue-600 block font-medium">${p.brand}</span>`:''}</div></div><div class="flex items-center gap-3"><div class="text-right"><div class="font-bold text-gray-900">₹${p.price}</div>${p.supplier_price?`<div class="text-[10px] text-gray-400">Cost: ₹${p.supplier_price}</div>`:''}${p.margin_amt?`<div class="text-[10px] text-green-600 font-bold">+₹${p.margin_amt}</div>`:''}</div><button onclick="openEditProduct(${p.id})" class="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50"><i class="fas fa-pen"></i></button><button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50"><i class="fas fa-trash"></i></button></div></div>`;}).join('');
-}
-
-async function openEditProduct(productId){
-    const p=products.find(x=>x.id===productId);if(!p)return showToast('Product not found');
-    const isPerf=isPerfumeCategory(p.category);
-    document.getElementById('edit-product-id').value=p.id;document.getElementById('edit-product-title').textContent=`(ID: ${p.id})`;
-    document.getElementById('ep-name').value=p.name||'';document.getElementById('ep-price').value=p.price||'';
-    const epMarginEl=document.getElementById('ep-margin-amt');if(epMarginEl)epMarginEl.value=p.margin_amt||0;
-    document.getElementById('ep-category').value=p.category||'Men';
-    setTimeout(()=>{updateDropdownSubs('ep-category','ep-sub');document.getElementById('ep-sub').value=p.sub||'';},50);
-    document.getElementById('edit-ap-brand').value=p.brand||'';document.getElementById('ep-desc').value=p.desc||'';
-    document.getElementById('ep-oldprice').value=p.oldprice||'';document.getElementById('ep-discount').value=p.checkout_discount||0;
-    document.getElementById('ep-stock').value=p.stock_qty||50;document.getElementById('ep-imgs').value=Array.isArray(p.imgs)?p.imgs.join('\n'):(p.imgs||'');
-    const grid=document.getElementById('ep-sizes-grid');grid.innerHTML='';
-    if(isPerf){
-        const label=document.createElement('p');label.className='text-xs text-purple-600 font-bold mb-2 col-span-full';label.textContent='🌸 Select ML Volumes:';grid.appendChild(label);
-        PERFUME_ML_SIZES.forEach(size=>{const label=document.createElement('label');label.className='flex items-center gap-1 cursor-pointer text-xs';label.innerHTML=`<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;grid.appendChild(label);});
-    }else{
-        ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40','5','6','7','8','9','10','11','12','Free Size'].forEach(size=>{const label=document.createElement('label');label.className='flex items-center gap-1 cursor-pointer text-xs';label.innerHTML=`<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;grid.appendChild(label);});
+/* FIX: renderAdminProducts — no upload section here, only product list */
+function renderAdminProducts() {
+    const container = document.getElementById('admin-product-list');
+    if (!container) return;
+    const countBadge = document.getElementById('sidebar-product-count');
+    if (countBadge) countBadge.textContent = products.length;
+    if (products.length === 0) {
+        container.innerHTML = `<div class="text-center py-20"><i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No products yet</p><button onclick="switchAdminTab('inventory')" class="mt-4 bg-purple-600 text-white px-6 py-2 rounded-lg font-bold text-sm">Add First Product</button></div>`;
+        return;
     }
-    const modal=document.getElementById('edit-product-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');
+    container.innerHTML =
+        `<div class="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 border-b sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-purple-700"><i class="fas fa-boxes mr-2"></i>Total: ${products.length} products</span>
+                <span class="text-xs text-gray-500">Latest first</span>
+            </div>
+        </div>` +
+        [...products].reverse().map(p => {
+            const isPerf = isPerfumeCategory(p.category);
+            return `<div class="flex justify-between items-center p-3 border-b text-sm hover:bg-gray-50 transition-colors">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <img src="${p.imgs?.[0]||p.img||'https://placehold.co/48x48/eee/666?text=?'}" class="w-12 h-12 rounded-lg object-cover border shadow-sm flex-shrink-0" loading="lazy">
+                    <div class="min-w-0 flex-1">
+                        <span class="truncate block font-semibold text-gray-800">${p.name}</span>
+                        <span class="text-xs text-gray-500">${p.category} • ${p.sub||'N/A'}${isPerf?' 🌸':''}</span>
+                        ${p.brand?`<span class="text-xs text-blue-600 block font-medium">${p.brand}</span>`:''}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="text-right">
+                        <div class="font-bold text-gray-900">₹${p.price}</div>
+                        ${p.supplier_price?`<div class="text-[10px] text-gray-400">Cost: ₹${p.supplier_price}</div>`:''}
+                        ${p.margin_amt?`<div class="text-[10px] text-green-600 font-bold">+₹${p.margin_amt}</div>`:''}
+                    </div>
+                    <button onclick="openEditProduct(${p.id})" class="text-blue-600 hover:text-blue-700 p-2 rounded-lg hover:bg-blue-50"><i class="fas fa-pen text-sm"></i></button>
+                    <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50"><i class="fas fa-trash text-sm"></i></button>
+                </div>
+            </div>`;
+        }).join('');
 }
 
-function closeEditModal(){document.getElementById('edit-product-modal')?.classList.add('hidden');document.getElementById('edit-product-form')?.reset();}
-
-async function updateProduct(event){
-    event.preventDefault();const productId=document.getElementById('edit-product-id').value;
-    const updates={name:document.getElementById('ep-name').value,price:parseInt(document.getElementById('ep-price').value),margin_amt:parseInt(document.getElementById('ep-margin-amt')?.value)||0,oldprice:parseInt(document.getElementById('ep-oldprice').value)||0,checkout_discount:parseInt(document.getElementById('ep-discount').value)||0,brand:document.getElementById('edit-ap-brand').value,category:document.getElementById('ep-category').value,sub:document.getElementById('ep-sub').value,desc:document.getElementById('ep-desc').value,stock_qty:parseInt(document.getElementById('ep-stock').value)||0,available_sizes:Array.from(document.querySelectorAll('.ep-size-chk:checked')).map(cb=>cb.value),imgs:document.getElementById('ep-imgs').value.split('\n').map(l=>l.trim()).filter(Boolean)};
-    try{const{data,error}=await dbClient.from('products').update(updates).eq('id',productId).select().single();if(error)throw error;const idx=products.findIndex(p=>p.id==productId);if(idx>-1)products[idx]=data;closeEditModal();renderAdminProducts();showToast('✅ Product Updated!');}catch(err){showToast('❌ Update failed: '+err.message);}
+async function openEditProduct(productId) {
+    const p = products.find(x => x.id === productId);
+    if (!p) return showToast('Product not found');
+    const isPerf = isPerfumeCategory(p.category);
+    document.getElementById('edit-product-id').value = p.id;
+    document.getElementById('edit-product-title').textContent = `(ID: ${p.id})`;
+    document.getElementById('ep-name').value  = p.name  || '';
+    document.getElementById('ep-price').value = p.price || '';
+    const epMarginEl = document.getElementById('ep-margin-amt');
+    if (epMarginEl) epMarginEl.value = p.margin_amt || 0;
+    document.getElementById('ep-category').value = p.category || 'Men';
+    setTimeout(() => { updateDropdownSubs('ep-category','ep-sub'); document.getElementById('ep-sub').value = p.sub || ''; }, 50);
+    document.getElementById('edit-ap-brand').value  = p.brand || '';
+    document.getElementById('ep-desc').value    = p.desc  || '';
+    document.getElementById('ep-oldprice').value = p.oldprice || '';
+    document.getElementById('ep-discount').value = p.checkout_discount || 0;
+    document.getElementById('ep-stock').value    = p.stock_qty || 50;
+    document.getElementById('ep-imgs').value     = Array.isArray(p.imgs) ? p.imgs.join('\n') : (p.imgs || '');
+    const grid = document.getElementById('ep-sizes-grid');
+    grid.innerHTML = '';
+    if (isPerf) {
+        const label = document.createElement('p');
+        label.className = 'text-xs text-purple-600 font-bold mb-2 col-span-full';
+        label.textContent = '🌸 Select ML Volumes:';
+        grid.appendChild(label);
+        PERFUME_ML_SIZES.forEach(size => {
+            const lbl = document.createElement('label');
+            lbl.className = 'flex items-center gap-1 cursor-pointer text-xs';
+            lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;
+            grid.appendChild(lbl);
+        });
+    } else {
+        ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40','5','6','7','8','9','10','11','12','Free Size'].forEach(size => {
+            const lbl = document.createElement('label');
+            lbl.className = 'flex items-center gap-1 cursor-pointer text-xs';
+            lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;
+            grid.appendChild(lbl);
+        });
+    }
+    const modal = document.getElementById('edit-product-modal');
+    modal?.classList.remove('hidden'); modal?.classList.add('flex');
 }
 
-async function deleteProduct(id){if(!confirm('Delete this product?'))return;try{await dbClient.from('products').delete().eq('id',id);products=products.filter(p=>p.id!==id);renderAdminProducts();showToast('Deleted from DB. 🗑️');}catch(err){showToast('Delete failed: '+err.message);}}
+function closeEditModal() { document.getElementById('edit-product-modal')?.classList.add('hidden'); document.getElementById('edit-product-form')?.reset(); }
+
+async function updateProduct(event) {
+    event.preventDefault();
+    const productId = document.getElementById('edit-product-id').value;
+    const updates = {
+        name:              document.getElementById('ep-name').value,
+        price:             parseInt(document.getElementById('ep-price').value),
+        margin_amt:        parseInt(document.getElementById('ep-margin-amt')?.value) || 0,
+        oldprice:          parseInt(document.getElementById('ep-oldprice').value) || 0,
+        checkout_discount: parseInt(document.getElementById('ep-discount').value)  || 0,
+        brand:             document.getElementById('edit-ap-brand').value,
+        category:          document.getElementById('ep-category').value,
+        sub:               document.getElementById('ep-sub').value,
+        desc:              document.getElementById('ep-desc').value,
+        stock_qty:         parseInt(document.getElementById('ep-stock').value) || 0,
+        available_sizes:   Array.from(document.querySelectorAll('.ep-size-chk:checked')).map(cb => cb.value),
+        imgs:              document.getElementById('ep-imgs').value.split('\n').map(l => l.trim()).filter(Boolean)
+    };
+    try {
+        const { data, error } = await dbClient.from('products').update(updates).eq('id', productId).select().single();
+        if (error) throw error;
+        const idx = products.findIndex(p => p.id == productId);
+        if (idx > -1) products[idx] = data;
+        closeEditModal(); renderAdminProducts(); showToast('✅ Product Updated!');
+    } catch (err) { showToast('❌ Update failed: ' + err.message); }
+}
+
+async function deleteProduct(id) {
+    if (!confirm('Delete this product?')) return;
+    try {
+        await dbClient.from('products').delete().eq('id', id);
+        products = products.filter(p => p.id !== id);
+        renderAdminProducts();
+        const countBadge = document.getElementById('sidebar-product-count');
+        if (countBadge) countBadge.textContent = products.length;
+        showToast('Deleted from DB. 🗑️');
+    } catch (err) { showToast('Delete failed: ' + err.message); }
+}
 
 /* ============================================================
-   27. SCRAPINGBEE
+   29. SCRAPINGBEE
    ============================================================ */
-async function uploadScrapedImageToImgBB(imageUrl){if(!imageUrl)return null;try{const fd1=new FormData();fd1.append('image',imageUrl);const res1=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd1});const json1=await res1.json();if(json1.success&&json1.data?.url)return json1.data.url;const imgRes=await fetch(imageUrl);const imgBlob=await imgRes.blob();const fd2=new FormData();fd2.append('image',imgBlob,'product.jpg');const res2=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd2});const json2=await res2.json();return json2.success?(json2.data?.url||null):null;}catch(e){return null;}}
-const SUPPLIER_SELECTORS={meesho:{title:'h1, [class*="pdp-title"], [class*="product-name"]',price:'[class*="price"] span, h4',image:'[class*="pdp-image"] img, img[class*="product"]'},amazon:{title:'#productTitle',price:'.a-price-whole',image:'#imgBlkFront, #landingImage'},flipkart:{title:'span.B_NuCI, h1.yhB1nd',price:'div._30jeq3._16Jk6d',image:'img._396cs4'},myntra:{title:'h1.pdp-name',price:'.pdp-price strong',image:'.image-grid-col2 img'},default:{title:'h1, [class*="title"]',price:'[class*="price"] span',image:'[class*="product"] img, main img'}};
-function detectSupplier(url){if(!url)return'default';if(url.includes('meesho'))return'meesho';if(url.includes('amazon'))return'amazon';if(url.includes('flipkart'))return'flipkart';if(url.includes('myntra'))return'myntra';return'default';}
-async function scrapeProductFromUrl(){
-    const urlInput=document.getElementById('scrape-url'),statusEl=document.getElementById('scrape-status'),url=urlInput?.value.trim();if(!url)return showToast('Enter a Supplier URL first');
-    if(statusEl){statusEl.classList.remove('hidden');statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';statusEl.innerHTML='<i class="fas fa-spinner fa-spin"></i> Scraping product data...';}showToast('🔍 Scraping product...');
-    const sel=SUPPLIER_SELECTORS[detectSupplier(url)];
-    try{
-        const apiUrl=`https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_KEY}&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true&country_code=in`;
-        const res=await fetch(apiUrl);if(!res.ok)throw new Error(`ScrapingBee: ${res.status} ${res.statusText}`);
-        const html=await res.text(),doc=new DOMParser().parseFromString(html,'text/html');
-        const titleEl=doc.querySelector(sel.title),title=titleEl?titleEl.textContent.trim().replace(/\s+/g,' ').substring(0,200):'';
-        const priceEl=doc.querySelector(sel.price),priceNum=parseInt(((priceEl?.textContent||'').match(/[\d,]+/)||['0'])[0].replace(/,/g,''))||0;
-        const imgEl=doc.querySelector(sel.image);let imgUrl=imgEl?(imgEl.getAttribute('src')||imgEl.getAttribute('data-src')||''):'';if(imgUrl.startsWith('//'))imgUrl='https:'+imgUrl;
-        if(!title&&!priceNum){if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700';statusEl.innerHTML='<i class="fas fa-times-circle"></i> Could not extract data — fill fields manually';}showToast('❌ Scrape failed — fill manually');return;}
-        const nE=document.getElementById('ap-name'),sE=document.getElementById('ap-supplier-price'),oE=document.getElementById('ap-oldprice');if(nE&&title)nE.value=title;if(sE&&priceNum)sE.value=priceNum;if(oE&&priceNum)oE.value=Math.round(priceNum*1.5);updateSellingPreview();
-        if(imgUrl){if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700';statusEl.innerHTML='<i class="fas fa-cloud-upload-alt fa-pulse"></i> Uploading image to ImgBB...';}const hostedUrl=await uploadScrapedImageToImgBB(imgUrl);const iE=document.getElementById('ap-imgs');if(hostedUrl){if(iE)iE.value=hostedUrl;if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700';statusEl.innerHTML=`<i class="fas fa-check-circle"></i> Scraped & image hosted! "${title.substring(0,35)}..." — Cost: ₹${priceNum}`;}}else{if(iE)iE.value=imgUrl;if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-amber-50 border-amber-200 text-amber-700';statusEl.innerHTML=`<i class="fas fa-exclamation-triangle"></i> Scraped! (ImgBB failed — using direct URL) — Cost: ₹${priceNum}`;}}}else{if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700';statusEl.innerHTML=`<i class="fas fa-check-circle"></i> Scraped! "${title.substring(0,40)}..." — Cost: ₹${priceNum} (no image found)`;}}
-    }catch(err){if(statusEl){statusEl.className='flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700';statusEl.innerHTML=`<i class="fas fa-times-circle"></i> ${err.message}`;}showToast('❌ Scrape failed: '+err.message);}
+const SUPPLIER_SELECTORS = {
+    meesho:   { title: 'h1, [class*="pdp-title"], [class*="product-name"]', price: '[class*="price"] span, h4', image: '[class*="pdp-image"] img, img[class*="product"]' },
+    amazon:   { title: '#productTitle', price: '.a-price-whole', image: '#imgBlkFront, #landingImage' },
+    flipkart: { title: 'span.B_NuCI, h1.yhB1nd', price: 'div._30jeq3._16Jk6d', image: 'img._396cs4' },
+    myntra:   { title: 'h1.pdp-name', price: '.pdp-price strong', image: '.image-grid-col2 img' },
+    default:  { title: 'h1, [class*="title"]', price: '[class*="price"] span', image: '[class*="product"] img, main img' }
+};
+
+function detectSupplier(url) {
+    if (!url) return 'default';
+    if (url.includes('meesho'))   return 'meesho';
+    if (url.includes('amazon'))   return 'amazon';
+    if (url.includes('flipkart')) return 'flipkart';
+    if (url.includes('myntra'))   return 'myntra';
+    return 'default';
+}
+
+async function uploadScrapedImageToImgBB(imageUrl) {
+    if (!imageUrl) return null;
+    try {
+        const fd1 = new FormData(); fd1.append('image', imageUrl);
+        const res1 = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd1 });
+        const json1 = await res1.json();
+        if (json1.success && json1.data?.url) return json1.data.url;
+        const imgRes  = await fetch(imageUrl);
+        const imgBlob = await imgRes.blob();
+        const fd2 = new FormData(); fd2.append('image', imgBlob, 'product.jpg');
+        const res2  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd2 });
+        const json2 = await res2.json();
+        return json2.success ? (json2.data?.url || null) : null;
+    } catch (e) { return null; }
+}
+
+async function scrapeProductFromUrl() {
+    const urlInput = document.getElementById('scrape-url');
+    const statusEl = document.getElementById('scrape-status');
+    const url = urlInput?.value.trim();
+    if (!url) return showToast('Enter a Supplier URL first');
+    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700'; statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping product data...'; }
+    showToast('🔍 Scraping product...');
+    const sel = SUPPLIER_SELECTORS[detectSupplier(url)];
+    try {
+        const apiUrl = `https://app.scrapingbee.com/api/v1/?api_key=${SCRAPINGBEE_KEY}&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true&country_code=in`;
+        const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error(`ScrapingBee: ${res.status} ${res.statusText}`);
+        const html = await res.text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const titleEl  = doc.querySelector(sel.title);
+        const title    = titleEl ? titleEl.textContent.trim().replace(/\s+/g,' ').substring(0,200) : '';
+        const priceEl  = doc.querySelector(sel.price);
+        const priceNum = parseInt(((priceEl?.textContent||'').match(/[\d,]+/)||['0'])[0].replace(/,/g,'')) || 0;
+        const imgEl    = doc.querySelector(sel.image);
+        let imgUrl     = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+        if (imgUrl.startsWith('//')) imgUrl = 'https:' + imgUrl;
+        if (!title && !priceNum) {
+            if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700'; statusEl.innerHTML = '<i class="fas fa-times-circle"></i> Could not extract data — fill fields manually'; }
+            showToast('❌ Scrape failed — fill manually'); return;
+        }
+        const nE=document.getElementById('ap-name'), sE=document.getElementById('ap-supplier-price'), oE=document.getElementById('ap-oldprice');
+        if (nE && title) nE.value = title;
+        if (sE && priceNum) sE.value = priceNum;
+        if (oE && priceNum) oE.value = Math.round(priceNum * 1.5);
+        updateSellingPreview();
+        if (imgUrl) {
+            if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700'; statusEl.innerHTML = '<i class="fas fa-cloud-upload-alt fa-pulse"></i> Uploading image to ImgBB...'; }
+            const hostedUrl = await uploadScrapedImageToImgBB(imgUrl);
+            const iE = document.getElementById('ap-imgs');
+            if (hostedUrl) {
+                if (iE) iE.value = hostedUrl;
+                if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700'; statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Scraped & image hosted! "${title.substring(0,35)}..." — Cost: ₹${priceNum}`; }
+            } else {
+                if (iE) iE.value = imgUrl;
+                if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-amber-50 border-amber-200 text-amber-700'; statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Scraped! (ImgBB failed — using direct URL) — Cost: ₹${priceNum}`; }
+            }
+        } else {
+            if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-green-50 border-green-200 text-green-700'; statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Scraped! "${title.substring(0,40)}..." — Cost: ₹${priceNum} (no image found)`; }
+        }
+    } catch (err) {
+        if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-red-50 border-red-200 text-red-700'; statusEl.innerHTML = `<i class="fas fa-times-circle"></i> ${err.message}`; }
+        showToast('❌ Scrape failed: ' + err.message);
+    }
 }
 
 /* ============================================================
-   28. ADMIN — ORDERS
+   30. ADMIN — ORDERS
    ============================================================ */
-async function loadAllOrdersAdmin(){
-    const container=document.getElementById('admin-full-order-list');if(!container)return;
-    container.innerHTML=`<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>`;
-    try{
-        const{data,error}=await dbClient.from('orders').select('*').order('date',{ascending:false});if(error)throw error;
-        window.allAdminOrders=data||[];renderFilteredOrders(document.getElementById('admin-order-filter')?.value||'all');
-    }catch(err){container.innerHTML=`<div class="text-center py-6 text-red-500">Error: ${err.message}</div>`;}
+async function loadAllOrdersAdmin() {
+    const container = document.getElementById('admin-full-order-list');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
+    try {
+        const { data, error } = await dbClient.from('orders').select('*').order('date', { ascending: false });
+        if (error) throw error;
+        window.allAdminOrders = data || [];
+        renderFilteredOrders(document.getElementById('admin-order-filter')?.value || 'all');
+    } catch (err) {
+        container.innerHTML = `<div class="text-center py-6 text-red-500">Error: ${err.message}</div>`;
+    }
 }
 
-function filterAdminOrders(status){renderFilteredOrders(status);}
+function filterAdminOrders(status) { renderFilteredOrders(status); }
 
-function renderFilteredOrders(filterStatus){
-    const container=document.getElementById('admin-full-order-list');if(!container)return;
-    const allOrders=window.allAdminOrders||[],filteredData=filterStatus==='all'?allOrders:allOrders.filter(o=>o.status===filterStatus);
-    if(!allOrders.length){container.innerHTML=`<div class="text-center py-20"><i class="fas fa-receipt text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No orders yet</p></div>`;document.getElementById('admin-order-count').innerText='0';document.getElementById('admin-total-sales').innerText='₹0';return;}
-    const activeOrders=allOrders.filter(o=>o.status!=='Cancelled');
-    document.getElementById('admin-order-count').innerText=activeOrders.length;
-    document.getElementById('admin-total-sales').innerText=`₹${activeOrders.reduce((s,o)=>s+(o.total||0),0).toLocaleString()}`;
-    if(!filteredData.length){container.innerHTML=`<div class="text-center py-16"><i class="fas fa-filter text-5xl text-gray-300 mb-3"></i><p class="text-gray-500 font-semibold">No ${filterStatus} orders found</p></div>`;return;}
-    const headerHtml=`<div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-4 sticky top-0 z-10"><div class="flex items-center justify-between"><div class="flex items-center gap-3"><i class="fas fa-clock text-purple-600 text-xl"></i><div><span class="text-sm font-black text-purple-700">${filterStatus==='all'?`Total: ${allOrders.length}`:`${filterStatus}: ${filteredData.length}`}</span><p class="text-xs text-gray-500 mt-0.5">Newest first</p></div></div><span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 font-bold">Active: ${activeOrders.length}</span></div></div>`;
-    container.innerHTML=headerHtml+filteredData.map(o=>{
-        const oidSafe=String(o.id||'').replace(/'/g,"\\'"),badge=STATUS_BADGE[o.status]||'bg-gray-100 text-gray-600';
-        const itemsHtml=o.items?.length?o.items.map(item=>`<div class="admin-order-item"><img src="${item.img||'https://placehold.co/48x60/e11d48/fff?text=?'}" alt="${item.name}" onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy"><div class="admin-order-item-info"><div class="admin-order-item-name" title="${item.name}">${item.name}</div><div class="admin-order-item-meta">${isPerfumeCategory(item.category||'')?'Vol':'Size'}: <strong>${item.size||'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty||1}</strong></div><div class="admin-order-item-price">₹${((item.price||0)*(item.qty||1)).toLocaleString()}</div></div></div>`).join(''):'<div class="text-xs text-gray-400 italic py-2 px-1">No item details</div>';
+/* FIX: Shows cancelled count separately in header */
+function renderFilteredOrders(filterStatus) {
+    const container   = document.getElementById('admin-full-order-list');
+    if (!container) return;
+    const allOrders    = window.allAdminOrders || [];
+    const filteredData = filterStatus === 'all' ? allOrders : allOrders.filter(o => o.status === filterStatus);
+
+    if (!allOrders.length) {
+        container.innerHTML = `<div class="text-center py-20"><i class="fas fa-receipt text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No orders yet</p></div>`;
+        document.getElementById('admin-order-count').innerText = '0';
+        document.getElementById('admin-total-sales').innerText = '₹0';
+        return;
+    }
+
+    const activeOrders    = allOrders.filter(o => o.status !== 'Cancelled');
+    const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled');
+    document.getElementById('admin-order-count').innerText = activeOrders.length;
+    document.getElementById('admin-total-sales').innerText = `₹${activeOrders.reduce((s,o) => s+(o.total||0), 0).toLocaleString('en-IN')}`;
+
+    if (!filteredData.length) {
+        container.innerHTML = `<div class="text-center py-16"><i class="fas fa-filter text-5xl text-gray-300 mb-3"></i><p class="text-gray-500 font-semibold">No ${filterStatus} orders found</p></div>`;
+        return;
+    }
+
+    const headerHtml = `<div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-4 sticky top-0 z-10">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-clock text-purple-600 text-xl"></i>
+                <div>
+                    <span class="text-sm font-black text-purple-700">${filterStatus==='all'?`Total: ${allOrders.length}`:`${filterStatus}: ${filteredData.length}`}</span>
+                    <p class="text-xs text-gray-500 mt-0.5">Newest first</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 font-bold">Active: ${activeOrders.length}</span>
+                <span class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-full border border-red-200 font-bold">Cancelled: ${cancelledOrders.length}</span>
+            </div>
+        </div>
+    </div>`;
+
+    container.innerHTML = headerHtml + filteredData.map(o => {
+        const oidSafe    = String(o.id || '').replace(/'/g, "\\'");
+        const badge      = STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600';
+        const itemsHtml  = o.items?.length
+            ? o.items.map(item => `<div class="admin-order-item">
+                <img src="${item.img||'https://placehold.co/48x60/e11d48/fff?text=?'}" alt="${item.name}" onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy">
+                <div class="admin-order-item-info">
+                    <div class="admin-order-item-name" title="${item.name}">${item.name}</div>
+                    <div class="admin-order-item-meta">${isPerfumeCategory(item.category||'')?'Vol':'Size'}: <strong>${item.size||'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty||1}</strong></div>
+                    <div class="admin-order-item-price">₹${((item.price||0)*(item.qty||1)).toLocaleString('en-IN')}</div>
+                </div>
+              </div>`).join('')
+            : '<div class="text-xs text-gray-400 italic py-2 px-1">No item details</div>';
+
         return `<div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-3 hover:shadow-md transition-all">
-            <div class="flex justify-between items-start pb-3 mb-3 border-b"><div><span class="font-bold text-purple-700 font-mono text-sm">#${o.id}</span><span class="${badge} text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">${o.status||'Processing'}</span><div class="text-xs text-gray-500 mt-1">${o.date||''} • ${o.paymentmode||''}</div></div><div class="font-black text-lg text-rose-600">₹${(o.total||0).toLocaleString()}</div></div>
-            <div class="grid grid-cols-2 gap-2 text-xs mb-3 bg-gray-50 rounded-lg p-3 border"><div><span class="font-bold text-gray-400 uppercase text-[10px]">Customer</span><div class="font-semibold text-gray-800 mt-0.5">${o.customer_name||'N/A'}</div></div><div><span class="font-bold text-gray-400 uppercase text-[10px]">Mobile</span><div class="font-semibold text-gray-800 mt-0.5">${o.mobile||'N/A'}</div></div><div class="col-span-2"><span class="font-bold text-gray-400 uppercase text-[10px]">TX ID</span><div class="font-mono text-gray-700 mt-0.5 truncate">${o.transaction_id||'N/A'}</div></div>${o.referral_code?`<div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200"><span class="font-bold text-green-700 uppercase text-[10px]">Referral Code</span><div class="font-mono font-semibold text-green-800 mt-0.5">${o.referral_code}</div></div>`:''}${o.refund_upi?`<div class="col-span-2 bg-rose-50 rounded p-1.5 border border-rose-200"><span class="font-bold text-rose-700 uppercase text-[10px]">Refund UPI</span><div class="font-mono font-semibold text-rose-800 mt-0.5 select-all">${o.refund_upi}</div></div>`:''}</div>
-            <div class="mb-3"><div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Items (${(o.items||[]).length})</div><div class="admin-order-items">${itemsHtml}</div></div>
-            <div class="text-[10px] text-gray-500 bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3"><i class="fas fa-map-marker-alt text-blue-400 mr-1"></i>${[o.address,o.city,o.state,o.pincode?'- '+o.pincode:''].filter(Boolean).join(', ')||'N/A'}</div>
-            <div class="flex items-center gap-2"><span class="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Update Status:</span><select onchange="updateOrderStatus('${oidSafe}',this.value)" class="flex-1 border border-gray-300 rounded-lg text-xs p-2 font-bold bg-white focus:ring-2 focus:ring-purple-300 outline-none cursor-pointer">${ALL_ORDER_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="flex justify-between items-start pb-3 mb-3 border-b">
+                <div>
+                    <span class="font-bold text-purple-700 font-mono text-sm">#${o.id}</span>
+                    <span class="${badge} text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">${o.status||'Processing'}</span>
+                    <div class="text-xs text-gray-500 mt-1">${o.date||''} • ${o.paymentmode||''}</div>
+                </div>
+                <div class="font-black text-lg text-rose-600">₹${(o.total||0).toLocaleString('en-IN')}</div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs mb-3 bg-gray-50 rounded-lg p-3 border">
+                <div><span class="font-bold text-gray-400 uppercase text-[10px]">Customer</span><div class="font-semibold text-gray-800 mt-0.5">${o.customer_name||'N/A'}</div></div>
+                <div><span class="font-bold text-gray-400 uppercase text-[10px]">Mobile</span><div class="font-semibold text-gray-800 mt-0.5">${o.mobile||'N/A'}</div></div>
+                <div class="col-span-2"><span class="font-bold text-gray-400 uppercase text-[10px]">TX ID</span><div class="font-mono text-gray-700 mt-0.5 truncate">${o.transaction_id||'N/A'}</div></div>
+                ${o.margin_total?`<div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200"><span class="font-bold text-green-700 uppercase text-[10px]">Profit (Margin)</span><div class="font-bold text-green-700 mt-0.5">₹${o.margin_total.toLocaleString('en-IN')}</div></div>`:''}
+                ${o.referral_code?`<div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200"><span class="font-bold text-green-700 uppercase text-[10px]">Referral Code</span><div class="font-mono font-semibold text-green-800 mt-0.5">${o.referral_code}</div></div>`:''}
+                ${o.refund_upi?`<div class="col-span-2 bg-rose-50 rounded p-1.5 border border-rose-200"><span class="font-bold text-rose-700 uppercase text-[10px]">Refund UPI</span><div class="font-mono font-semibold text-rose-800 mt-0.5 select-all">${o.refund_upi}</div></div>`:''}
+            </div>
+            <div class="mb-3">
+                <div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Items (${(o.items||[]).length})</div>
+                <div class="admin-order-items">${itemsHtml}</div>
+            </div>
+            <div class="text-[10px] text-gray-500 bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3">
+                <i class="fas fa-map-marker-alt text-blue-400 mr-1"></i>${[o.address,o.city,o.state,o.pincode?'- '+o.pincode:''].filter(Boolean).join(', ')||'N/A'}
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Status:</span>
+                <select onchange="updateOrderStatus('${oidSafe}',this.value)" class="flex-1 border border-gray-300 rounded-lg text-xs p-2 font-bold bg-white focus:ring-2 focus:ring-purple-300 outline-none cursor-pointer">
+                    ${ALL_ORDER_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+                </select>
+            </div>
         </div>`;
     }).join('');
 }
 
-async function updateOrderStatus(orderId,newStatus){
-    orderId=String(orderId||'').trim();if(!orderId){showToast('❌ Invalid order ID');return;}
+async function updateOrderStatus(orderId, newStatus) {
+    orderId = String(orderId || '').trim();
+    if (!orderId) { showToast('❌ Invalid order ID'); return; }
     showToast(`⏳ Updating order #${orderId}...`);
-    try{const restUrl=`${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`;const res=await fetch(restUrl,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},body:JSON.stringify({status:newStatus})});if(!res.ok){const errText=await res.text();throw new Error(`HTTP ${res.status}: ${errText}`);}showToast(`✅ Order #${orderId} → "${newStatus}"`);setTimeout(()=>loadAllOrdersAdmin(),600);}
-    catch(err){showToast(`❌ Update failed: ${err.message}`);setTimeout(()=>loadAllOrdersAdmin(),500);}
+    try {
+        const restUrl = `${SUPABASE_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}`;
+        const res = await fetch(restUrl, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=representation' }, body: JSON.stringify({ status: newStatus }) });
+        if (!res.ok) { const errText = await res.text(); throw new Error(`HTTP ${res.status}: ${errText}`); }
+        showToast(`✅ Order #${orderId} → "${newStatus}"`);
+        setTimeout(() => loadAllOrdersAdmin(), 600);
+    } catch (err) { showToast(`❌ Update failed: ${err.message}`); setTimeout(() => loadAllOrdersAdmin(), 500); }
 }
 
-async function loadAllUsersAdmin(){
-    const container=document.getElementById('admin-users-list');if(!container)return;
-    container.innerHTML='<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
-    try{
-        const{data,error}=await dbClient.from('users').select('*').order('mobile',{ascending:false});if(error)throw error;
-        container.innerHTML=data?.length?data.map(user=>`<div class="bg-white border rounded-lg p-4 hover:shadow-md transition"><div class="flex items-center gap-4"><img src="${user.profile_pic||`https://placehold.co/48x48/e11d48/ffffff?text=${(user.name||'U').charAt(0)}`}" class="w-12 h-12 rounded-full object-cover border-2 border-gray-200"><div class="flex-1"><div class="flex items-center gap-2"><div class="font-bold text-gray-900">${user.name||'Unknown'}</div>${isAuthorizedAdmin(user)?'<span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">Admin</span>':''}</div><div class="text-sm text-gray-500">+91 ${user.mobile}</div>${user.email?`<div class="text-xs text-gray-400">${user.email}</div>`:''}</div><div class="text-right"><div class="text-lg font-bold text-purple-600">₹${user.wallet||0}</div><div class="text-xs text-gray-500">Wallet</div></div></div></div>`).join(''):'<div class="text-center text-gray-400 py-10">No users found</div>';
-    }catch(err){container.innerHTML='<div class="text-center text-red-500 py-6">Error loading users</div>';}
+async function loadAllUsersAdmin() {
+    const container = document.getElementById('admin-users-list');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
+    try {
+        const { data, error } = await dbClient.from('users').select('*').order('mobile', { ascending: false });
+        if (error) throw error;
+        container.innerHTML = data?.length ? data.map(user => `
+            <div class="bg-white border rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex items-center gap-4">
+                    <img src="${user.profile_pic||`https://placehold.co/48x48/e11d48/ffffff?text=${(user.name||'U').charAt(0)}`}" class="w-12 h-12 rounded-full object-cover border-2 border-gray-200">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="font-bold text-gray-900">${user.name||'Unknown'}</div>
+                            ${isAuthorizedAdmin(user)?'<span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">Admin</span>':''}
+                        </div>
+                        <div class="text-sm text-gray-500">+91 ${user.mobile}</div>
+                        ${user.email?`<div class="text-xs text-gray-400">${user.email}</div>`:''}
+                        ${user.referral_code?`<div class="text-xs text-green-600 font-mono font-bold">Code: ${user.referral_code}</div>`:''}
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-lg font-bold text-purple-600">₹${user.wallet||0}</div>
+                        <div class="text-xs text-gray-500">Wallet</div>
+                    </div>
+                </div>
+            </div>`).join('') : '<div class="text-center text-gray-400 py-10">No users found</div>';
+    } catch (err) { container.innerHTML = '<div class="text-center text-red-500 py-6">Error loading users</div>'; }
 }
 
-async function loadAllWithdrawalsAdmin(){
-    try{const{data}=await dbClient.from('withdrawals').select('*').eq('status','Pending');const container=document.getElementById('admin-withdraw-list');document.getElementById('admin-pending-withdraw').innerText=data?.length||0;if(data?.length){container.innerHTML=data.map(w=>`<div class="bg-green-50 border border-green-200 p-3 rounded-lg text-xs"><p><b>User:</b> ${w.mobile} | <b>Amount: ₹${w.amount}</b></p><p class="bg-white p-2 mt-2 border rounded font-mono select-all">UPI: ${w.upi_id}</p><button onclick="approvePayout(${w.id})" class="mt-2 w-full bg-green-600 text-white py-1.5 rounded font-bold">Mark as Paid ✅</button></div>`).join('');}else{container.innerHTML='<p class="text-center text-gray-400 py-5">No pending payouts.</p>';}}catch(e){}
+async function loadAllWithdrawalsAdmin() {
+    try {
+        const { data } = await dbClient.from('withdrawals').select('*').eq('status', 'Pending');
+        const container = document.getElementById('admin-withdraw-list');
+        document.getElementById('admin-pending-withdraw').innerText = data?.length || 0;
+        if (data?.length) {
+            container.innerHTML = data.map(w => `
+                <div class="bg-green-50 border border-green-200 p-4 rounded-xl">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="font-bold text-gray-800">+91 ${w.mobile}</div>
+                            <div class="text-sm text-gray-600">${w.name}</div>
+                            <div class="text-xs text-gray-500">${w.date||''}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-black text-green-600">₹${w.amount}</div>
+                            <div class="text-xs text-amber-600 font-bold">${w.status}</div>
+                        </div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-3 font-mono text-sm select-all mb-3">UPI: ${w.upi_id}</div>
+                    <button onclick="approvePayout(${w.id})" class="w-full bg-green-600 text-white py-2.5 rounded-xl font-bold hover:bg-green-700 active:scale-95">✅ Mark as Paid</button>
+                </div>`).join('');
+        } else {
+            container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-check-circle text-4xl mb-3 text-green-300"></i><p class="font-semibold">No pending payouts</p></div>';
+        }
+    } catch (e) {}
 }
 
-async function approvePayout(id){if(!confirm('Confirm: Payment done via UPI?'))return;try{await dbClient.from('withdrawals').update({status:'Paid'}).eq('id',id);showToast('Payout Successful! 💰');loadAllWithdrawalsAdmin();}catch(err){showToast('Error: '+err.message);}}
-
-function adminLogout(){isAdminLoggedIn=false;localStorage.removeItem('outfitkart_admin_session');document.body.classList.remove('admin-active');showToast('Admin Logged Out');navigate('home');}
-function exitAdmin(){isAdminLoggedIn=false;localStorage.removeItem('outfitkart_admin_session');document.body.classList.remove('admin-active');navigate('home');}
+async function approvePayout(id) {
+    if (!confirm('Confirm: Payment done via UPI?')) return;
+    try {
+        await dbClient.from('withdrawals').update({ status: 'Paid' }).eq('id', id);
+        showToast('Payout Successful! 💰');
+        loadAllWithdrawalsAdmin();
+    } catch (err) { showToast('Error: ' + err.message); }
+}
 
 /* ============================================================
-   29. ORDER TRACKING
+   31. ORDER TRACKING
    ============================================================ */
-async function openTrackingModal(orderId){
-    orderId=String(orderId||'').trim();let order=ordersDb.find(o=>String(o.id)===orderId);
-    if(!order){try{const{data}=await dbClient.from('orders').select('*').eq('id',orderId).maybeSingle();if(data){ordersDb.push(data);order=data;}}catch(e){}}
-    if(!order)return showToast('Order not found');
-    currentTrackingOrder=order;renderTrackingContent(order);
-    const modal=document.getElementById('tracking-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');document.body.style.overflow='hidden';
+async function openTrackingModal(orderId) {
+    orderId = String(orderId || '').trim();
+    let order = ordersDb.find(o => String(o.id) === orderId);
+    if (!order) {
+        try {
+            const { data } = await dbClient.from('orders').select('*').eq('id', orderId).maybeSingle();
+            if (data) { ordersDb.push(data); order = data; }
+        } catch (e) {}
+    }
+    if (!order) return showToast('Order not found');
+    currentTrackingOrder = order;
+    renderTrackingContent(order);
+    const modal = document.getElementById('tracking-modal');
+    modal?.classList.remove('hidden'); modal?.classList.add('flex');
+    document.body.style.overflow = 'hidden';
 }
 
-function closeTrackingModal(event){
-    if(event&&event.target!==document.getElementById('tracking-modal'))return;
-    const modal=document.getElementById('tracking-modal');modal?.classList.add('hidden');modal?.classList.remove('flex');document.body.style.overflow='';currentTrackingOrder=null;
+function closeTrackingModal(event) {
+    if (event && event.target !== document.getElementById('tracking-modal')) return;
+    const modal = document.getElementById('tracking-modal');
+    modal?.classList.add('hidden'); modal?.classList.remove('flex');
+    document.body.style.overflow = '';
+    currentTrackingOrder = null;
 }
 
-function renderTrackingContent(order){
-    const titleEl=document.getElementById('tracking-modal-title');
-    if(titleEl){if(order.status==='Cancelled')titleEl.innerHTML='<i class="fas fa-times-circle text-rose-500"></i> Order Cancelled';else if(_isExchangeStatus(order.status))titleEl.innerHTML='<i class="fas fa-exchange-alt text-orange-500"></i> Exchange Tracking';else titleEl.innerHTML='<i class="fas fa-map-marker-alt text-green-500"></i> Track Order';}
-    document.getElementById('tracking-order-id').textContent=`Order #${order.id}  •  ${order.status}`;
-    const item=order.items?.[0]||{img:'',name:'Item',qty:1,price:0,size:'M'};
-    document.getElementById('tracking-product-card').innerHTML=`<div class="flex items-center gap-4"><img src="${item.img}" alt="${item.name}" class="w-20 h-24 rounded-lg object-cover flex-shrink-0 shadow-md" onerror="this.style.display='none'" loading="lazy"><div class="flex-1 min-w-0"><h3 class="font-bold text-gray-900 text-base truncate">${item.name}</h3><p class="text-sm text-gray-600">Qty: ${item.qty} • ${isPerfumeCategory(item.category||'')?'Vol':'Size'}: ${item.size||'M'}</p><p class="text-lg font-black text-gray-900 mt-1">₹${item.price*item.qty}</p></div></div>`;
-    document.getElementById('tracking-address').innerHTML=`<div class="text-center"><div class="flex items-center justify-center gap-2 mb-3"><i class="fas fa-map-marker-alt text-blue-500 text-xl"></i><h4 class="font-bold text-gray-800 text-sm">Shipping Address</h4></div><div class="text-left text-sm"><p class="font-semibold text-gray-900">${order.address||'N/A'}</p><p class="text-gray-600">${order.city||''}, ${order.state||''} - ${order.pincode||''}</p><p class="text-gray-500 mt-1">+91 ${order.mobile}</p></div></div>`;
-    const wrapper=document.getElementById('tracking-timeline-wrapper');
-    if(order.status==='Cancelled'){const refundLine=order.refund_upi?`<p class="text-sm text-green-600 font-semibold mt-2">💰 ₹${order.total} will be refunded to ${order.refund_upi} within 24-48 hrs.</p>`:(order.paymentmode==='COD'?'<p class="text-sm text-gray-500 mt-2">COD — no refund needed.</p>':'');wrapper.innerHTML=`<div class="px-6 py-8 flex flex-col items-center text-center"><div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-times text-rose-600 text-4xl"></i></div><h3 class="font-black text-xl text-rose-600 mb-2">Order Cancelled</h3><p class="text-sm text-gray-500">This order has been cancelled.</p>${refundLine}</div>`;return;}
-    if(_isExchangeStatus(order.status)){wrapper.innerHTML=_buildTimeline([{key:'ex-requested',icon:'fa-exchange-alt',label:'Exchange Requested',sub:'Request submitted'},{key:'ex-processing',icon:'fa-cogs',label:'Exchange Processing',sub:'Being reviewed'},{key:'ex-shipped',icon:'fa-truck',label:'Exchange Shipped',sub:'New item dispatched'},{key:'ex-done',icon:'fa-check-circle',label:'Exchanged',sub:'Exchange complete!'}],STATUS_MAP[order.status]||[],'orange');return;}
-    wrapper.innerHTML=_buildTimeline([{key:'ordered',icon:'fa-file-invoice-dollar',label:'Ordered',sub:'Order confirmed'},{key:'packed',icon:'fa-box',label:'Packed',sub:'Ready to ship'},{key:'shipped',icon:'fa-truck',label:'Shipped',sub:'Out for delivery'},{key:'delivered',icon:'fa-home',label:'Delivered',sub:'Order completed'}],STATUS_MAP[order.status]||[],'green');
+function renderTrackingContent(order) {
+    const titleEl = document.getElementById('tracking-modal-title');
+    if (titleEl) {
+        if (order.status === 'Cancelled') titleEl.innerHTML = '<i class="fas fa-times-circle text-rose-500"></i> Order Cancelled';
+        else if (_isExchangeStatus(order.status)) titleEl.innerHTML = '<i class="fas fa-exchange-alt text-orange-500"></i> Exchange Tracking';
+        else titleEl.innerHTML = '<i class="fas fa-map-marker-alt text-green-500"></i> Track Order';
+    }
+    document.getElementById('tracking-order-id').textContent = `Order #${order.id}  •  ${order.status}`;
+    const item = order.items?.[0] || { img: '', name: 'Item', qty: 1, price: 0, size: 'M' };
+    document.getElementById('tracking-product-card').innerHTML = `<div class="flex items-center gap-4"><img src="${item.img}" alt="${item.name}" class="w-20 h-24 rounded-lg object-cover flex-shrink-0 shadow-md" onerror="this.style.display='none'" loading="lazy"><div class="flex-1 min-w-0"><h3 class="font-bold text-gray-900 text-base truncate">${item.name}</h3><p class="text-sm text-gray-600">Qty: ${item.qty} • ${isPerfumeCategory(item.category||'')?'Vol':'Size'}: ${item.size||'M'}</p><p class="text-lg font-black text-gray-900 mt-1">₹${item.price*item.qty}</p></div></div>`;
+    document.getElementById('tracking-address').innerHTML = `<div class="text-center"><div class="flex items-center justify-center gap-2 mb-3"><i class="fas fa-map-marker-alt text-blue-500 text-xl"></i><h4 class="font-bold text-gray-800 text-sm">Shipping Address</h4></div><div class="text-left text-sm"><p class="font-semibold text-gray-900">${order.address||'N/A'}</p><p class="text-gray-600">${order.city||''}, ${order.state||''} - ${order.pincode||''}</p><p class="text-gray-500 mt-1">+91 ${order.mobile}</p></div></div>`;
+    const wrapper = document.getElementById('tracking-timeline-wrapper');
+    if (order.status === 'Cancelled') {
+        const refundLine = order.refund_upi ? `<p class="text-sm text-green-600 font-semibold mt-2">💰 ₹${order.total} will be refunded to ${order.refund_upi} within 24-48 hrs.</p>` : (order.paymentmode==='COD'?'<p class="text-sm text-gray-500 mt-2">COD — no refund needed.</p>':'');
+        wrapper.innerHTML = `<div class="px-6 py-8 flex flex-col items-center text-center"><div class="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-times text-rose-600 text-4xl"></i></div><h3 class="font-black text-xl text-rose-600 mb-2">Order Cancelled</h3><p class="text-sm text-gray-500">This order has been cancelled.</p>${refundLine}</div>`;
+        return;
+    }
+    if (_isExchangeStatus(order.status)) {
+        wrapper.innerHTML = _buildTimeline([{key:'ex-requested',icon:'fa-exchange-alt',label:'Exchange Requested',sub:'Request submitted'},{key:'ex-processing',icon:'fa-cogs',label:'Exchange Processing',sub:'Being reviewed'},{key:'ex-shipped',icon:'fa-truck',label:'Exchange Shipped',sub:'New item dispatched'},{key:'ex-done',icon:'fa-check-circle',label:'Exchanged',sub:'Exchange complete!'}], STATUS_MAP[order.status]||[], 'orange');
+        return;
+    }
+    wrapper.innerHTML = _buildTimeline([{key:'ordered',icon:'fa-file-invoice-dollar',label:'Ordered',sub:'Order confirmed'},{key:'packed',icon:'fa-box',label:'Packed',sub:'Ready to ship'},{key:'shipped',icon:'fa-truck',label:'Shipped',sub:'Out for delivery'},{key:'delivered',icon:'fa-home',label:'Delivered',sub:'Order completed'}], STATUS_MAP[order.status]||[], 'green');
 }
 
-function _isExchangeStatus(status){return status&&(status.toLowerCase().includes('exchange')||status==='Exchanged');}
+function _isExchangeStatus(status) { return status && (status.toLowerCase().includes('exchange') || status === 'Exchanged'); }
 
-function _buildTimeline(steps,completedKeys,accentColor){
-    const dotDone=accentColor==='orange'?'border-orange-400 bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg scale-110':'border-emerald-400 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg scale-110';
-    const lineDone=accentColor==='orange'?'bg-orange-400':'bg-emerald-400';
-    return `<div class="px-6 py-6"><div class="flex flex-col items-center space-y-0 relative">${steps.map((step,idx)=>{const done=completedKeys.includes(step.key),isLast=idx===steps.length-1;return`<div class="flex flex-col items-center text-center w-full relative" style="min-height:80px"><div class="w-12 h-12 rounded-full border-4 ${done?dotDone:'border-gray-300 bg-white text-gray-400'} flex items-center justify-center shadow-md relative z-10 transition-all duration-500"><i class="fas ${step.icon} text-lg"></i></div><div class="mt-3 px-4"><h3 class="font-bold text-sm ${done?'text-gray-900':'text-gray-400'}">${step.label}</h3><p class="text-xs ${done?'text-gray-600':'text-gray-400'} mt-0.5">${step.sub}</p></div>${!isLast?`<div class="w-0.5 flex-1 mt-2 ${done?lineDone:'bg-gray-200'} min-h-[2rem] transition-all duration-500"></div>`:''}</div>`;}).join('')}</div></div>`;
+function _buildTimeline(steps, completedKeys, accentColor) {
+    const dotDone  = accentColor==='orange' ? 'border-orange-400 bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg scale-110' : 'border-emerald-400 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg scale-110';
+    const lineDone = accentColor==='orange' ? 'bg-orange-400' : 'bg-emerald-400';
+    return `<div class="px-6 py-6"><div class="flex flex-col items-center space-y-0 relative">${steps.map((step,idx) => {
+        const done = completedKeys.includes(step.key), isLast = idx === steps.length - 1;
+        return `<div class="flex flex-col items-center text-center w-full relative" style="min-height:80px"><div class="w-12 h-12 rounded-full border-4 ${done?dotDone:'border-gray-300 bg-white text-gray-400'} flex items-center justify-center shadow-md relative z-10 transition-all duration-500"><i class="fas ${step.icon} text-lg"></i></div><div class="mt-3 px-4"><h3 class="font-bold text-sm ${done?'text-gray-900':'text-gray-400'}">${step.label}</h3><p class="text-xs ${done?'text-gray-600':'text-gray-400'} mt-0.5">${step.sub}</p></div>${!isLast?`<div class="w-0.5 flex-1 mt-2 ${done?lineDone:'bg-gray-200'} min-h-[2rem] transition-all duration-500"></div>`:''}</div>`;
+    }).join('')}</div></div>`;
 }
 
-function initRealtimeTracking(){
-    if(!currentUser)return;if(realtimeChannel){dbClient.removeChannel(realtimeChannel);realtimeChannel=null;}
-    realtimeChannel=dbClient.channel(`orders-user-${currentUser.mobile}-${Date.now()}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:`mobile=eq.${currentUser.mobile}`},payload=>{const updated=payload.new;if(!updated?.id)return;const idx=ordersDb.findIndex(o=>String(o.id)===String(updated.id));if(idx>-1){ordersDb[idx]={...ordersDb[idx],...updated,items:updated.items||ordersDb[idx].items};}else{ordersDb.push(updated);}const finalOrder=idx>-1?ordersDb[idx]:updated;showToast(`📦 Order #${updated.id}: "${updated.status}"`);const modal=document.getElementById('tracking-modal'),isOpen=modal&&!modal.classList.contains('hidden');if(isOpen&&String(currentTrackingOrder?.id)===String(updated.id)){currentTrackingOrder=finalOrder;renderTrackingContent(finalOrder);}if(!document.getElementById('tab-orders')?.classList.contains('hidden'))renderOrdersList();}).subscribe(status=>{if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')setTimeout(()=>initRealtimeTracking(),5000);});
+function initRealtimeTracking() {
+    if (!currentUser) return;
+    if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; }
+    realtimeChannel = dbClient.channel(`orders-user-${currentUser.mobile}-${Date.now()}`)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `mobile=eq.${currentUser.mobile}` }, payload => {
+            const updated = payload.new;
+            if (!updated?.id) return;
+            const idx = ordersDb.findIndex(o => String(o.id) === String(updated.id));
+            if (idx > -1) { ordersDb[idx] = { ...ordersDb[idx], ...updated, items: updated.items || ordersDb[idx].items }; }
+            else { ordersDb.push(updated); }
+            const finalOrder = idx > -1 ? ordersDb[idx] : updated;
+            showToast(`📦 Order #${updated.id}: "${updated.status}"`);
+            const modal  = document.getElementById('tracking-modal');
+            const isOpen = modal && !modal.classList.contains('hidden');
+            if (isOpen && String(currentTrackingOrder?.id) === String(updated.id)) { currentTrackingOrder = finalOrder; renderTrackingContent(finalOrder); }
+            if (!document.getElementById('tab-orders')?.classList.contains('hidden')) renderOrdersList();
+        }).subscribe(status => {
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setTimeout(() => initRealtimeTracking(), 5000);
+        });
 }
 
-function cleanupRealtime(){if(realtimeChannel){dbClient.removeChannel(realtimeChannel);realtimeChannel=null;}}
+function cleanupRealtime() { if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; } }
 
 /* ============================================================
-   30. IMAGE UPLOAD
+   32. IMAGE UPLOAD (Only in Add/Edit Product forms)
    ============================================================ */
-window.uploadToImgBB=async(event,textareaId)=>{
-    const files=event.target.files;if(!files?.length)return;const input=event.target,statusEl=input.nextElementSibling?.classList.contains('upload-status')?input.nextElementSibling:null,textarea=document.getElementById(textareaId);if(!textarea)return;
-    const existing=textarea.value?textarea.value.split('\n').filter(Boolean):[];if(statusEl){statusEl.classList.remove('hidden');statusEl.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i>Uploading…';}
-    for(const file of Array.from(files)){if(file.size>32e6)continue;const fd=new FormData();fd.append('image',file);try{const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd});const json=await res.json();if(json.success&&json.data?.url){existing.push(json.data.url);if(statusEl)statusEl.innerHTML=`<i class="fas fa-check mr-1 text-green-500"></i>${existing.length} images ready`;}}catch{if(statusEl)statusEl.innerHTML='<i class="fas fa-times text-red-500 mr-1"></i>Upload error';}}
-    textarea.value=existing.join('\n');showToast('✅ Images uploaded!');setTimeout(()=>statusEl?.classList.add('hidden'),2500);input.value='';
+window.uploadToImgBB = async (event, textareaId) => {
+    const files   = event.target.files;
+    if (!files?.length) return;
+    const input   = event.target;
+    const statusEl = input.nextElementSibling?.classList.contains('upload-status') ? input.nextElementSibling : null;
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+    const existing = textarea.value ? textarea.value.split('\n').filter(Boolean) : [];
+    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Uploading…'; }
+    for (const file of Array.from(files)) {
+        if (file.size > 32e6) continue;
+        const fd = new FormData(); fd.append('image', file);
+        try {
+            const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
+            const json = await res.json();
+            if (json.success && json.data?.url) {
+                existing.push(json.data.url);
+                if (statusEl) statusEl.innerHTML = `<i class="fas fa-check mr-1 text-green-500"></i>${existing.length} images ready`;
+            }
+        } catch { if (statusEl) statusEl.innerHTML = '<i class="fas fa-times text-red-500 mr-1"></i>Upload error'; }
+    }
+    textarea.value = existing.join('\n');
+    showToast('✅ Images uploaded!');
+    setTimeout(() => statusEl?.classList.add('hidden'), 2500);
+    input.value = '';
 };
 
 /* ============================================================
-   31. SHARE / OG
+   33. SHARE / OG
    ============================================================ */
-async function nativeShareProduct(id,name,price){const url=`${window.location.origin}${window.location.pathname}?pid=${id}`;const text=`Check out ${name} for just ₹${price} on OutfitKart! COD available.`;const p=products.find(x=>x.id===id),img=p?.imgs?.[0]||p?.img||'';_setOgTags({title:`${name} | OutfitKart`,description:`Buy ${name} for ₹${price}. Cash on Delivery available.`,image:img,url});if(navigator.share){try{await navigator.share({title:`${name} | OutfitKart`,text,url});}catch{}}else{await navigator.clipboard.writeText(`${text}\n${url}`).catch(()=>{});showToast('Link copied! 📋');}}
+async function nativeShareProduct(id, name, price) {
+    const url  = `${window.location.origin}${window.location.pathname}?pid=${id}`;
+    const text = `Check out ${name} for just ₹${price} on OutfitKart! COD available.`;
+    const p    = products.find(x => x.id === id), img = p?.imgs?.[0] || p?.img || '';
+    _setOgTags({ title: `${name} | OutfitKart`, description: `Buy ${name} for ₹${price}. Cash on Delivery available.`, image: img, url });
+    if (navigator.share) { try { await navigator.share({ title: `${name} | OutfitKart`, text, url }); } catch {} }
+    else { await navigator.clipboard.writeText(`${text}\n${url}`).catch(() => {}); showToast('Link copied! 📋'); }
+}
 
-async function shareOutfitKart(){const code=currentUser?.referral_code||'',url=code?`${window.location.origin}${window.location.pathname}?ref=${code}`:window.location.origin+window.location.pathname,title='OutfitKart — Premium Fashion at Best Prices',text='🛍️ OutfitKart — Premium Fashion! COD available. Latest trends, amazing deals. 👇';_setOgTags({title,description:'Shop latest trends for men, women & combos. COD available!',image:'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion',url});if(navigator.share){try{await navigator.share({title,text,url});showToast('Thanks for sharing! 🎉');}catch{}}else{try{await navigator.clipboard.writeText(`${text}\n${url}`);showToast('Link copied! 🔗');}catch{window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');}}}
+async function shareOutfitKart() {
+    const code  = currentUser?.referral_code || '';
+    const url   = code ? `${window.location.origin}${window.location.pathname}?ref=${code}` : window.location.origin + window.location.pathname;
+    const title = 'OutfitKart — Premium Fashion at Best Prices';
+    const text  = '🛍️ OutfitKart — Premium Fashion! COD available. Latest trends, amazing deals. 👇';
+    _setOgTags({ title, description: 'Shop latest trends for men, women & combos. COD available!', image: 'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion', url });
+    if (navigator.share) { try { await navigator.share({ title, text, url }); showToast('Thanks for sharing! 🎉'); } catch {} }
+    else { try { await navigator.clipboard.writeText(`${text}\n${url}`); showToast('Link copied! 🔗'); } catch { window.open(`https://wa.me/?text=${encodeURIComponent(text + '\n' + url)}`, '_blank'); } }
+}
 
-function _setOgTags({title,description,image,url}={}){const t=title||'OutfitKart — Premium Fashion at Best Prices',d=description||'Shop latest trends. COD available.',img=image||'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion',u=url||window.location.href;const set=(prop,val)=>{let el=document.querySelector(`meta[property="${prop}"]`)||document.querySelector(`meta[name="${prop}"]`);if(!el){el=document.createElement('meta');el.setAttribute('property',prop);document.head.appendChild(el);}el.setAttribute('content',val);};set('og:title',t);set('og:description',d);set('og:image',img);set('og:url',u);set('og:type','website');set('og:site_name','OutfitKart');set('twitter:card','summary_large_image');set('twitter:title',t);set('twitter:image',img);document.title=t;}
+function _setOgTags({ title, description, image, url } = {}) {
+    const t   = title       || 'OutfitKart — Premium Fashion at Best Prices';
+    const d   = description || 'Shop latest trends. COD available.';
+    const img = image       || 'https://placehold.co/1200x630/e11d48/ffffff?text=OutfitKart+Fashion';
+    const u   = url         || window.location.href;
+    const set = (prop, val) => {
+        let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+        if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el); }
+        el.setAttribute('content', val);
+    };
+    set('og:title', t); set('og:description', d); set('og:image', img); set('og:url', u);
+    set('og:type', 'website'); set('og:site_name', 'OutfitKart');
+    set('twitter:card', 'summary_large_image'); set('twitter:title', t); set('twitter:image', img);
+    document.title = t;
+}
 
-function openWhatsAppSupport(){window.open(`https://wa.me/${SUPPORT_WA}`,'_blank');}
-function openEmailSupport(){window.location.href=`mailto:${SUPPORT_EMAIL}?subject=OutfitKart Support&body=Hi, I need help with my order.`;}
+function openWhatsAppSupport() { window.open(`https://wa.me/${SUPPORT_WA}`, '_blank'); }
+function openEmailSupport()    { window.location.href = `mailto:${SUPPORT_EMAIL}?subject=OutfitKart Support&body=Hi, I need help with my order.`; }
 
 /* ============================================================
-   32. TOAST
+   34. TOAST
    ============================================================ */
-function showToast(msg){const t=document.createElement('div');t.className='bg-gray-900 text-white px-5 py-3 rounded-full shadow-2xl text-sm fade-in pointer-events-auto';t.innerHTML=msg;document.getElementById('toast-container').appendChild(t);setTimeout(()=>t.parentNode?.removeChild(t),3000);}
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'bg-gray-900 text-white px-5 py-3 rounded-full shadow-2xl text-sm fade-in pointer-events-auto';
+    t.innerHTML = msg;
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(() => t.parentNode?.removeChild(t), 3000);
+}
 
 /* ============================================================
-   33. PWA
+   35. PWA
    ============================================================ */
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;_showInstallBanner();});
-function _showInstallBanner(){if(window.innerWidth>=768){const banner=document.getElementById('pwa-install-banner');banner?.classList.remove('hidden','translate-y-full');banner?.classList.add('translate-y-0');}else{const modal=document.getElementById('pwa-install-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');}}
-window.installApp=async function(){if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;hideInstallBanner();if(outcome==='accepted'){showToast('✅ OutfitKart installed!');deferredPrompt=null;}};
-window.hideInstallBanner=function(){const banner=document.getElementById('pwa-install-banner'),modal=document.getElementById('pwa-install-modal');banner?.classList.add('translate-y-full');modal?.classList.remove('flex');modal?.classList.add('hidden');setTimeout(()=>banner?.classList.add('hidden'),300);};
-window.addEventListener('appinstalled',()=>hideInstallBanner());
-if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').then(r=>console.log('[SW] Registered:',r)).catch(e=>console.warn('[SW] Registration failed:',e));});}
-
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; _showInstallBanner(); });
+function _showInstallBanner() {
+    if (window.innerWidth >= 768) {
+        const banner = document.getElementById('pwa-install-banner');
+        banner?.classList.remove('hidden', 'translate-y-full'); banner?.classList.add('translate-y-0');
+    } else {
+        const modal = document.getElementById('pwa-install-modal');
+        modal?.classList.remove('hidden'); modal?.classList.add('flex');
+    }
+}
+window.installApp = async function () {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    hideInstallBanner();
+    if (outcome === 'accepted') { showToast('✅ OutfitKart installed!'); deferredPrompt = null; }
+};
+window.hideInstallBanner = function () {
+    const banner = document.getElementById('pwa-install-banner');
+    const modal  = document.getElementById('pwa-install-modal');
+    banner?.classList.add('translate-y-full');
+    modal?.classList.remove('flex'); modal?.classList.add('hidden');
+    setTimeout(() => banner?.classList.add('hidden'), 300);
+};
+window.addEventListener('appinstalled', () => hideInstallBanner());
 
 /* ============================================================
-   WALLET WITHDRAWAL SYSTEM
+   36. WALLET WITHDRAWAL SYSTEM
    ============================================================ */
 function showWithdrawForm() {
     const section = document.getElementById('withdraw-form-section');
     if (!section) return;
     section.classList.remove('hidden');
-    // Pre-fill name
     const nameInput = document.getElementById('withdraw-name');
     if (nameInput && currentUser?.name) nameInput.value = currentUser.name;
     section.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1781,58 +2380,39 @@ function hideWithdrawForm() {
 
 async function submitWithdrawRequest() {
     if (!currentUser) return showToast('Please login first');
-
     const amountEl = document.getElementById('withdraw-amount');
     const upiEl    = document.getElementById('withdraw-upi');
     const nameEl   = document.getElementById('withdraw-name');
-
-    const amount = parseInt(amountEl?.value) || 0;
-    const upiId  = upiEl?.value.trim();
-    const name   = nameEl?.value.trim();
-
-    // Validations
-    if (!amount || amount < 120)     return showToast('Minimum withdrawal amount is ₹120');
-    if (!upiId)                      return showToast('Please enter your UPI ID');
-    if (!name)                       return showToast('Please enter account holder name');
-    if (amount > walletBalance)      return showToast(`Insufficient balance. Available: ₹${walletBalance}`);
-
-    // Confirm
+    const amount   = parseInt(amountEl?.value) || 0;
+    const upiId    = upiEl?.value.trim();
+    const name     = nameEl?.value.trim();
+    if (!amount || amount < 120)   return showToast('Minimum withdrawal amount is ₹120');
+    if (!upiId)                    return showToast('Please enter your UPI ID');
+    if (!name)                     return showToast('Please enter account holder name');
+    if (amount > walletBalance)    return showToast(`Insufficient balance. Available: ₹${walletBalance}`);
     if (!confirm(`Withdraw ₹${amount} to ${upiId}?\nProcessed within 24-48 hours.`)) return;
-
     showToast('⏳ Submitting withdrawal request...');
-
     try {
-        // Save withdrawal request to Supabase
         const { data, error } = await dbClient.from('withdrawals').insert([{
-            mobile:    currentUser.mobile,
-            name:      name,
-            upi_id:    upiId,
-            amount:    amount,
-            status:    'Pending',
-            date:      new Date().toLocaleDateString('en-IN'),
+            mobile:     currentUser.mobile,
+            name:       name,
+            upi_id:     upiId,
+            amount:     amount,
+            status:     'Pending',
+            date:       new Date().toLocaleDateString('en-IN'),
             created_at: new Date().toISOString(),
         }]).select().single();
-
         if (error) throw error;
-
-        // Deduct from wallet
         const newBal = walletBalance - amount;
         await _updateWalletBalance(newBal);
         walletBalance = newBal;
-
-        // Update UI
         const walletEl = document.getElementById('prof-wallet');
         if (walletEl) walletEl.textContent = `₹${newBal}`;
-
-        // Clear form
         if (amountEl) amountEl.value = '';
         if (upiEl)    upiEl.value    = '';
         hideWithdrawForm();
-
         showToast(`✅ Withdrawal request of ₹${amount} submitted! Will be processed in 24-48 hours.`);
-        // Refresh wallet tx list
         loadWalletTransactions();
-
     } catch (err) {
         console.error('[submitWithdrawRequest]', err);
         showToast('❌ Error: ' + err.message);
@@ -1843,72 +2423,58 @@ async function loadWalletTransactions() {
     if (!currentUser) return;
     const container = document.getElementById('wallet-tx-list');
     if (!container) return;
-
     try {
-        const { data, error } = await dbClient
-            .from('withdrawals')
-            .select('*')
-            .eq('mobile', currentUser.mobile)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
+        const { data, error } = await dbClient.from('withdrawals').select('*').eq('mobile', currentUser.mobile).order('created_at', { ascending: false }).limit(10);
         if (error) throw error;
-
         if (!data || !data.length) {
             container.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fas fa-receipt text-3xl mb-2 block"></i><p class="text-sm">No transactions yet</p></div>';
             return;
         }
-
-        const STATUS_COLOR = {
-            'Pending': 'bg-amber-100 text-amber-700',
-            'Paid':    'bg-green-100 text-green-700',
-            'Rejected':'bg-red-100 text-red-600',
-        };
-
+        const STATUS_COLOR = { 'Pending': 'bg-amber-100 text-amber-700', 'Paid': 'bg-green-100 text-green-700', 'Rejected': 'bg-red-100 text-red-600' };
         container.innerHTML = data.map(tx => `
             <div class="flex items-center justify-between py-2.5 px-3 bg-white rounded-lg border border-gray-100 shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status === 'Paid' ? 'bg-green-100' : 'bg-amber-100'}">
-                        <i class="fas fa-paper-plane text-sm ${tx.status === 'Paid' ? 'text-green-600' : 'text-amber-600'}"></i>
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status==='Paid'?'bg-green-100':'bg-amber-100'}">
+                        <i class="fas fa-paper-plane text-sm ${tx.status==='Paid'?'text-green-600':'text-amber-600'}"></i>
                     </div>
                     <div>
-                        <div class="font-semibold text-sm text-gray-800">Withdrawal to ${tx.upi_id}</div>
+                        <div class="font-semibold text-sm text-gray-800">To ${tx.upi_id}</div>
                         <div class="text-xs text-gray-400">${tx.date}</div>
                     </div>
                 </div>
                 <div class="text-right">
                     <div class="font-black text-base text-red-500">-₹${tx.amount}</div>
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLOR[tx.status] || 'bg-gray-100 text-gray-500'}">${tx.status}</span>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLOR[tx.status]||'bg-gray-100 text-gray-500'}">${tx.status}</span>
                 </div>
             </div>`).join('');
-
     } catch (err) {
         container.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">Could not load history</div>';
     }
 }
 
 /* ============================================================
-   34. GLOBAL EXPORTS
+   37. GLOBAL EXPORTS
    ============================================================ */
-Object.assign(window,{
-    navigate,toggleCart,handleSearch,sortProducts,shopSortProducts,filterSub,_initShopScrollHide,
-    openCategoryPage,openSubcatProducts,showQuickSizeModal,hideQuickSizeModal,selectQuickSize,addFromQuickModal,
-    toggleWishlist,openProductPage,pdpScrollToSlide,selectSize,addToCartPDP,buyNowPDP,buyNow,
-    submitReview,setRating,switchAuthTab,handleLogin,handleSignup,saveProfile,changePassword,
-    uploadProfilePic,switchProfileTab,handleLogout,shareOutfitKart,nativeShareProduct,shareWithReferral,
-    cancelOrder,closeRefundUpiModal,finaliseCancelWithRefund,startExchange,closeExchangeModal,confirmExchange,
-    openTrackingModal,closeTrackingModal,proceedToCheckout,goToStep,initiatePayment,saveAddressForm,
-    fetchPincodeDetails,useCurrentLocation,updatePaymentSelection,selectPaymentLabel,
-    closeSuccessModal,closeSuccessAndGoToOrders,closeCancelModal,
-    startAdminTimer,cancelAdminTimer,switchAdminTab,toggleAdminSidebar,filterAdminOrders,
-    updateDropdownSubs,toggleProductMode,updateSellingPreview,adminAddProduct,openEditProduct,closeEditModal,
-    updateProduct,deleteProduct,autoGenerateDescription,scrapeProductFromUrl,uploadScrapedImageToImgBB,
-    loadAllOrdersAdmin,updateOrderStatus,approvePayout,renderOrdersList,updateCartCount,updateQty,removeFromCart,
-    handleAdminLogin,closeAdminLogin,loadAllUsersAdmin,adminLogout,exitAdmin,
-    openWhatsAppSupport,openEmailSupport,
-    copyReferralCode,switchReferralTab,loadReferrals,renderSidebarReferralWidget,
-    cancelReferralForOrder,recordReferralPurchase,
-    loadAdminReferrals,adminFilterReferrals,adminConfirmReferral,updateSizeSection,
-    showWithdrawForm,hideWithdrawForm,submitWithdrawRequest,loadWalletTransactions,
-    goBannerSlide,nextBannerSlide,prevBannerSlide,
+Object.assign(window, {
+    navigate, toggleCart, handleSearch, sortProducts, shopSortProducts, filterSub, _initShopScrollHide,
+    openCategoryPage, openSubcatProducts, showQuickSizeModal, hideQuickSizeModal, selectQuickSize, addFromQuickModal,
+    toggleWishlist, openProductPage, pdpScrollToSlide, selectSize, addToCartPDP, buyNowPDP, buyNow,
+    submitReview, setRating, switchAuthTab, handleLogin, handleSignup, saveProfile, changePassword,
+    uploadProfilePic, switchProfileTab, handleLogout, shareOutfitKart, nativeShareProduct, shareWithReferral,
+    cancelOrder, closeRefundUpiModal, finaliseCancelWithRefund, startExchange, closeExchangeModal, confirmExchange,
+    openTrackingModal, closeTrackingModal, proceedToCheckout, goToStep, initiatePayment, saveAddressForm,
+    fetchPincodeDetails, useCurrentLocation, updatePaymentSelection, selectPaymentLabel,
+    closeSuccessModal, closeSuccessAndGoToOrders, closeCancelModal,
+    startAdminTimer, cancelAdminTimer, switchAdminTab, toggleAdminSidebar, filterAdminOrders,
+    updateDropdownSubs, toggleProductMode, updateSellingPreview, adminAddProduct, openEditProduct, closeEditModal,
+    updateProduct, deleteProduct, autoGenerateDescription, scrapeProductFromUrl, uploadScrapedImageToImgBB,
+    loadAllOrdersAdmin, updateOrderStatus, approvePayout, renderOrdersList, updateCartCount, updateQty, removeFromCart,
+    handleAdminLogin, closeAdminLogin, loadAllUsersAdmin, adminLogout, exitAdmin, updateAdminNameInHeader,
+    openWhatsAppSupport, openEmailSupport,
+    copyReferralCode, switchReferralTab, loadReferrals, renderSidebarReferralWidget,
+    cancelReferralForOrder, recordReferralPurchase,
+    loadAdminReferrals, adminFilterReferrals, adminConfirmReferral, updateSizeSection,
+    showWithdrawForm, hideWithdrawForm, submitWithdrawRequest, loadWalletTransactions,
+    goBannerSlide, nextBannerSlide, prevBannerSlide,
+    renderAdminDashboard, loadAdminDashboard, renderAdminProducts, renderFilteredOrders,
 });
