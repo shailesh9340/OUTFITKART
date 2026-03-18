@@ -5,7 +5,7 @@
    ============================================================ */
 const SUPABASE_URL    = 'https://wlgytgwmmefwpljstque.supabase.co';
 const SUPABASE_KEY    = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
-const RAZORPAY_KEY    = 'rzp_live_SRZMbmo0aTi8xs';
+const RAZORPAY_KEY    = 'rzp_live_SSnlkbwQnRuvjP';
 const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
 const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA      = '918982296773';
