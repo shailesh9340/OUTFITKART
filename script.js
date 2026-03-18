@@ -5,7 +5,7 @@
    ============================================================ */
 const SUPABASE_URL    = 'https://wlgytgwmmefwpljstque.supabase.co';
 const SUPABASE_KEY    = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
-const RAZORPAY_KEY    = 'rzp_live_SSnlkbwQnRuvjP';
+const RAZORPAY_KEY    = 'rzp_live_SRZMbmo0aTi8xs';
 const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
 const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA      = '918982296773';
@@ -274,20 +274,37 @@ function nextBannerSlide() { _bannerApply((_bannerCurrent + 1) % _bannerTotal); 
 function prevBannerSlide() { _bannerApply((_bannerCurrent - 1 + _bannerTotal) % _bannerTotal); }
 
 /* ============================================================
-   5. ADMIN ACCESS — Long press logo
+   5. ADMIN ACCESS — 3-second logo hold OR Ctrl+Shift+A
+   Sirf authorized mobiles ko hi admin login dikhega
    ============================================================ */
+const ADMIN_AUTHORIZED_MOBILES = ['9343988416', '7879245954'];
+
+function _isAuthorizedAdminUser() {
+    /* Agar pehle se admin login hai */
+    if (isAdminLoggedIn) return true;
+    /* Agar koi user login hai — unka mobile check karo */
+    if (currentUser && !ADMIN_AUTHORIZED_MOBILES.includes(String(currentUser.mobile).trim())) {
+        return false; /* Normal user — admin login nahi dikhana */
+    }
+    return true; /* Ya toh no user logged in, ya authorized admin */
+}
+
 function startAdminTimer() {
     adminPressTimer = setTimeout(() => {
-        if (!isAdminLoggedIn) showAdminLogin();
-        else navigate('admin');
+        if (isAdminLoggedIn) { navigate('admin'); return; }
+        if (!_isAuthorizedAdminUser()) return; /* Normal user — silently ignore */
+        showAdminLogin();
     }, 3000);
 }
+
 function cancelAdminTimer() { clearTimeout(adminPressTimer); }
 
 document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (!isAdminLoggedIn) showAdminLogin(); else navigate('admin');
+        if (isAdminLoggedIn) { navigate('admin'); return; }
+        if (!_isAuthorizedAdminUser()) return;
+        showAdminLogin();
     }
 });
 
@@ -375,6 +392,7 @@ async function recordReferralPurchase(orderId, orderTotal) {
             .maybeSingle();
         if (error || !referrer) return;
         if (currentUser && referrer.mobile === currentUser.mobile) return;
+        /* Commission = 5% of order total amount */
         const commission = Math.round(orderTotal * 0.05);
         if (commission <= 0) return;
         await dbClient.from('referrals').insert([{
@@ -388,6 +406,7 @@ async function recordReferralPurchase(orderId, orderTotal) {
             referral_code:   activeReferralCode,
             created_at:      new Date().toISOString()
         }]);
+        showToast(`🎁 Referral recorded! ₹${commission} pending for referrer`);
         localStorage.removeItem('outfitkart_active_referral');
         activeReferralCode = null;
     } catch (err) { console.error('[Referral Error]:', err); }
@@ -416,14 +435,37 @@ async function loadReferrals() {
         const confirmedTotal = confirmed.reduce((s, r) => s + (r.commission || 0), 0);
         const cancelledTotal = cancelled.reduce((s, r) => s + (r.commission || 0), 0);
         const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        set('pending-earnings', `₹${pendingTotal}`); set('confirmed-earnings', `₹${confirmedTotal}`);
-        set('cancelled-earnings', `₹${cancelledTotal}`); set('pending-count', pending.length);
-        set('confirmed-count', confirmed.length); set('cancelled-count', cancelled.length);
+        set('pending-earnings', `₹${pendingTotal}`);
+        set('confirmed-earnings', `₹${confirmedTotal}`);
+        set('cancelled-earnings', `₹${cancelledTotal}`);
+        set('pending-count', pending.length);
+        set('confirmed-count', confirmed.length);
+        set('cancelled-count', cancelled.length);
         set('referral-earnings-badge', `₹${pendingTotal + confirmedTotal}`);
         renderReferralList('referrals-pending-list',   pending,   'pending');
         renderReferralList('referrals-confirmed-list', confirmed, 'confirmed');
         renderReferralList('referrals-cancelled-list', cancelled, 'cancelled');
+
+        /* Subscribe to realtime so new referrals appear instantly */
+        _subscribeReferralRealtime();
     } catch (err) { showToast('⚠️ Make sure the "referrals" table exists in Supabase.'); }
+}
+
+let _referralChannel = null;
+function _subscribeReferralRealtime() {
+    if (!currentUser || _referralChannel) return;
+    _referralChannel = dbClient.channel(`referrals-${currentUser.mobile}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'referrals', filter: `referrer_mobile=eq.${currentUser.mobile}` }, () => {
+            loadReferrals();
+            showToast('🎁 New referral commission added to Pending!');
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'referrals', filter: `referrer_mobile=eq.${currentUser.mobile}` }, (payload) => {
+            if (payload.new?.status === 'confirmed') {
+                showToast(`✅ ₹${payload.new.commission} referral confirmed & added to wallet!`);
+            }
+            loadReferrals();
+        })
+        .subscribe();
 }
 
 function renderReferralList(containerId, items, type) {
@@ -764,21 +806,31 @@ function openSubcatProducts(categoryName, sub) {
 
 function renderShopSubcategories() {
     try {
-        const el = document.getElementById('subcategory-filters'); if (!el) return;
+        const el = document.getElementById('subcategory-filters');
+        if (!el) return;
         el.classList.remove('subcat-hidden');
         if (!currentCategoryFilter) { el.innerHTML = ''; return; }
-        const cData = CATEGORIES.find(c => c.name === currentCategoryFilter); if (!cData) return;
-        let html = `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${!currentSubFilter?'bg-rose-600 text-white border-rose-600':'bg-white text-gray-600 border-gray-300 hover:border-rose-400'}" onclick="filterSub(null)">All</button>`;
+        const cData = CATEGORIES.find(c => c.name === currentCategoryFilter);
+        if (!cData) return;
+
+        let html = `<button class="flex-shrink-0 px-4 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${!currentSubFilter ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'}" onclick="filterSub(null)">All</button>`;
+
         if (cData.groups) {
             cData.groups.forEach(group => {
-                html += `<span class="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center ml-2 mr-0.5 whitespace-nowrap">${group.label}</span>`;
+                /* Group label as a non-clickable pill divider */
+                html += `<span class="flex-shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center px-1 whitespace-nowrap">${group.label}</span>`;
                 html += group.items.map(s => {
-                    const isCombo=COMBO_SUBS.has(s); const active=currentSubFilter===s; const safe=s.replace(/'/g,"\\'");
-                    return `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${active?'bg-rose-600 text-white border-rose-600':'bg-white text-gray-600 border-gray-300 hover:border-rose-400'} ${isCombo?'ring-1 ring-yellow-400 ring-offset-1':''}" onclick="filterSub('${safe}')">${isCombo?'🎁 ':''}${s}</button>`;
+                    const isCombo = COMBO_SUBS.has(s);
+                    const active  = currentSubFilter === s;
+                    const safe    = s.replace(/'/g, "\\'");
+                    return `<button class="flex-shrink-0 px-4 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${active ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'} ${isCombo ? 'ring-1 ring-yellow-400 ring-offset-1' : ''}" onclick="filterSub('${safe}')">${isCombo ? '🎁 ' : ''}${s}</button>`;
                 }).join('');
             });
         } else {
-            html += cData.subs.map(s => { const safe=s.replace(/'/g,"\\'"); return `<button class="px-3 py-1.5 text-xs border rounded-full whitespace-nowrap ${currentSubFilter===s?'bg-rose-600 text-white':'bg-white text-gray-600'}" onclick="filterSub('${safe}')">${s}</button>`; }).join('');
+            html += cData.subs.map(s => {
+                const safe = s.replace(/'/g, "\\'");
+                return `<button class="flex-shrink-0 px-4 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${currentSubFilter === s ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'}" onclick="filterSub('${safe}')">${s}</button>`;
+            }).join('');
         }
         el.innerHTML = html;
     } catch (e) {}
@@ -1027,6 +1079,7 @@ function handleLogout() {
     localStorage.removeItem('outfitkart_admin_session');
     localStorage.removeItem('outfitkart_admin_name');
     localStorage.removeItem('outfitkart_admin_username');
+    localStorage.removeItem('outfitkart_admin_mobile');
     isAdminLoggedIn=false;
     showToast('Logged out successfully.');
     navigate('home'); checkAuthUI(); switchAuthTab('login');
@@ -1243,7 +1296,7 @@ async function placeOrder(txId='COD',refundUpiId=''){
         if(selectedPaymentMethod==='wallet'){const newBal=walletBalance-finalTotal;const walletRes=await fetch(`${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},body:JSON.stringify({wallet:newBal})});if(!walletRes.ok){const errText=await walletRes.text();throw new Error(`Wallet deduction failed: HTTP ${walletRes.status} — ${errText}`);}walletBalance=newBal;if(currentUser)currentUser.wallet=newBal;localStorage.setItem('outfitkart_session',JSON.stringify(currentUser));const walletEl=document.getElementById('prof-wallet');if(walletEl)walletEl.textContent=`₹${newBal}`;updateHeaderWallet(newBal);}
         const{data:savedOrder,error}=await dbClient.from('orders').insert([newOrder]).select().single();
         if(error)throw error;
-        await recordReferralPurchase(orderId,finalTotal);
+        await recordReferralPurchase(orderId, finalTotal);
         if(isExchangeProcess&&exchangeSourceOrder){try{const{data:exchRows}=await dbClient.from('orders').update({status:'Exchanged'}).eq('id',String(exchangeSourceOrder.id)).select();if(exchRows?.length){const idx=ordersDb.findIndex(o=>String(o.id)===String(exchangeSourceOrder.id));if(idx>-1)ordersDb[idx]={...ordersDb[idx],...exchRows[0]};}}catch{}resetExchangeProcess();}
         cart=[];saveCart();updateCartCount();ordersDb.push(savedOrder||newOrder);
         const modal=document.getElementById('order-success-modal'),idEl=document.getElementById('success-order-id');
@@ -1329,10 +1382,9 @@ function renderOrdersList(){
 /* ============================================================
    23. ADMIN — AUTH + NAME DISPLAY
    ============================================================ */
-function showAdminLogin(){const modal=document.getElementById('admin-login-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');document.getElementById('admin-username')?.focus();}
+function showAdminLogin(){const modal=document.getElementById('admin-login-modal');modal?.classList.remove('hidden');modal?.classList.add('flex');document.getElementById('admin-mobile')?.focus();}
 function closeAdminLogin(goToHome=false){const modal=document.getElementById('admin-login-modal');modal?.classList.add('hidden');modal?.classList.remove('flex');if(goToHome)navigate('home');}
 
-/* FIX: Show admin name in header after login */
 function updateAdminNameInHeader() {
     const name     = localStorage.getItem('outfitkart_admin_name') || 'Admin';
     const nameEl   = document.getElementById('admin-display-name');
@@ -1343,31 +1395,64 @@ function updateAdminNameInHeader() {
     if (pill) { pill.classList.remove('hidden'); pill.classList.add('flex'); }
 }
 
+
 async function handleAdminLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('admin-username').value.trim().toLowerCase();
+    const mobile   = document.getElementById('admin-mobile').value.trim().replace(/\D/g, '');
     const password = document.getElementById('admin-password').value.trim();
 
-    const ADMIN_CREDS = [
-        { username: 'shailesh', password: 'shailesh@934', displayName: 'Shailesh Kumar' },
-        { username: 'aman',     password: 'aman@787',     displayName: 'Aman Kumar' },
-    ];
+    if (mobile.length !== 10) { showToast('Enter valid 10-digit mobile number ❌'); return; }
 
-    const match = ADMIN_CREDS.find(a => a.username === username && a.password === password);
+    const btnEl = e.target.querySelector('button[type="submit"]');
+    if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying...'; }
 
-    if (match) {
+    try {
+        /* Step 1: Check if mobile is in authorized list */
+        if (!ADMIN_AUTHORIZED_MOBILES.includes(mobile)) {
+            showToast('Access Denied ❌ Not an authorized admin');
+            if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
+            document.getElementById('admin-password').value = '';
+            return;
+        }
+
+        /* Step 2: Verify credentials from Supabase DB */
+        const { data: user, error } = await dbClient
+            .from('users')
+            .select('mobile, name, password')
+            .eq('mobile', mobile)
+            .eq('password', password)
+            .maybeSingle();
+
+        if (error) throw error;
+
+        if (!user) {
+            showToast('Invalid Mobile or Password ❌');
+            document.getElementById('admin-password').value = '';
+            if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
+            return;
+        }
+
+        /* Step 3: Double-check mobile is authorized (belt + suspenders) */
+        if (!ADMIN_AUTHORIZED_MOBILES.includes(String(user.mobile))) {
+            showToast('Access Denied ❌');
+            if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
+            return;
+        }
+
+        /* SUCCESS */
         isAdminLoggedIn = true;
         localStorage.setItem('outfitkart_admin_session', 'true');
-        localStorage.setItem('outfitkart_admin_name', match.displayName);
-        localStorage.setItem('outfitkart_admin_username', match.username);
-        showToast('Welcome ' + match.displayName + '! 👋');
-        document.getElementById('admin-username').value = '';
+        localStorage.setItem('outfitkart_admin_name',    user.name || 'Admin');
+        localStorage.setItem('outfitkart_admin_mobile',  user.mobile);
+        showToast('Welcome ' + (user.name || 'Admin') + '! 👋');
+        document.getElementById('admin-mobile').value   = '';
         document.getElementById('admin-password').value = '';
         closeAdminLogin();
         setTimeout(() => navigate('admin'), 100);
-    } else {
-        showToast('Invalid username or password ❌');
-        document.getElementById('admin-password').value = '';
+
+    } catch (err) {
+        showToast('Login error: ' + err.message);
+        if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
     }
 }
 
@@ -1378,97 +1463,241 @@ function loadAdminDashboard() {
 }
 
 /* ============================================================
-   24. ADMIN — DASHBOARD: Profit from margin_total + Cancelled count
+   24. ADMIN — DASHBOARD with Analytics Charts
    ============================================================ */
 async function renderAdminDashboard() {
     const dashboardEl = document.getElementById('admin-dashboard-content');
     if (!dashboardEl) return;
     dashboardEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i><p class="mt-2 text-gray-500">Loading dashboard...</p></div>';
     try {
-        const { data: allOrders } = await dbClient.from('orders').select('*').order('date', { ascending: false });
-        const { data: allUsers  } = await dbClient.from('users').select('*');
+        const [ordersRes, usersRes, referralsRes] = await Promise.all([
+            dbClient.from('orders').select('*').order('date', { ascending: false }),
+            dbClient.from('users').select('*'),
+            dbClient.from('referrals').select('commission, status').order('created_at', { ascending: false }).limit(500),
+        ]);
+        const allOrders    = ordersRes.data   || [];
+        const allUsers     = usersRes.data    || [];
+        const allReferrals = referralsRes.data || [];
 
-        const activeOrders    = (allOrders || []).filter(o => o.status !== 'Cancelled');
-        const cancelledOrders = (allOrders || []).filter(o => o.status === 'Cancelled');
-        const totalRevenue    = activeOrders.reduce((s, o) => s + (o.total || 0), 0);
-        /* FIX: profit = margin_total column sum */
+        const activeOrders    = allOrders.filter(o => o.status !== 'Cancelled');
+        const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled');
+        const totalRevenue    = activeOrders.reduce((s, o) => s + (o.total        || 0), 0);
+        /* Profit = sum of margin_total (from margin_amt per item) */
         const totalProfit     = activeOrders.reduce((s, o) => s + (o.margin_total || 0), 0);
-        const totalUsers      = (allUsers || []).length;
-        const recentOrders    = (allOrders || []).slice(0, 5);
+        const totalUsers      = allUsers.length;
+        const recentOrders    = allOrders.slice(0, 5);
 
-        /* Update sidebar product count badge */
+        /* Referral stats */
+        const pendingRef    = allReferrals.filter(r => r.status === 'pending');
+        const confirmedRef  = allReferrals.filter(r => r.status === 'confirmed');
+        const pendingComm   = pendingRef.reduce((s,r)   => s+(r.commission||0), 0);
+        const confirmedComm = confirmedRef.reduce((s,r) => s+(r.commission||0), 0);
+
+        /* Build last-7-days data */
+        const last7Labels = [], revenueByDay = [], profitByDay = [], ordersByDay = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            const dateStr = d.toLocaleDateString('en-IN');
+            const dayOrders = allOrders.filter(o => o.date === dateStr && o.status !== 'Cancelled');
+            const dd = d.getDate(), mm = d.getMonth()+1;
+            last7Labels.push(`${dd}/${mm}`);
+            revenueByDay.push(dayOrders.reduce((s,o) => s+(o.total||0), 0));
+            profitByDay.push(dayOrders.reduce((s,o)  => s+(o.margin_total||0), 0));
+            ordersByDay.push(dayOrders.length);
+        }
+
+        /* Status counts for pie */
+        const statusCounts = {};
+        allOrders.forEach(o => { statusCounts[o.status] = (statusCounts[o.status]||0)+1; });
+
+        /* Update sidebar & header */
         const countBadge = document.getElementById('sidebar-product-count');
         if (countBadge) countBadge.textContent = products.length;
-
-        /* Update header stats */
-        const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
-        setEl('admin-order-count',       activeOrders.length);
-        setEl('admin-total-sales',       `₹${totalRevenue.toLocaleString('en-IN')}`);
+        const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.innerText=v; };
+        setEl('admin-order-count', activeOrders.length);
+        setEl('admin-total-sales', `₹${totalRevenue.toLocaleString('en-IN')}`);
 
         dashboardEl.innerHTML = `
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-2xl font-black mb-1">₹${totalRevenue.toLocaleString('en-IN')}</div>
-                <div class="text-xs opacity-90 font-semibold">Total Revenue</div>
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-gradient-to-br from-purple-500 to-purple-700 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-xl font-black">₹${totalRevenue.toLocaleString('en-IN')}</div>
+                <div class="text-xs opacity-90 font-semibold mt-1">Total Revenue</div>
                 <div class="text-[10px] opacity-70 mt-0.5">${activeOrders.length} active orders</div>
             </div>
-            <div class="bg-gradient-to-br from-green-500 to-green-600 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-2xl font-black mb-1">₹${totalProfit.toLocaleString('en-IN')}</div>
-                <div class="text-xs opacity-90 font-semibold">Total Profit</div>
-                <div class="text-[10px] opacity-70 mt-0.5">From margin_total</div>
+            <div class="bg-gradient-to-br from-green-500 to-green-700 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-xl font-black">₹${totalProfit.toLocaleString('en-IN')}</div>
+                <div class="text-xs opacity-90 font-semibold mt-1">Total Profit</div>
+                <div class="text-[10px] opacity-70 mt-0.5">From margin_amt</div>
             </div>
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-2xl font-black mb-1">${activeOrders.length}</div>
-                <div class="text-xs opacity-90 font-semibold">Active Orders</div>
-                <div class="flex items-center gap-1 mt-0.5">
-                    <span class="text-[10px] bg-red-400/60 px-1.5 py-0.5 rounded-full font-bold">${cancelledOrders.length} cancelled</span>
-                </div>
+            <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-xl font-black">${activeOrders.length}</div>
+                <div class="text-xs opacity-90 font-semibold mt-1">Active Orders</div>
+                <span class="text-[10px] bg-red-400/60 px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block">${cancelledOrders.length} cancelled</span>
             </div>
-            <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-2xl font-black mb-1">${totalUsers}</div>
-                <div class="text-xs opacity-90 font-semibold">Total Users</div>
+            <div class="bg-gradient-to-br from-rose-500 to-rose-700 p-4 rounded-xl text-white shadow-lg">
+                <div class="text-xl font-black">${totalUsers}</div>
+                <div class="text-xs opacity-90 font-semibold mt-1">Total Users</div>
                 <div class="text-[10px] opacity-70 mt-0.5">${products.length} products</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div class="bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-receipt text-purple-600"></i></div><div><div class="text-xs text-gray-500">Total Orders</div><div class="text-xl font-black">${(allOrders||[]).length}</div></div></div>
+        <!-- Referral + Quick Stats row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
+                <div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-hourglass-half text-amber-500 text-sm"></i></div>
+                <div><div class="text-[10px] text-gray-500">Pending Referral</div><div class="text-base font-black text-amber-600">₹${pendingComm.toLocaleString('en-IN')}</div></div>
             </div>
-            <div class="bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-times-circle text-red-500"></i></div><div><div class="text-xs text-gray-500">Cancelled</div><div class="text-xl font-black text-red-500">${cancelledOrders.length}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
+                <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-gift text-green-600 text-sm"></i></div>
+                <div><div class="text-[10px] text-gray-500">Confirmed Referral</div><div class="text-base font-black text-green-600">₹${confirmedComm.toLocaleString('en-IN')}</div></div>
             </div>
-            <div class="bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-chart-bar text-green-600"></i></div><div><div class="text-xs text-gray-500">Avg Order</div><div class="text-xl font-black">₹${activeOrders.length?Math.round(totalRevenue/activeOrders.length).toLocaleString('en-IN'):0}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
+                <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-chart-bar text-purple-600 text-sm"></i></div>
+                <div><div class="text-[10px] text-gray-500">Avg Order Value</div><div class="text-base font-black">₹${activeOrders.length?Math.round(totalRevenue/activeOrders.length).toLocaleString('en-IN'):0}</div></div>
             </div>
-            <div class="bg-white p-4 rounded-xl border shadow-sm">
-                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-box text-blue-600"></i></div><div><div class="text-xs text-gray-500">Products</div><div class="text-xl font-black">${products.length}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
+                <div class="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-percentage text-teal-600 text-sm"></i></div>
+                <div><div class="text-[10px] text-gray-500">Profit Margin</div><div class="text-base font-black text-teal-600">${totalRevenue?Math.round((totalProfit/totalRevenue)*100):0}%</div></div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border shadow-sm p-4">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-bold text-base flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3>
-                <button onclick="switchAdminTab('order')" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">View All →</button>
+        <!-- Charts Row -->
+        <div class="grid md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-white rounded-xl border shadow-sm p-4">
+                <h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-bar text-purple-600"></i> Revenue & Profit — Last 7 Days</h3>
+                <div style="position:relative;height:190px"><canvas id="dash-rev-chart"></canvas></div>
             </div>
-            ${recentOrders.length ? recentOrders.map(order => {
-                const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600';
-                return `<div class="flex justify-between items-center py-3 border-b last:border-b-0">
-                    <div>
-                        <div class="font-semibold text-sm">#${order.id}</div>
-                        <div class="text-xs text-gray-500">${order.customer_name || 'N/A'} • ${order.date || ''}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-bold text-sm">₹${(order.total||0).toLocaleString('en-IN')}</div>
-                        <span class="${badge} text-xs px-2 py-0.5 rounded-full">${order.status}</span>
-                    </div>
-                </div>`;
-            }).join('') : '<div class="text-center text-gray-400 py-8">No orders yet</div>'}
+            <div class="bg-white rounded-xl border shadow-sm p-4">
+                <h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-line text-blue-600"></i> Orders — Last 7 Days</h3>
+                <div style="position:relative;height:190px"><canvas id="dash-ord-chart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Pie + Recent Orders -->
+        <div class="grid md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-white rounded-xl border shadow-sm p-4">
+                <h3 class="font-bold text-xs text-gray-700 mb-3 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-chart-pie text-rose-500"></i> Order Status</h3>
+                <div style="position:relative;height:170px"><canvas id="dash-pie-chart"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl border shadow-sm p-4 md:col-span-2">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-bold text-xs text-gray-700 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3>
+                    <button onclick="switchAdminTab('order')" class="text-[10px] bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">View All →</button>
+                </div>
+                ${recentOrders.length ? recentOrders.map(order => {
+                    const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600';
+                    return `<div class="flex justify-between items-center py-2 border-b last:border-b-0">
+                        <div>
+                            <div class="font-semibold text-sm">#${order.id}</div>
+                            <div class="text-xs text-gray-400">${order.customer_name||'N/A'} • ${order.date||''}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-sm">₹${(order.total||0).toLocaleString('en-IN')}</div>
+                            <span class="${badge} text-[10px] px-2 py-0.5 rounded-full font-bold">${order.status}</span>
+                        </div>
+                    </div>`;
+                }).join('') : '<div class="text-center text-gray-400 py-6 text-sm">No orders yet</div>'}
+            </div>
         </div>`;
+
+        /* Render charts after DOM paint */
+        setTimeout(() => _renderDashboardCharts(last7Labels, revenueByDay, profitByDay, ordersByDay, statusCounts), 150);
+
     } catch (err) {
         dashboardEl.innerHTML = '<div class="text-center text-red-500 py-10"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p>Error loading dashboard</p></div>';
         console.error('[Dashboard]', err);
     }
+}
+
+/* Load Chart.js once then render all 3 charts */
+function _renderDashboardCharts(labels, revenueByDay, profitByDay, ordersByDay, statusCounts) {
+    function _draw() {
+        const C = window.Chart;
+        if (!C) return;
+
+        /* Destroy old charts if re-rendering */
+        ['dash-rev-chart','dash-ord-chart','dash-pie-chart'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el._ci) { el._ci.destroy(); el._ci = null; }
+        });
+
+        /* ── Revenue vs Profit Bar Chart ── */
+        const revCtx = document.getElementById('dash-rev-chart');
+        if (revCtx) {
+            revCtx._ci = new C(revCtx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Revenue ₹', data: revenueByDay, backgroundColor: 'rgba(124,58,237,0.75)', borderRadius: 5 },
+                        { label: 'Profit ₹',  data: profitByDay,  backgroundColor: 'rgba(34,197,94,0.75)',  borderRadius: 5 },
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
+                    scales: {
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+                        y: { ticks: { font: { size: 9 }, callback: v => '₹' + (v >= 1000 ? Math.round(v/1000)+'k' : v) }, grid: { color: 'rgba(0,0,0,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        /* ── Orders Line Chart ── */
+        const ordCtx = document.getElementById('dash-ord-chart');
+        if (ordCtx) {
+            ordCtx._ci = new C(ordCtx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Orders', data: ordersByDay,
+                        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.12)',
+                        fill: true, tension: 0.4, pointRadius: 5,
+                        pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
+                    scales: {
+                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+                        y: { ticks: { font: { size: 9 }, stepSize: 1 }, min: 0, grid: { color: 'rgba(0,0,0,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        /* ── Status Pie / Doughnut Chart ── */
+        const pieCtx = document.getElementById('dash-pie-chart');
+        if (pieCtx && Object.keys(statusCounts).length) {
+            const pieLabels = Object.keys(statusCounts);
+            const pieData   = Object.values(statusCounts);
+            const COLORS = ['#7c3aed','#3b82f6','#f59e0b','#10b981','#ef4444','#f97316','#8b5cf6','#14b8a6','#ec4899'];
+            pieCtx._ci = new C(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{ data: pieData, backgroundColor: COLORS.slice(0, pieLabels.length), borderWidth: 2, borderColor: '#fff' }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } } }
+                }
+            });
+        }
+    }
+
+    if (window.Chart) { _draw(); return; }
+
+    /* Dynamically load Chart.js from CDN */
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    script.onload = _draw;
+    document.head.appendChild(script);
 }
 
 /* ============================================================
@@ -1529,6 +1758,7 @@ function adminLogout() {
     localStorage.removeItem('outfitkart_admin_session');
     localStorage.removeItem('outfitkart_admin_name');
     localStorage.removeItem('outfitkart_admin_username');
+    localStorage.removeItem('outfitkart_admin_mobile');
     document.body.classList.remove('admin-active');
     const pill = document.getElementById('admin-user-name-pill');
     if (pill) { pill.classList.add('hidden'); pill.classList.remove('flex'); }
@@ -1541,6 +1771,7 @@ function exitAdmin() {
     localStorage.removeItem('outfitkart_admin_session');
     localStorage.removeItem('outfitkart_admin_name');
     localStorage.removeItem('outfitkart_admin_username');
+    localStorage.removeItem('outfitkart_admin_mobile');
     document.body.classList.remove('admin-active');
     navigate('home');
 }
@@ -2006,15 +2237,15 @@ function renderFilteredOrders(filterStatus) {
 
     if (!allOrders.length) {
         container.innerHTML = `<div class="text-center py-20"><i class="fas fa-receipt text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No orders yet</p></div>`;
-        document.getElementById('admin-order-count').innerText = '0';
-        document.getElementById('admin-total-sales').innerText = '₹0';
+        const _aoc=document.getElementById('admin-order-count');if(_aoc)_aoc.innerText = '0';
+        const _ats=document.getElementById('admin-total-sales');if(_ats)_ats.innerText = '₹0';
         return;
     }
 
     const activeOrders    = allOrders.filter(o => o.status !== 'Cancelled');
     const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled');
-    document.getElementById('admin-order-count').innerText = activeOrders.length;
-    document.getElementById('admin-total-sales').innerText = `₹${activeOrders.reduce((s,o) => s+(o.total||0), 0).toLocaleString('en-IN')}`;
+    const _aoc=document.getElementById('admin-order-count');if(_aoc)_aoc.innerText = activeOrders.length;
+    const _ats=document.getElementById('admin-total-sales');if(_ats)_ats.innerText = `₹${activeOrders.reduce((s,o) => s+(o.total||0), 0).toLocaleString('en-IN')}`;
 
     if (!filteredData.length) {
         container.innerHTML = `<div class="text-center py-16"><i class="fas fa-filter text-5xl text-gray-300 mb-3"></i><p class="text-gray-500 font-semibold">No ${filterStatus} orders found</p></div>`;
@@ -2128,38 +2359,158 @@ async function loadAllUsersAdmin() {
 }
 
 async function loadAllWithdrawalsAdmin() {
+    const container = document.getElementById('admin-withdraw-list');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
     try {
-        const { data } = await dbClient.from('withdrawals').select('*').eq('status', 'Pending');
-        const container = document.getElementById('admin-withdraw-list');
-        document.getElementById('admin-pending-withdraw').innerText = data?.length || 0;
-        if (data?.length) {
-            container.innerHTML = data.map(w => `
-                <div class="bg-green-50 border border-green-200 p-4 rounded-xl">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="font-bold text-gray-800">+91 ${w.mobile}</div>
-                            <div class="text-sm text-gray-600">${w.name}</div>
-                            <div class="text-xs text-gray-500">${w.date||''}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-2xl font-black text-green-600">₹${w.amount}</div>
-                            <div class="text-xs text-amber-600 font-bold">${w.status}</div>
-                        </div>
-                    </div>
-                    <div class="bg-white border rounded-lg p-3 font-mono text-sm select-all mb-3">UPI: ${w.upi_id}</div>
-                    <button onclick="approvePayout(${w.id})" class="w-full bg-green-600 text-white py-2.5 rounded-xl font-bold hover:bg-green-700 active:scale-95">✅ Mark as Paid</button>
-                </div>`).join('');
-        } else {
-            container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-check-circle text-4xl mb-3 text-green-300"></i><p class="font-semibold">No pending payouts</p></div>';
+        /* Fetch ALL withdrawals — not just Pending */
+        const { data, error } = await dbClient
+            .from('withdrawals')
+            .select('*')
+            .order('id', { ascending: false });
+        if (error) throw error;
+
+        const all      = data || [];
+        const pending  = all.filter(w => w.status === 'Pending');
+        const paid     = all.filter(w => w.status === 'Paid');
+        const rejected = all.filter(w => w.status === 'Rejected');
+
+        /* Update header badge */
+        const badge = document.getElementById('admin-pending-withdraw');
+        if (badge) badge.innerText = pending.length;
+
+        if (!all.length) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-16"><i class="fas fa-wallet text-5xl mb-3 text-gray-300"></i><p class="font-semibold">No withdrawal requests yet</p></div>';
+            return;
         }
-    } catch (e) {}
+
+        container.innerHTML = `
+        <!-- Summary cards -->
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                <div class="text-xl font-black text-amber-600">${pending.length}</div>
+                <div class="text-xs text-amber-700 font-bold">Pending</div>
+                <div class="text-xs text-amber-500">₹${pending.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                <div class="text-xl font-black text-green-600">${paid.length}</div>
+                <div class="text-xs text-green-700 font-bold">Paid</div>
+                <div class="text-xs text-green-500">₹${paid.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
+            </div>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+                <div class="text-xl font-black text-red-500">${rejected.length}</div>
+                <div class="text-xs text-red-700 font-bold">Rejected</div>
+                <div class="text-xs text-red-400">₹${rejected.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
+            </div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex gap-1 border-b mb-4 overflow-x-auto hide-scrollbar">
+            <button onclick="filterPayouts('all',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">All (${all.length})</button>
+            <button onclick="filterPayouts('Pending',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Pending (${pending.length})</button>
+            <button onclick="filterPayouts('Paid',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Paid (${paid.length})</button>
+            <button onclick="filterPayouts('Rejected',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Rejected (${rejected.length})</button>
+        </div>
+
+        <!-- List -->
+        <div id="payouts-list" class="space-y-3"></div>`;
+
+        /* Store all data globally for filter */
+        window._allPayouts = all;
+        _renderPayoutsList(all);
+
+    } catch (err) {
+        container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;
+    }
+}
+
+function filterPayouts(status, btn) {
+    document.querySelectorAll('.payout-tab').forEach(b => {
+        b.className = 'payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap';
+    });
+    btn.className = 'payout-tab pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap';
+    const all = window._allPayouts || [];
+    _renderPayoutsList(status === 'all' ? all : all.filter(w => w.status === status));
+}
+
+function _renderPayoutsList(items) {
+    const container = document.getElementById('payouts-list');
+    if (!container) return;
+    if (!items.length) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-inbox text-4xl mb-3"></i><p class="font-semibold">No records found</p></div>';
+        return;
+    }
+    const STATUS_STYLE = {
+        'Pending':  'bg-amber-50 border-amber-200',
+        'Paid':     'bg-green-50 border-green-200',
+        'Rejected': 'bg-red-50 border-red-200',
+    };
+    const BADGE = {
+        'Pending':  'bg-amber-100 text-amber-700',
+        'Paid':     'bg-green-100 text-green-700',
+        'Rejected': 'bg-red-100 text-red-600',
+    };
+    container.innerHTML = items.map(w => `
+        <div class="border rounded-xl p-4 ${STATUS_STYLE[w.status]||'bg-white border-gray-200'} hover:shadow-md transition-all">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <div class="font-bold text-gray-800">+91 ${w.mobile}</div>
+                    <div class="text-sm text-gray-600 font-medium">${w.name || '—'}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">${w.date || '—'}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl font-black text-gray-800">₹${w.amount}</div>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE[w.status]||'bg-gray-100 text-gray-500'}">${w.status}</span>
+                </div>
+            </div>
+            <div class="bg-white border rounded-lg p-3 font-mono text-sm select-all mb-3 flex items-center gap-2">
+                <i class="fas fa-university text-gray-400 text-xs"></i>
+                <span>${w.upi_id}</span>
+            </div>
+            ${w.status === 'Pending' ? `
+            <div class="flex gap-2">
+                <button onclick="approvePayout(${w.id})" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm">
+                    <i class="fas fa-check mr-1"></i>Mark as Paid
+                </button>
+                <button onclick="rejectPayout(${w.id})" class="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold hover:bg-red-600 active:scale-95 text-sm">
+                    <i class="fas fa-times mr-1"></i>Reject
+                </button>
+            </div>` : `
+            <div class="text-xs text-gray-400 text-center font-semibold py-1">
+                ${w.status === 'Paid' ? '✅ Payment processed' : '❌ Request rejected'}
+            </div>`}
+        </div>`).join('');
 }
 
 async function approvePayout(id) {
     if (!confirm('Confirm: Payment done via UPI?')) return;
     try {
-        await dbClient.from('withdrawals').update({ status: 'Paid' }).eq('id', id);
-        showToast('Payout Successful! 💰');
+        const { error } = await dbClient.from('withdrawals').update({ status: 'Paid' }).eq('id', id);
+        if (error) throw error;
+        showToast('✅ Payout marked as Paid!');
+        loadAllWithdrawalsAdmin();
+    } catch (err) { showToast('Error: ' + err.message); }
+}
+
+async function rejectPayout(id) {
+    if (!confirm('Reject this withdrawal request? Wallet balance will be refunded.')) return;
+    try {
+        /* Get withdrawal details first */
+        const { data: w, error: wErr } = await dbClient.from('withdrawals').select('*').eq('id', id).single();
+        if (wErr || !w) { showToast('Withdrawal not found'); return; }
+
+        /* Refund wallet balance */
+        const { data: user } = await dbClient.from('users').select('wallet').eq('mobile', w.mobile).maybeSingle();
+        if (user) {
+            const newWallet = (user.wallet || 0) + (w.amount || 0);
+            await dbClient.from('users').update({ wallet: newWallet }).eq('mobile', w.mobile);
+        }
+
+        /* Update status */
+        const { error } = await dbClient.from('withdrawals').update({ status: 'Rejected' }).eq('id', id);
+        if (error) throw error;
+
+        showToast('❌ Request rejected & ₹' + w.amount + ' refunded to wallet');
         loadAllWithdrawalsAdmin();
     } catch (err) { showToast('Error: ' + err.message); }
 }
@@ -2394,13 +2745,12 @@ async function submitWithdrawRequest() {
     showToast('⏳ Submitting withdrawal request...');
     try {
         const { data, error } = await dbClient.from('withdrawals').insert([{
-            mobile:     currentUser.mobile,
-            name:       name,
-            upi_id:     upiId,
-            amount:     amount,
-            status:     'Pending',
-            date:       new Date().toLocaleDateString('en-IN'),
-            created_at: new Date().toISOString(),
+            mobile:  currentUser.mobile,
+            name:    name,
+            upi_id:  upiId,
+            amount:  amount,
+            status:  'Pending',
+            date:    new Date().toLocaleDateString('en-IN'),
         }]).select().single();
         if (error) throw error;
         const newBal = walletBalance - amount;
@@ -2423,32 +2773,49 @@ async function loadWalletTransactions() {
     if (!currentUser) return;
     const container = document.getElementById('wallet-tx-list');
     if (!container) return;
+    container.innerHTML = '<div class="text-center py-4 text-gray-400"><i class="fas fa-spinner fa-spin text-xl"></i></div>';
     try {
-        const { data, error } = await dbClient.from('withdrawals').select('*').eq('mobile', currentUser.mobile).order('created_at', { ascending: false }).limit(10);
+        /* order by id desc (newest first) — avoids created_at column dependency */
+        const { data, error } = await dbClient
+            .from('withdrawals')
+            .select('*')
+            .eq('mobile', currentUser.mobile)
+            .order('id', { ascending: false })
+            .limit(20);
         if (error) throw error;
         if (!data || !data.length) {
             container.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fas fa-receipt text-3xl mb-2 block"></i><p class="text-sm">No transactions yet</p></div>';
             return;
         }
-        const STATUS_COLOR = { 'Pending': 'bg-amber-100 text-amber-700', 'Paid': 'bg-green-100 text-green-700', 'Rejected': 'bg-red-100 text-red-600' };
+        const STATUS_COLOR = {
+            'Pending':  'bg-amber-100 text-amber-700',
+            'Paid':     'bg-green-100 text-green-700',
+            'Rejected': 'bg-red-100 text-red-600'
+        };
+        const STATUS_ICON = {
+            'Pending':  'fa-hourglass-half text-amber-500',
+            'Paid':     'fa-check-circle text-green-600',
+            'Rejected': 'fa-times-circle text-red-500'
+        };
         container.innerHTML = data.map(tx => `
-            <div class="flex items-center justify-between py-2.5 px-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between py-3 px-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status==='Paid'?'bg-green-100':'bg-amber-100'}">
-                        <i class="fas fa-paper-plane text-sm ${tx.status==='Paid'?'text-green-600':'text-amber-600'}"></i>
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status==='Paid'?'bg-green-100':tx.status==='Rejected'?'bg-red-100':'bg-amber-100'}">
+                        <i class="fas ${STATUS_ICON[tx.status]||'fa-paper-plane text-gray-500'} text-sm"></i>
                     </div>
                     <div>
-                        <div class="font-semibold text-sm text-gray-800">To ${tx.upi_id}</div>
-                        <div class="text-xs text-gray-400">${tx.date}</div>
+                        <div class="font-semibold text-sm text-gray-800">To: <span class="font-mono">${tx.upi_id}</span></div>
+                        <div class="text-xs text-gray-400">${tx.date || '—'} • ${tx.name || ''}</div>
                     </div>
                 </div>
-                <div class="text-right">
+                <div class="text-right flex-shrink-0">
                     <div class="font-black text-base text-red-500">-₹${tx.amount}</div>
-                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLOR[tx.status]||'bg-gray-100 text-gray-500'}">${tx.status}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[tx.status]||'bg-gray-100 text-gray-500'}">${tx.status}</span>
                 </div>
             </div>`).join('');
     } catch (err) {
-        container.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm">Could not load history</div>';
+        console.error('[loadWalletTransactions]', err);
+        container.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm"><i class="fas fa-exclamation-circle mb-1 block text-xl"></i>Could not load history</div>';
     }
 }
 
@@ -2468,7 +2835,7 @@ Object.assign(window, {
     startAdminTimer, cancelAdminTimer, switchAdminTab, toggleAdminSidebar, filterAdminOrders,
     updateDropdownSubs, toggleProductMode, updateSellingPreview, adminAddProduct, openEditProduct, closeEditModal,
     updateProduct, deleteProduct, autoGenerateDescription, scrapeProductFromUrl, uploadScrapedImageToImgBB,
-    loadAllOrdersAdmin, updateOrderStatus, approvePayout, renderOrdersList, updateCartCount, updateQty, removeFromCart,
+    loadAllOrdersAdmin, updateOrderStatus, approvePayout, rejectPayout, filterPayouts, renderOrdersList, updateCartCount, updateQty, removeFromCart,
     handleAdminLogin, closeAdminLogin, loadAllUsersAdmin, adminLogout, exitAdmin, updateAdminNameInHeader,
     openWhatsAppSupport, openEmailSupport,
     copyReferralCode, switchReferralTab, loadReferrals, renderSidebarReferralWidget,
@@ -2477,4 +2844,5 @@ Object.assign(window, {
     showWithdrawForm, hideWithdrawForm, submitWithdrawRequest, loadWalletTransactions,
     goBannerSlide, nextBannerSlide, prevBannerSlide,
     renderAdminDashboard, loadAdminDashboard, renderAdminProducts, renderFilteredOrders,
+    _renderDashboardCharts, _subscribeReferralRealtime,
 });
