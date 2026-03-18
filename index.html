@@ -96,25 +96,41 @@
         .share-outfitkart-btn { animation: sharePulse 2.5s infinite; }
         #scrape-status { transition: background 0.25s, border-color 0.25s, color 0.25s; }
 
-        /* ── FIX: Shop header — sticky at correct position, not hiding products ── */
+        /* ── FIX: Shop header — sticky, never overlaps products ── */
         #shop-header-bar {
             position: sticky;
             top: 64px;
-            z-index: 10;
+            z-index: 20;
             background: white;
             border-bottom: 1px solid #f3f4f6;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-        #view-shop {
-            padding-top: 0;
-        }
-        /* Products grid should not be hidden by header */
+        #view-shop { padding-top: 0; }
         #shop-grid {
-            padding-top: 1rem;
+            padding-top: 0.75rem;
+            position: relative;
+            z-index: 1;
         }
+        .product-card { position: relative; z-index: 1; }
 
-        #subcategory-filters { max-height: 44px; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease; opacity: 1; }
-        #subcategory-filters.subcat-hidden { max-height: 0; opacity: 0; margin-top: 0 !important; padding: 0 !important; }
+        #subcategory-filters {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 6px;
+            max-height: none;
+            opacity: 1;
+            transition: opacity 0.3s ease, max-height 0.3s ease;
+        }
+        #subcategory-filters::-webkit-scrollbar { display: none; }
+        #subcategory-filters.subcat-hidden { max-height: 0; opacity: 0; overflow: hidden; padding: 0 !important; }
 
         /* Hide bottom nav in admin panel */
         body.admin-active > nav { display: none !important; }
@@ -363,15 +379,19 @@
                         <i class="fas fa-arrow-left text-gray-700 text-sm"></i>
                     </button>
                     <h2 id="cat-page-title" class="font-black text-xl text-gray-900 flex-1 truncate">Collection</h2>
-                    <!-- View All button — inline in header, NOT floating over grid -->
-                    <button id="cat-view-all-btn" onclick="openSubcatProducts(this.dataset.cat, null)" data-cat=""
-                        class="flex-shrink-0 text-xs font-bold text-rose-600 border border-rose-300 bg-rose-50 px-4 py-2 rounded-full hover:bg-rose-100 active:scale-95 transition-all whitespace-nowrap shadow-sm">
-                        <i class="fas fa-th-large mr-1 text-[10px]"></i> View All
-                    </button>
                 </div>
             </div>
+            <!-- View All — full width prominent button ABOVE the subcats grid -->
+            <div class="px-4 pt-4 pb-2">
+                <button id="cat-view-all-btn" onclick="openSubcatProducts(this.dataset.cat, null)" data-cat=""
+                    class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 to-rose-700 text-white font-black text-sm py-4 rounded-2xl shadow-lg hover:from-rose-700 hover:to-rose-800 active:scale-[0.98] transition-all">
+                    <i class="fas fa-th-large text-base"></i>
+                    <span>View All Products</span>
+                    <i class="fas fa-arrow-right text-xs ml-1"></i>
+                </button>
+            </div>
             <!-- Subcategory grid — clean, no overlapping elements -->
-            <div id="cat-page-subcat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4"></div>
+            <div id="cat-page-subcat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 pt-2"></div>
         </div>
 
         <!-- SHOP VIEW — FIX: header sticks correctly, products not hidden -->
@@ -623,12 +643,12 @@
                                     <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Withdraw Amount (₹)</label><input type="number" id="withdraw-amount" placeholder="Min ₹120" min="120" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none font-bold"></div>
                                     <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">UPI ID</label><input type="text" id="withdraw-upi" placeholder="yourname@paytm / 9876543210@upi" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none"></div>
                                     <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Account Holder Name</label><input type="text" id="withdraw-name" placeholder="Full name as per bank" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none"></div>
-                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800"><i class="fas fa-info-circle mr-1"></i>Withdrawal processed within <strong>24-48 hours</strong>. Minimum: <strong>₹50</strong></div>
+                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800"><i class="fas fa-info-circle mr-1"></i>Withdrawal processed within <strong>24-48 hours</strong>. Minimum: <strong>₹120</strong></div>
                                     <div class="flex gap-3"><button onclick="submitWithdrawRequest()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm shadow-md"><i class="fas fa-check mr-1"></i> Submit Request</button><button onclick="hideWithdrawForm()" class="flex-1 border-2 border-gray-300 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 text-sm">Cancel</button></div>
                                 </div>
                             </div>
                             <div id="wallet-transactions" class="mb-4"><h3 class="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-history text-gray-400"></i> Recent Activity</h3><div id="wallet-tx-list" class="space-y-2 text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-xl border"><i class="fas fa-receipt text-3xl text-gray-300 mb-2 block"></i><p>No transactions yet</p></div></div>
-                            <div class="bg-gray-50 rounded-xl p-4 border"><h3 class="font-bold text-sm text-gray-700 mb-3">How Wallet Works</h3><ul class="space-y-2 text-xs text-gray-600"><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout for instant payment</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Earn wallet balance through referrals &amp; order returns</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Withdraw earned balance to your UPI / bank account</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Minimum withdrawal amount: ₹50</span></li></ul></div>
+                            <div class="bg-gray-50 rounded-xl p-4 border"><h3 class="font-bold text-sm text-gray-700 mb-3">How Wallet Works</h3><ul class="space-y-2 text-xs text-gray-600"><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout for instant payment</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Earn wallet balance through referrals &amp; order returns</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Withdraw earned balance to your UPI / bank account</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Minimum withdrawal amount: ₹120</span></li></ul></div>
                         </div>
                         <div id="tab-referrals" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2"><i class="fas fa-gift text-green-600"></i> My Referrals &amp; Earnings</h2>
@@ -681,7 +701,7 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- Admin name pill — shows logged-in admin name -->
+                        <!-- Admin name pill -->
                         <div id="admin-user-name-pill" class="hidden md:flex items-center gap-1.5">
                             <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-[10px] font-black" id="admin-avatar-initial">A</div>
                             <span id="admin-display-name" class="text-xs font-bold">Admin</span>
@@ -692,21 +712,6 @@
                         <button onclick="adminLogout()" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
                             <i class="fas fa-sign-out-alt text-xs"></i><span class="hidden sm:inline">Logout</span>
                         </button>
-                    </div>
-                </div>
-                <!-- Stats row -->
-                <div class="grid grid-cols-3 gap-2 px-4 pb-3">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
-                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Revenue</p>
-                        <h3 class="text-sm font-black mt-0.5" id="admin-total-sales">₹0</h3>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
-                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Orders</p>
-                        <h3 class="text-sm font-black mt-0.5" id="admin-order-count">0</h3>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
-                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Payouts</p>
-                        <h3 class="text-sm font-black mt-0.5" id="admin-pending-withdraw">0</h3>
                     </div>
                 </div>
             </div>
@@ -1011,13 +1016,37 @@
     <!-- Admin Login Modal -->
     <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4 flex backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
-            <div class="text-center mb-6"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-alt text-purple-600 text-2xl"></i></div><h2 class="text-2xl font-black text-gray-900 mb-1">Admin Login</h2><p class="text-sm text-gray-500">Enter credentials to access admin panel</p></div>
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-purple-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-gray-900 mb-1">Admin Login</h2>
+                <p class="text-sm text-gray-500">Authorized personnel only</p>
+            </div>
             <form onsubmit="handleAdminLogin(event)" class="space-y-4">
-                <div><label class="block text-sm font-semibold text-gray-700 mb-2">Username</label><input type="text" id="admin-username" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Enter username"></div>
-                <div><label class="block text-sm font-semibold text-gray-700 mb-2">Password</label><input type="password" id="admin-password" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Enter password"></div>
-                <div class="flex gap-3 pt-2"><button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold shadow-lg hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all"><i class="fas fa-lock mr-2"></i>Login</button><button type="button" onclick="closeAdminLogin(true)" class="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all">Cancel</button></div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Mobile Number</label>
+                    <div class="flex">
+                        <span class="bg-gray-100 border border-r-0 rounded-l-xl px-4 py-3 text-gray-500 font-semibold text-sm">+91</span>
+                        <input type="tel" id="admin-mobile" pattern="[0-9]{10}" maxlength="10" required
+                            class="flex-1 border border-l-0 rounded-r-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            placeholder="Enter registered mobile">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                    <input type="password" id="admin-password" required
+                        class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        placeholder="Enter password">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold shadow-lg hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all">
+                        <i class="fas fa-lock mr-2"></i>Login
+                    </button>
+                    <button type="button" onclick="closeAdminLogin(true)" class="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all">Cancel</button>
+                </div>
             </form>
-            <p class="text-xs text-gray-400 text-center mt-4"><i class="fas fa-info-circle mr-1"></i>Only authorized personnel</p>
+            <p class="text-xs text-gray-400 text-center mt-4"><i class="fas fa-database mr-1"></i>Verified against database</p>
         </div>
     </div>
 
