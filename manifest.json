@@ -1,22 +1,117 @@
 {
-  "name": "OutfitKart",
+  "name": "OutfitKart — Premium Fashion",
   "short_name": "OutfitKart",
-  "description": "Premium Fashion at Best Prices - Discover latest trends and outfit combos",
-  "start_url": "./index.html",
+  "description": "Premium Fashion at Best Prices. Shop Men, Women, Kids & Perfumes. Cash on Delivery available.",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#e11d48",
+  "orientation": "portrait-primary",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["shopping", "lifestyle", "fashion"],
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "https://placehold.co/72x72/e11d48/ffffff?text=OK",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/96x96/e11d48/ffffff?text=OK",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/128x128/e11d48/ffffff?text=OK",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/144x144/e11d48/ffffff?text=OK",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/152x152/e11d48/ffffff?text=OK",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "https://placehold.co/192x192/e11d48/ffffff?text=OK",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/192x192/e11d48/ffffff?text=OK",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://placehold.co/256x256/e11d48/ffffff?text=OK",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "https://placehold.co/512x512/e11d48/ffffff?text=OK",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://placehold.co/512x512/e11d48/ffffff?text=OK",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "orientation": "portrait-primary"
+  "screenshots": [
+    {
+      "src": "https://placehold.co/390x844/e11d48/ffffff?text=OutfitKart+Mobile",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "OutfitKart on Mobile"
+    },
+    {
+      "src": "https://placehold.co/1280x720/e11d48/ffffff?text=OutfitKart+Desktop",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "OutfitKart on Desktop"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Shop Now",
+      "short_name": "Shop",
+      "description": "Browse all products",
+      "url": "./index.html?view=shop&source=shortcut",
+      "icons": [{ "src": "https://placehold.co/96x96/e11d48/ffffff?text=S", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Cart",
+      "short_name": "Cart",
+      "description": "View your cart",
+      "url": "./index.html?view=cart&source=shortcut",
+      "icons": [{ "src": "https://placehold.co/96x96/e11d48/ffffff?text=C", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "Track your orders",
+      "url": "./index.html?view=orders&source=shortcut",
+      "icons": [{ "src": "https://placehold.co/96x96/e11d48/ffffff?text=O", "sizes": "96x96" }]
+    }
+  ]
 }
