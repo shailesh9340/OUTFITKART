@@ -126,6 +126,28 @@
         /* Modals scroll on small screens */
         .fixed.inset-0 .overflow-y-auto { -webkit-overflow-scrolling: touch; }
 
+        /* ADMIN PANEL LAYOUT FIXES - Header Conflict & Content Overlap */
+        body.admin-active header { display: none !important; }
+        body.admin-active main { padding-top: 0 !important; }
+
+        /* Admin sidebar - full viewport height from top */
+        body.admin-active #admin-sidebar { 
+            top: 0 !important; 
+            height: 100vh !important; 
+        }
+
+        /* Admin content - zero padding when active */
+        body.admin-active .flex-1 { padding-top: 0 !important; }
+
+        /* Mobile admin header - starts from top */
+        @media (max-width: 768px) {
+            body.admin-active #view-admin > div:first-child { top: 0 !important; }
+            body.admin-active #admin-sidebar { 
+                top: 0 !important; 
+                height: 100vh !important; 
+            }
+        }
+
         /* Admin panel proper height on mobile */
         @media (max-width: 768px) {
             #admin-sidebar { height: calc(100vh - 4rem); top: 4rem; }
