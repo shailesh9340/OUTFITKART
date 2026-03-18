@@ -97,16 +97,17 @@ const CATEGORIES = [
         ]
     },
     {
-        id: 'women', name: 'Women', icon: 'fa-female',
+         id: 'women', name: 'Women', icon: 'fa-female',
         subs: ['Sarees','Kurtis','Salwar Suits','Lehengas',
-               'Tops','Straight Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts',
+               'Tops','Straight Fit Jeans','Baggy Jeans','Cargo Jeans','Skinny Fit Jeans','Slim Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts',
                'Heels','Flats','Sandals','Sneakers','Wedges',
                'Jewellery Sets','Earrings','Bangles','Handbags','Sunglasses','Watches','Necklace Sets',
                'Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)',
                'Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)'],
         groups: [
             { label: '🥻 Ethnic',      items: ['Sarees','Kurtis','Salwar Suits','Lehengas'] },
-            { label: '👗 Western',     items: ['Tops','Straight Fit Jeans','Palazzo','Tops & Tunics','Dresses','Skirts'] },
+            { label: '👖 Jeans',       items: ['Straight Fit Jeans','Baggy Jeans','Cargo Jeans','Skinny Fit Jeans','Slim Fit Jeans'] },
+            { label: '👗 Western',     items: ['Tops','Palazzo','Tops & Tunics','Dresses','Skirts'] },
             { label: '👠 Footwear',    items: ['Heels','Flats','Sandals','Sneakers','Wedges'] },
             { label: '💍 Jewellery',   items: ['Necklace Sets','Earrings','Bangles'] },
             { label: '👜 Accessories', items: ['Jewellery Sets','Handbags','Sunglasses','Watches'] },
