@@ -26,9 +26,47 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .tab-btn.active { border-left: 4px solid #e11d48; background-color: #fff1f2; color: #e11d48; font-weight: bold; }
-        .admin-nav-btn { color: #6b7280; background-color: transparent; }
-        .admin-nav-btn:hover { background-color: #f3f4f6; color: #374151; }
-        .admin-nav-btn.active { background-color: #f3e8ff; color: #7c3aed; border-left: 3px solid #7c3aed; }
+
+        /* ── ADMIN NAV — Professional Sidebar ── */
+        .admin-nav-btn {
+            color: #6b7280;
+            background-color: transparent;
+            transition: all 0.18s ease;
+        }
+        .admin-nav-btn:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
+        .admin-nav-btn.active {
+            background: linear-gradient(90deg, #ede9fe 0%, #f5f3ff 100%);
+            color: #7c3aed;
+            border-left: 3px solid #7c3aed;
+            font-weight: 700;
+        }
+        .admin-nav-btn .nav-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.18s;
+            flex-shrink: 0;
+        }
+        .admin-nav-btn.active .nav-icon {
+            background: #7c3aed;
+            color: white;
+        }
+        .admin-nav-btn:not(.active) .nav-icon {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .admin-nav-btn:hover:not(.active) .nav-icon {
+            background: #ede9fe;
+            color: #7c3aed;
+        }
+
         .size-btn.selected { border-color: #e11d48; background-color: #e11d48; color: white; }
         .payment-modal { backdrop-filter: blur(5px); }
         #tracking-modal { backdrop-filter: blur(8px); }
@@ -57,9 +95,27 @@
         @keyframes sharePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0.4); } 50% { box-shadow: 0 0 0 8px rgba(225,29,72,0); } }
         .share-outfitkart-btn { animation: sharePulse 2.5s infinite; }
         #scrape-status { transition: background 0.25s, border-color 0.25s, color 0.25s; }
-        #shop-header-bar { position: sticky; top: 64px; z-index: 10; background: white; }
+
+        /* ── FIX: Shop header — sticky at correct position, not hiding products ── */
+        #shop-header-bar {
+            position: sticky;
+            top: 64px;
+            z-index: 10;
+            background: white;
+            border-bottom: 1px solid #f3f4f6;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        #view-shop {
+            padding-top: 0;
+        }
+        /* Products grid should not be hidden by header */
+        #shop-grid {
+            padding-top: 1rem;
+        }
+
         #subcategory-filters { max-height: 44px; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease; opacity: 1; }
         #subcategory-filters.subcat-hidden { max-height: 0; opacity: 0; margin-top: 0 !important; padding: 0 !important; }
+
         /* Hide bottom nav in admin panel */
         body.admin-active > nav { display: none !important; }
         body.admin-active { padding-bottom: 0 !important; }
@@ -67,27 +123,20 @@
         /* ── Responsive global fixes ── */
         *, *::before, *::after { box-sizing: border-box; }
         img { max-width: 100%; height: auto; }
-
-        /* Prevent horizontal overflow everywhere */
         body, main, .view-section { overflow-x: hidden; max-width: 100vw; }
 
-        /* Product cards — uniform height on all screens */
         .product-card { height: 100%; }
         .product-card img { height: 180px; width: 100%; object-fit: cover; }
         @media (min-width: 640px)  { .product-card img { height: 200px; } }
         @media (min-width: 1024px) { .product-card img { height: 220px; } }
 
-        /* PDP image slider */
         .pdp-img-slider img { height: 320px; }
         @media (min-width: 768px) { .pdp-img-slider img { height: 420px; } }
 
-        /* Checkout steps — full width on mobile */
         @media (max-width: 768px) {
             #checkout-steps-container { padding: 0.75rem; }
             .checkout-progress { padding: 0.5rem 1rem; }
         }
-
-        /* Admin panel — full width tables on mobile */
         @media (max-width: 640px) {
             #admin-tab-products, #admin-tab-inventory,
             #admin-tab-order,    #admin-tab-users,
@@ -96,70 +145,83 @@
             .admin-order-items { max-height: 240px; }
         }
 
-        /* Cart sidebar scroll fix */
         #cart-sidebar { display: flex; flex-direction: column; }
         #cart-items   { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 
-        /* Banner height responsive */
         #banner-carousel { height: 300px; }
         @media (min-width: 640px)  { #banner-carousel { height: 340px; } }
         @media (min-width: 1024px) { #banner-carousel { height: 400px; } }
 
-        /* Profile tabs grid on mobile */
         @media (max-width: 768px) {
             #user-dashboard > div { display: block; }
             #user-dashboard > div > div:first-child { margin-bottom: 1rem; }
         }
 
-        /* Fix text overflow in product names */
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        /* iOS Safari tap fix */
         button, a, [onclick] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-
-        /* Safe area for iPhone X+ notch */
         nav { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
             body { padding-bottom: max(5rem, calc(4rem + env(safe-area-inset-bottom))); }
         }
-
-        /* Modals scroll on small screens */
         .fixed.inset-0 .overflow-y-auto { -webkit-overflow-scrolling: touch; }
 
-        /* ADMIN PANEL LAYOUT FIXES - Header Conflict & Content Overlap */
+        /* ADMIN PANEL LAYOUT FIXES */
         body.admin-active header { display: none !important; }
         body.admin-active main { padding-top: 0 !important; }
-
-        /* Admin sidebar - full viewport height from top */
-        body.admin-active #admin-sidebar { 
-            top: 0 !important; 
-            height: 100vh !important; 
+        body.admin-active #admin-sidebar {
+            top: 0 !important;
+            height: 100vh !important;
         }
-
-        /* Admin content - zero padding when active */
         body.admin-active .flex-1 { padding-top: 0 !important; }
+        .admin-content-tab.hidden { display: none !important; }
 
-        /* Mobile admin header - starts from top */
         @media (max-width: 768px) {
             body.admin-active #view-admin > div:first-child { top: 0 !important; }
-            body.admin-active #admin-sidebar { 
-                top: 0 !important; 
-                height: 100vh !important; 
+            body.admin-active #admin-sidebar {
+                top: 0 !important;
+                height: 100vh !important;
             }
-        }
-
-        /* Admin panel proper height on mobile */
-        @media (max-width: 768px) {
             #admin-sidebar { height: calc(100vh - 4rem); top: 4rem; }
         }
 
-        /* Make inputs/buttons touch-friendly */
-        input, select, textarea, button { font-size: 16px; } /* prevents iOS zoom */
+        input, select, textarea, button { font-size: 16px; }
         @media (max-width: 640px) {
             input[type="text"], input[type="number"], input[type="tel"],
             input[type="email"], input[type="password"], select, textarea {
                 font-size: 16px !important;
             }
+        }
+
+        /* ── Admin Sidebar Professional Styles ── */
+        #admin-sidebar {
+            background: #ffffff;
+        }
+        .admin-sidebar-logo {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+        }
+        .admin-nav-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #9ca3af;
+            padding: 0 16px;
+            margin: 12px 0 4px;
+        }
+
+        /* ── Category subcat page fix — no pink View All floating box ── */
+        #view-category .sticky { background: white; }
+
+        /* Admin header name pill */
+        #admin-user-name-pill {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
@@ -195,7 +257,6 @@
                 <i class="fas fa-shopping-bag text-xl"></i>
                 <span id="cart-count" class="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
             </button>
-            <!-- Wallet Balance in Header (shown when logged in) -->
             <div id="header-wallet-pill" class="hidden items-center gap-1 bg-blue-50 border border-blue-200 rounded-full px-3 py-1.5 cursor-pointer hover:bg-blue-100 transition-all" onclick="navigate('profile','wallet')" title="OutfitKart Wallet">
                 <i class="fas fa-wallet text-blue-600 text-xs"></i>
                 <span id="header-wallet-display" class="text-xs font-black text-blue-700">₹0</span>
@@ -228,130 +289,55 @@
             </div>
             <!-- AUTO-SLIDING BANNER CAROUSEL -->
             <div id="banner-carousel" class="w-full relative select-none" style="height:340px;overflow:hidden;">
-
-                <!-- SLIDE 0: Fashion Image (default visible) -->
-                <div class="banner-slide" data-index="0"
-                     style="position:absolute;inset:0;opacity:1;z-index:1;transition:opacity 0.7s ease;background:#0a0a0a;">
-                    <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1974&auto=format&fit=crop"
-                         alt="Fashion Collection"
-                         style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.6;"
-                         onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop'">
+                <!-- SLIDE 0 -->
+                <div class="banner-slide" data-index="0" style="position:absolute;inset:0;opacity:1;z-index:1;transition:opacity 0.7s ease;background:#0a0a0a;">
+                    <img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1974&auto=format&fit=crop" alt="Fashion Collection" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.6;" onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop'">
                     <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.78) 0%,rgba(0,0,0,0.3) 60%,rgba(0,0,0,0.05) 100%);"></div>
                     <div style="position:relative;z-index:2;display:flex;flex-direction:column;justify-content:center;height:100%;padding:3rem 1.5rem;" class="md:px-14">
-                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
-                            <div style="height:1px;width:1.5rem;background:#f43f5e;"></div>
-                            <span style="color:#f43f5e;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;">OutfitKart Exclusive</span>
-                        </div>
-                        <h2 style="color:white;font-weight:900;line-height:1;margin-bottom:0.75rem;font-size:clamp(1.8rem,5.5vw,3.8rem);letter-spacing:-0.03em;text-shadow:0 2px 20px rgba(0,0,0,0.5);">
-                            Dress Bold.<br>
-                            <span style="color:#fb7185;">Live Loud.</span>
-                        </h2>
-                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:1.75rem;max-width:18rem;">
-                            Premium fashion for every occasion.<br>
-                            <span style="color:white;font-weight:600;">Cash on Delivery available.</span>
-                        </p>
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;"><div style="height:1px;width:1.5rem;background:#f43f5e;"></div><span style="color:#f43f5e;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;">OutfitKart Exclusive</span></div>
+                        <h2 style="color:white;font-weight:900;line-height:1;margin-bottom:0.75rem;font-size:clamp(1.8rem,5.5vw,3.8rem);letter-spacing:-0.03em;text-shadow:0 2px 20px rgba(0,0,0,0.5);">Dress Bold.<br><span style="color:#fb7185;">Live Loud.</span></h2>
+                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:1.75rem;max-width:18rem;">Premium fashion for every occasion.<br><span style="color:white;font-weight:600;">Cash on Delivery available.</span></p>
                         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-                            <button onclick="navigate('shop')"
-                                style="background:#e11d48;color:white;font-weight:800;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;box-shadow:0 8px 24px rgba(225,29,72,0.4);">
-                                Explore Now →
-                            </button>
-                            <button onclick="openCategoryPage('Women')"
-                                style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.35);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">
-                                👗 Women
-                            </button>
+                            <button onclick="navigate('shop')" style="background:#e11d48;color:white;font-weight:800;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;box-shadow:0 8px 24px rgba(225,29,72,0.4);">Explore Now →</button>
+                            <button onclick="openCategoryPage('Women')" style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.35);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">👗 Women</button>
                         </div>
                     </div>
-                    <div style="position:absolute;bottom:0;left:0;right:0;">
-                        <svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg>
-                    </div>
+                    <div style="position:absolute;bottom:0;left:0;right:0;"><svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg></div>
                 </div>
-
-                <!-- SLIDE 1: Summer Sale (hidden initially) -->
-                <div class="banner-slide" data-index="1"
-                     style="position:absolute;inset:0;opacity:0;z-index:0;transition:opacity 0.7s ease;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);">
-                    <div style="position:absolute;top:0;right:0;width:18rem;height:18rem;border-radius:9999px;opacity:0.10;background:radial-gradient(circle,#ff6b6b,transparent);transform:translate(30%,-30%);"></div>
-                    <div style="position:absolute;bottom:0;left:0;width:14rem;height:14rem;border-radius:9999px;opacity:0.10;background:radial-gradient(circle,#ffd93d,transparent);transform:translate(-30%,30%);"></div>
-                    <div style="position:absolute;top:1rem;right:1rem;z-index:3;">
-                        <div style="background:linear-gradient(135deg,#facc15,#f97316);color:#1c1917;font-weight:900;font-size:0.65rem;padding:0.35rem 0.75rem;border-radius:9999px;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-transform:uppercase;letter-spacing:0.15em;">☀️ Summer Sale</div>
-                    </div>
+                <!-- SLIDE 1 -->
+                <div class="banner-slide" data-index="1" style="position:absolute;inset:0;opacity:0;z-index:0;transition:opacity 0.7s ease;background:linear-gradient(135deg,#0f0c29 0%,#302b63 50%,#24243e 100%);">
+                    <div style="position:absolute;top:1rem;right:1rem;z-index:3;"><div style="background:linear-gradient(135deg,#facc15,#f97316);color:#1c1917;font-weight:900;font-size:0.65rem;padding:0.35rem 0.75rem;border-radius:9999px;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-transform:uppercase;letter-spacing:0.15em;">☀️ Summer Sale</div></div>
                     <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:3.5rem 1.5rem;">
-                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
-                            <div style="height:1px;width:2rem;background:#facc15;opacity:0.7;"></div>
-                            <span style="color:#facc15;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;">New Collection 2026</span>
-                            <div style="height:1px;width:2rem;background:#facc15;opacity:0.7;"></div>
-                        </div>
-                        <h2 style="color:white;font-weight:900;line-height:1.05;margin-bottom:0.5rem;font-size:clamp(1.8rem,5.5vw,3.5rem);letter-spacing:-0.02em;text-shadow:0 4px 24px rgba(0,0,0,0.4);">
-                            Style That Speaks.<br>
-                            <span style="background:linear-gradient(90deg,#ffd93d,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Prices That Impress.</span>
-                        </h2>
-                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:0.5rem;max-width:22rem;">Up to <span style="color:#fde047;font-weight:700;">60% OFF</span> on trending fits, combos &amp; more.</p>
-                        <p style="color:rgba(255,255,255,0.45);font-size:0.7rem;margin-bottom:1.75rem;letter-spacing:0.05em;">COD Available &nbsp;•&nbsp; Free Delivery &nbsp;•&nbsp; Easy Returns</p>
+                        <h2 style="color:white;font-weight:900;line-height:1.05;margin-bottom:0.5rem;font-size:clamp(1.8rem,5.5vw,3.5rem);">Style That Speaks.<br><span style="background:linear-gradient(90deg,#ffd93d,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Prices That Impress.</span></h2>
+                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:1.75rem;">Up to <span style="color:#fde047;font-weight:700;">60% OFF</span> on trending fits</p>
                         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;">
-                            <button onclick="navigate('shop')"
-                                style="background:linear-gradient(90deg,#facc15,#f97316);color:#1c1917;font-weight:900;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;box-shadow:0 8px 24px rgba(249,115,22,0.4);">
-                                Shop Now ✦
-                            </button>
-                            <button onclick="openCategoryPage('Perfumes')"
-                                style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">
-                                🌸 Perfumes
-                            </button>
+                            <button onclick="navigate('shop')" style="background:linear-gradient(90deg,#facc15,#f97316);color:#1c1917;font-weight:900;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;">Shop Now ✦</button>
+                            <button onclick="openCategoryPage('Perfumes')" style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">🌸 Perfumes</button>
                         </div>
                     </div>
-                    <div style="position:absolute;bottom:0;left:0;right:0;">
-                        <svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg>
-                    </div>
+                    <div style="position:absolute;bottom:0;left:0;right:0;"><svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg></div>
                 </div>
-
-                <!-- SLIDE 2: New Arrivals (hidden initially) -->
-                <div class="banner-slide" data-index="2"
-                     style="position:absolute;inset:0;opacity:0;z-index:0;transition:opacity 0.7s ease;background:linear-gradient(135deg,#134e4a 0%,#065f46 40%,#064e3b 100%);">
-                    <div style="position:absolute;top:0;left:0;width:20rem;height:20rem;border-radius:9999px;opacity:0.10;background:radial-gradient(circle,#34d399,transparent);transform:translate(-30%,-30%);"></div>
-                    <div style="position:absolute;bottom:0;right:0;width:15rem;height:15rem;border-radius:9999px;opacity:0.10;background:radial-gradient(circle,#6ee7b7,transparent);transform:translate(30%,30%);"></div>
-                    <div style="position:absolute;top:1rem;right:1rem;z-index:3;">
-                        <div style="background:white;color:#065f46;font-weight:900;font-size:0.65rem;padding:0.35rem 0.75rem;border-radius:9999px;box-shadow:0 4px 12px rgba(0,0,0,0.2);text-transform:uppercase;letter-spacing:0.1em;">🚚 Free COD</div>
-                    </div>
+                <!-- SLIDE 2 -->
+                <div class="banner-slide" data-index="2" style="position:absolute;inset:0;opacity:0;z-index:0;transition:opacity 0.7s ease;background:linear-gradient(135deg,#134e4a 0%,#065f46 40%,#064e3b 100%);">
+                    <div style="position:absolute;top:1rem;right:1rem;z-index:3;"><div style="background:white;color:#065f46;font-weight:900;font-size:0.65rem;padding:0.35rem 0.75rem;border-radius:9999px;box-shadow:0 4px 12px rgba(0,0,0,0.2);">🚚 Free COD</div></div>
                     <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:3.5rem 1.5rem;">
-                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
-                            <div style="height:1px;width:2rem;background:#6ee7b7;opacity:0.7;"></div>
-                            <span style="color:#6ee7b7;font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.2em;">Premium Fashion</span>
-                            <div style="height:1px;width:2rem;background:#6ee7b7;opacity:0.7;"></div>
-                        </div>
-                        <h2 style="color:white;font-weight:900;line-height:1.05;margin-bottom:0.5rem;font-size:clamp(1.8rem,5.5vw,3.5rem);letter-spacing:-0.02em;text-shadow:0 4px 24px rgba(0,0,0,0.4);">
-                            New Arrivals.<br>
-                            <span style="background:linear-gradient(90deg,#6ee7b7,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Fresh Every Week.</span>
-                        </h2>
-                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:0.5rem;max-width:22rem;">Men, Women &amp; Kids — <span style="color:#6ee7b7;font-weight:700;">Full Combos</span> at lowest prices.</p>
-                        <p style="color:rgba(255,255,255,0.45);font-size:0.7rem;margin-bottom:1.75rem;letter-spacing:0.05em;">Pay on Delivery &nbsp;•&nbsp; No Advance &nbsp;•&nbsp; Easy Returns</p>
+                        <h2 style="color:white;font-weight:900;line-height:1.05;margin-bottom:0.5rem;font-size:clamp(1.8rem,5.5vw,3.5rem);">New Arrivals.<br><span style="background:linear-gradient(90deg,#6ee7b7,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Fresh Every Week.</span></h2>
+                        <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-bottom:1.75rem;">Men, Women &amp; Kids — <span style="color:#6ee7b7;font-weight:700;">Full Combos</span> at lowest prices.</p>
                         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;">
-                            <button onclick="openCategoryPage('Men')"
-                                style="background:linear-gradient(90deg,#34d399,#059669);color:white;font-weight:900;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.1em;box-shadow:0 8px 24px rgba(5,150,105,0.4);">
-                                Men's Fits ✦
-                            </button>
-                            <button onclick="openCategoryPage('Women')"
-                                style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">
-                                👗 Women
-                            </button>
+                            <button onclick="openCategoryPage('Men')" style="background:linear-gradient(90deg,#34d399,#059669);color:white;font-weight:900;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;">Men's Fits ✦</button>
+                            <button onclick="openCategoryPage('Women')" style="background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1.5px solid rgba(255,255,255,0.3);color:white;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">👗 Women</button>
                         </div>
                     </div>
-                    <div style="position:absolute;bottom:0;left:0;right:0;">
-                        <svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg>
-                    </div>
+                    <div style="position:absolute;bottom:0;left:0;right:0;"><svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg></div>
                 </div>
-
                 <!-- Dots -->
                 <div style="position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:0.4rem;align-items:center;">
                     <button id="banner-dot-0" onclick="goBannerSlide(0)" style="width:1.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:1;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
                     <button id="banner-dot-1" onclick="goBannerSlide(1)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
                     <button id="banner-dot-2" onclick="goBannerSlide(2)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
                 </div>
-
-                <!-- Arrows -->
-                <button onclick="prevBannerSlide()" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center">
-                    <i class="fas fa-chevron-left text-sm"></i>
-                </button>
-                <button onclick="nextBannerSlide()" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </button>
+                <button onclick="prevBannerSlide()" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center"><i class="fas fa-chevron-left text-sm"></i></button>
+                <button onclick="nextBannerSlide()" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center"><i class="fas fa-chevron-right text-sm"></i></button>
             </div>
 
             <div class="bg-white py-4 mt-2">
@@ -366,29 +352,34 @@
             </div>
         </div>
 
-        <!-- CATEGORY SUBCAT PAGE -->
+        <!-- ═══════════════════════════════════════════════════════
+             CATEGORY SUBCAT PAGE — FIX: Clean header, no floating pink box
+             ═══════════════════════════════════════════════════════ -->
         <div id="view-category" class="view-section hidden pb-24">
+            <!-- Sticky header bar -->
             <div class="sticky top-16 z-10 bg-white border-b shadow-sm">
                 <div class="flex items-center gap-3 px-4 py-3">
                     <button onclick="navigate('home')" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all flex-shrink-0">
                         <i class="fas fa-arrow-left text-gray-700 text-sm"></i>
                     </button>
-                    <h2 id="cat-page-title" class="font-black text-xl text-gray-900">Collection</h2>
+                    <h2 id="cat-page-title" class="font-black text-xl text-gray-900 flex-1 truncate">Collection</h2>
+                    <!-- View All button — inline in header, NOT floating over grid -->
                     <button id="cat-view-all-btn" onclick="openSubcatProducts(this.dataset.cat, null)" data-cat=""
-                        class="ml-auto text-xs font-bold text-rose-600 border border-rose-200 bg-rose-50 px-3 py-1.5 rounded-full hover:bg-rose-100 active:scale-95 transition-all whitespace-nowrap">
-                        View All
+                        class="flex-shrink-0 text-xs font-bold text-rose-600 border border-rose-300 bg-rose-50 px-4 py-2 rounded-full hover:bg-rose-100 active:scale-95 transition-all whitespace-nowrap shadow-sm">
+                        <i class="fas fa-th-large mr-1 text-[10px]"></i> View All
                     </button>
                 </div>
             </div>
+            <!-- Subcategory grid — clean, no overlapping elements -->
             <div id="cat-page-subcat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4"></div>
         </div>
 
-        <!-- SHOP VIEW -->
+        <!-- SHOP VIEW — FIX: header sticks correctly, products not hidden -->
         <div id="view-shop" class="view-section hidden">
-            <div id="shop-header-bar" class="bg-white px-4 pt-3 pb-2 border-b shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-bold text-xl" id="shop-title">Shop All Products</h2>
-                    <select id="shop-sort" onchange="shopSortProducts(this.value)" class="ml-auto border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-rose-500 text-sm bg-white shadow-sm">
+            <div id="shop-header-bar" class="bg-white px-4 pt-3 pb-2">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="font-bold text-lg truncate flex-1" id="shop-title">Shop All Products</h2>
+                    <select id="shop-sort" onchange="shopSortProducts(this.value)" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-rose-500 text-sm bg-white shadow-sm flex-shrink-0">
                         <option value="default">Recommended</option>
                         <option value="low">Price: Low to High</option>
                         <option value="high">Price: High to Low</option>
@@ -418,9 +409,7 @@
                 <button onclick="submitReview()" class="bg-gray-800 text-white px-4 py-2 rounded font-bold hover:bg-gray-900">Submit Review</button>
             </div>
             <div id="recommended-section" class="mt-8 bg-white p-6 rounded-xl shadow-sm border">
-                <h3 class="font-bold text-xl border-b pb-3 mb-6 flex items-center gap-2">
-                    <i class="fas fa-th-large text-rose-500"></i> Similar Products You May Like
-                </h3>
+                <h3 class="font-bold text-xl border-b pb-3 mb-6 flex items-center gap-2"><i class="fas fa-th-large text-rose-500"></i> Similar Products You May Like</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="recommended-products-grid"></div>
             </div>
         </div>
@@ -431,29 +420,19 @@
             <div class="checkout-progress sticky top-16 z-20 bg-white shadow-lg py-3 px-6 border-b">
                 <div class="max-w-4xl mx-auto flex items-center justify-between">
                     <div class="flex-1 flex items-center justify-center relative">
-                        <div class="progress-step flex flex-col items-center">
-                            <div class="step-circle bg-[#fb641b] text-white font-bold border-[#fb641b]">1</div>
-                            <span class="text-xs mt-1 font-medium text-[#fb641b]">Address</span>
-                        </div>
+                        <div class="progress-step flex flex-col items-center"><div class="step-circle bg-[#fb641b] text-white font-bold border-[#fb641b]">1</div><span class="text-xs mt-1 font-medium text-[#fb641b]">Address</span></div>
                         <div class="progress-line absolute right-0 top-4 w-1/2 h-0.5 bg-[#fb641b] z-0"></div>
                     </div>
                     <div class="flex-1 flex items-center justify-center relative">
-                        <div class="progress-step flex flex-col items-center">
-                            <div class="step-circle border-[#fb641b] text-[#fb641b] font-bold">2</div>
-                            <span class="text-xs mt-1 font-medium text-gray-500">Order Summary</span>
-                        </div>
+                        <div class="progress-step flex flex-col items-center"><div class="step-circle border-[#fb641b] text-[#fb641b] font-bold">2</div><span class="text-xs mt-1 font-medium text-gray-500">Order Summary</span></div>
                         <div class="progress-line absolute right-0 top-4 w-1/2 h-0.5 bg-gray-300 z-0"></div>
                     </div>
                     <div class="flex-1 flex items-center justify-center">
-                        <div class="progress-step flex flex-col items-center">
-                            <div class="step-circle border-gray-300 text-gray-500 font-bold">3</div>
-                            <span class="text-xs mt-1 font-medium text-gray-500">Payment</span>
-                        </div>
+                        <div class="progress-step flex flex-col items-center"><div class="step-circle border-gray-300 text-gray-500 font-bold">3</div><span class="text-xs mt-1 font-medium text-gray-500">Payment</span></div>
                     </div>
                 </div>
             </div>
             <div id="checkout-steps-container" class="grid lg:grid-cols-3 gap-6 px-4 md:px-8 py-6">
-                <!-- Step 1: Address -->
                 <div id="checkout-step-1" class="lg:col-span-3 space-y-6">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h3 class="font-bold text-xl mb-6 flex items-center gap-2 text-gray-900"><i class="fas fa-map-marker-alt text-[#fb641b]"></i> Add a new address</h3>
@@ -484,16 +463,12 @@
                         </form>
                     </div>
                 </div>
-                <!-- Step 2: Order Summary -->
                 <div id="checkout-step-2" class="lg:col-span-3 hidden">
                     <div class="lg:grid lg:grid-cols-3 lg:gap-6">
                         <div class="lg:col-span-2 space-y-6">
                             <div class="bg-white p-6 rounded-xl shadow-sm border">
                                 <div class="flex items-start justify-between mb-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div>
-                                        <div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name" class="text-sm text-gray-600 font-medium">Loading...</p></div>
-                                    </div>
+                                    <div class="flex items-center gap-3"><div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div><div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
                                     <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-blue-700 shadow-md">CHANGE</button>
                                 </div>
                                 <div id="delivery-address-display" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border"></div>
@@ -517,16 +492,12 @@
                         </div>
                     </div>
                 </div>
-                <!-- Step 3: Payment -->
                 <div id="checkout-step-3" class="lg:col-span-3 hidden">
                     <div class="lg:grid lg:grid-cols-3 lg:gap-6">
                         <div class="lg:col-span-2 space-y-4">
                             <div class="bg-white p-6 rounded-xl shadow-sm">
                                 <div class="flex items-start justify-between mb-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div>
-                                        <div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name-step3" class="text-sm text-gray-600 font-medium">Loading...</p></div>
-                                    </div>
+                                    <div class="flex items-center gap-3"><div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div><div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name-step3" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
                                     <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-blue-700 shadow-md">CHANGE</button>
                                 </div>
                                 <div id="delivery-address-display-step3" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border"></div>
@@ -536,45 +507,20 @@
                                 <div class="space-y-3">
                                     <label id="label-upi" class="flex items-start gap-4 p-4 border-2 border-orange-400 rounded-xl cursor-pointer bg-orange-50 transition-all" onclick="selectPaymentLabel('upi')">
                                         <input type="radio" name="checkout-payment" value="upi" id="payment-upi" class="accent-orange-500 w-5 h-5 mt-0.5" checked onchange="updatePaymentSelection('upi')">
-                                        <div class="flex-1">
-                                            <div class="font-bold text-base text-gray-900 mb-0.5">UPI Payment</div>
-                                            <div class="text-xs text-gray-500">GPay, PhonePe, Paytm &amp; more — Instant</div>
-                                            <div class="flex gap-2 mt-2">
-                                                <div class="w-9 h-9 bg-green-50 border rounded-lg flex items-center justify-center text-green-600 text-xs"><i class="fab fa-google-pay text-sm"></i></div>
-                                                <div class="w-9 h-9 bg-purple-50 border rounded-lg flex items-center justify-center text-purple-600 text-xs"><i class="fas fa-mobile-alt"></i></div>
-                                                <div class="w-9 h-9 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-500 text-xs"><i class="fas fa-wallet"></i></div>
-                                            </div>
-                                        </div>
+                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">UPI Payment</div><div class="text-xs text-gray-500">GPay, PhonePe, Paytm &amp; more</div></div>
                                         <span class="text-[10px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 self-start whitespace-nowrap">No extra fee</span>
                                     </label>
                                     <label id="label-cod" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-gray-400 transition-all" onclick="selectPaymentLabel('cod')">
                                         <input type="radio" name="checkout-payment" value="cod" id="payment-cod" class="accent-gray-700 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('cod')">
-                                        <div class="flex-1">
-                                            <div class="font-bold text-base text-gray-900 mb-0.5">Cash on Delivery</div>
-                                            <div class="text-xs text-gray-500">Pay cash when order arrives at your door</div>
-                                            <div class="flex items-center gap-2 mt-2">
-                                                <div class="w-9 h-9 bg-yellow-50 border rounded-lg flex items-center justify-center text-yellow-600"><i class="fas fa-money-bill-wave text-sm"></i></div>
-                                                <span class="text-xs text-gray-500">Safe &amp; convenient</span>
-                                            </div>
-                                        </div>
+                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">Cash on Delivery</div><div class="text-xs text-gray-500">Pay cash when order arrives</div></div>
                                         <span class="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 self-start whitespace-nowrap">+₹9 fee</span>
                                     </label>
                                     <label id="label-wallet" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-blue-300 transition-all" onclick="selectPaymentLabel('wallet')">
                                         <input type="radio" name="checkout-payment" value="wallet" id="payment-wallet" class="accent-blue-600 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('wallet')">
-                                        <div class="flex-1">
-                                            <div class="font-bold text-base text-gray-900 mb-0.5">OutfitKart Wallet</div>
-                                            <div class="text-xs text-gray-500">Use your store credits instantly</div>
-                                            <div class="flex items-center gap-2 mt-2">
-                                                <div class="w-9 h-9 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-wallet text-sm"></i></div>
-                                                <span class="text-xs font-bold text-blue-700">Balance: <span id="checkout-wallet-balance">₹0</span></span>
-                                            </div>
-                                        </div>
+                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">OutfitKart Wallet</div><div class="text-xs text-gray-500">Use your store credits instantly</div><div class="flex items-center gap-2 mt-2"><div class="w-9 h-9 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-wallet text-sm"></i></div><span class="text-xs font-bold text-blue-700">Balance: <span id="checkout-wallet-balance">₹0</span></span></div></div>
                                         <span class="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200 self-start whitespace-nowrap">Instant</span>
                                     </label>
-                                    <div id="wallet-insufficient-warning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 font-semibold flex items-center gap-2">
-                                        <i class="fas fa-exclamation-circle text-red-500"></i>
-                                        <span id="wallet-warning-text">Wallet balance is insufficient for this order.</span>
-                                    </div>
+                                    <div id="wallet-insufficient-warning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 font-semibold flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-500"></i><span id="wallet-warning-text">Wallet balance is insufficient for this order.</span></div>
                                 </div>
                             </div>
                         </div>
@@ -583,16 +529,10 @@
                                 <h4 class="font-bold text-sm uppercase tracking-wide text-gray-700 mb-4">Order Total</h4>
                                 <div class="space-y-2 text-sm">
                                     <div id="exchange-value-row" class="hidden justify-between font-bold text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200"><span>Exchange Value Applied</span><span id="exchange-value-display">-₹0</span></div>
-                                    <div id="cod-fee-row" class="hidden flex justify-between text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
-                                        <span class="flex items-center gap-1"><i class="fas fa-hand-holding-usd text-xs"></i> COD Handling Fee</span>
-                                        <span class="font-bold">+₹9</span>
-                                    </div>
-                                    <div id="wallet-balance-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
-                                        <span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Balance</span>
-                                        <span class="font-bold" id="wallet-balance-display">₹0</span>
-                                    </div>
+                                    <div id="cod-fee-row" class="hidden flex justify-between text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200"><span class="flex items-center gap-1"><i class="fas fa-hand-holding-usd text-xs"></i> COD Handling Fee</span><span class="font-bold">+₹9</span></div>
+                                    <div id="wallet-balance-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200"><span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Balance</span><span class="font-bold" id="wallet-balance-display">₹0</span></div>
                                     <div class="flex justify-between font-black text-base text-gray-900 border-t pt-2 mt-1"><span>Total Amount</span><span id="final-total-step3" class="text-[#fb641b]">₹0</span></div>
-                                    <div id="refund-upi-row" class="hidden"><label class="block text-xs font-bold text-gray-600 mb-1 mt-2">Enter UPI ID for Refund</label><input type="text" id="refund-upi-input" placeholder="yourname@upi" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"><p class="text-xs text-green-600 mt-1">💸 Refund processed in 24-48 hours.</p></div>
+                                    <div id="refund-upi-row" class="hidden"><label class="block text-xs font-bold text-gray-600 mb-1 mt-2">Enter UPI ID for Refund</label><input type="text" id="refund-upi-input" placeholder="yourname@upi" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"></div>
                                     <div class="text-xs text-gray-500 text-center py-2 bg-gray-50 rounded-lg mt-1">🔒 Secure &amp; Safe Checkout</div>
                                 </div>
                             </div>
@@ -633,7 +573,6 @@
                             </div>
                             <div><h3 class="font-bold text-gray-800" id="user-greeting">User</h3><p class="text-xs text-gray-500" id="user-mobile-display">+91 0000000000</p></div>
                         </div>
-                        <!-- Sidebar referral widget -->
                         <div id="sidebar-referral-widget"></div>
                         <div class="flex flex-col">
                             <button class="tab-btn active text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50" onclick="switchProfileTab('info',this)"><i class="fas fa-user w-6"></i> Profile Info</button>
@@ -654,7 +593,6 @@
                         </div>
                     </div>
                     <div class="md:col-span-3">
-                        <!-- Profile Info Tab -->
                         <div id="tab-info" class="profile-tab bg-white p-6 rounded-lg shadow-sm border">
                             <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 class="text-xl font-bold">Profile Information</h2><button onclick="saveProfile()" class="bg-gray-800 text-white px-4 py-1.5 rounded text-sm font-bold hover:bg-gray-900"><i class="fas fa-edit"></i> Save</button></div>
                             <div class="space-y-4 max-w-md">
@@ -663,16 +601,8 @@
                                 <div><label class="text-xs text-gray-500">Delivery Address Book</label><textarea id="prof-address" class="w-full border rounded p-2 text-sm mt-1 h-20 outline-none" placeholder="House, Street, Pincode..."></textarea></div>
                             </div>
                             <div class="mt-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><i class="fas fa-gift text-green-600"></i></div>
-                                    <div><h4 class="font-bold text-gray-800 text-sm">Your Referral Code</h4><p class="text-xs text-gray-500">Earn 5% on every referral purchase!</p></div>
-                                </div>
-                                <div class="bg-white rounded-lg p-3 border-2 border-dashed border-green-300 mb-3">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex-1"><p class="text-xs text-gray-500 mb-1">Your Code:</p><p class="text-2xl font-black text-green-600 tracking-wider" id="user-referral-code">LOADING...</p></div>
-                                        <button onclick="copyReferralCode()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-600 active:scale-95 transition-all"><i class="fas fa-copy mr-1"></i> Copy</button>
-                                    </div>
-                                </div>
+                                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><i class="fas fa-gift text-green-600"></i></div><div><h4 class="font-bold text-gray-800 text-sm">Your Referral Code</h4><p class="text-xs text-gray-500">Earn 5% on every referral purchase!</p></div></div>
+                                <div class="bg-white rounded-lg p-3 border-2 border-dashed border-green-300 mb-3"><div class="flex items-center justify-between"><div class="flex-1"><p class="text-xs text-gray-500 mb-1">Your Code:</p><p class="text-2xl font-black text-green-600 tracking-wider" id="user-referral-code">LOADING...</p></div><button onclick="copyReferralCode()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-600 active:scale-95 transition-all"><i class="fas fa-copy mr-1"></i> Copy</button></div></div>
                                 <p class="text-xs text-gray-600 text-center"><i class="fas fa-info-circle mr-1"></i>Share products with your code &amp; earn when friends buy!</p>
                             </div>
                             <div class="mt-6 p-4 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-xl">
@@ -680,181 +610,48 @@
                                 <button onclick="shareOutfitKart()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"><i class="fas fa-share-nodes"></i> Share with Friends &amp; Family</button>
                             </div>
                         </div>
-
-                        <!-- Orders Tab -->
                         <div id="tab-orders" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">My Orders</h2><div id="orders-list-container" class="space-y-4"></div></div>
-
-                        <!-- Wishlist Tab -->
                         <div id="tab-wishlist" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Wishlist &amp; Favorites</h2><div id="wishlist-container" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div></div>
-
-                        <!-- Cart Tab -->
                         <div id="tab-cart" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border text-center"><i class="fas fa-shopping-cart text-5xl text-gray-300 mb-4 mt-10 block"></i><h2 class="text-xl font-bold mb-2">Your Active Cart</h2><p class="text-gray-500 mb-4">You have <span id="tab-cart-count" class="font-bold text-gray-800">0</span> items waiting.</p><button onclick="toggleCart()" class="bg-rose-600 text-white px-6 py-2 rounded shadow font-bold hover:bg-rose-700">Open Cart</button></div>
-
-                        <!-- Wallet Tab -->
                         <div id="tab-wallet" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2"><i class="fas fa-wallet text-blue-600"></i> OutfitKart Wallet</h2>
-                            <!-- Balance Card -->
-                            <div class="p-6 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex flex-col items-center justify-center text-center mb-5 shadow-xl relative overflow-hidden">
-                                <div class="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10" style="background:white;transform:translate(30%,-30%)"></div>
-                                <div class="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-10" style="background:white;transform:translate(-30%,30%)"></div>
-                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3 shadow-lg"><i class="fas fa-wallet text-white text-2xl"></i></div>
-                                <h3 class="font-bold text-xs text-blue-100 mb-1 uppercase tracking-wider">Available Balance</h3>
-                                <p class="text-5xl font-black text-white mb-1" id="prof-wallet">₹0</p>
-                                <p class="text-xs text-blue-200">Earned from referrals &amp; cashback</p>
-                            </div>
-                            <!-- Withdraw Button -->
-                            <button onclick="showWithdrawForm()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 rounded-xl font-bold text-base shadow-lg hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] transition-all mb-4 flex items-center justify-center gap-2">
-                                <i class="fas fa-paper-plane"></i> Withdraw to UPI / Bank
-                            </button>
-                            <!-- Withdraw Form (hidden by default) -->
+                            <div class="p-6 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex flex-col items-center justify-center text-center mb-5 shadow-xl relative overflow-hidden"><div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-3 shadow-lg"><i class="fas fa-wallet text-white text-2xl"></i></div><h3 class="font-bold text-xs text-blue-100 mb-1 uppercase tracking-wider">Available Balance</h3><p class="text-5xl font-black text-white mb-1" id="prof-wallet">₹0</p><p class="text-xs text-blue-200">Earned from referrals &amp; cashback</p></div>
+                            <button onclick="showWithdrawForm()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3.5 rounded-xl font-bold text-base shadow-lg hover:from-green-600 hover:to-emerald-700 active:scale-[0.98] transition-all mb-4 flex items-center justify-center gap-2"><i class="fas fa-paper-plane"></i> Withdraw to UPI / Bank</button>
                             <div id="withdraw-form-section" class="hidden bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 mb-4">
                                 <h3 class="font-bold text-base text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-paper-plane text-green-600"></i> Withdraw Request</h3>
                                 <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Withdraw Amount (₹)</label>
-                                        <input type="number" id="withdraw-amount" placeholder="Min ₹120" min="120" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none font-bold">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">UPI ID</label>
-                                        <input type="text" id="withdraw-upi" placeholder="yourname@paytm / 9876543210@upi" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Account Holder Name</label>
-                                        <input type="text" id="withdraw-name" placeholder="Full name as per bank" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none">
-                                    </div>
-                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-                                        <i class="fas fa-info-circle mr-1"></i>
-                                        Withdrawal processed within <strong>24-48 hours</strong>. Minimum withdrawal: <strong>₹50</strong>
-                                    </div>
-                                    <div class="flex gap-3">
-                                        <button onclick="submitWithdrawRequest()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm shadow-md">
-                                            <i class="fas fa-check mr-1"></i> Submit Request
-                                        </button>
-                                        <button onclick="hideWithdrawForm()" class="flex-1 border-2 border-gray-300 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 text-sm">
-                                            Cancel
-                                        </button>
-                                    </div>
+                                    <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Withdraw Amount (₹)</label><input type="number" id="withdraw-amount" placeholder="Min ₹120" min="120" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none font-bold"></div>
+                                    <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">UPI ID</label><input type="text" id="withdraw-upi" placeholder="yourname@paytm / 9876543210@upi" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none"></div>
+                                    <div><label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Account Holder Name</label><input type="text" id="withdraw-name" placeholder="Full name as per bank" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-400 outline-none"></div>
+                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800"><i class="fas fa-info-circle mr-1"></i>Withdrawal processed within <strong>24-48 hours</strong>. Minimum: <strong>₹50</strong></div>
+                                    <div class="flex gap-3"><button onclick="submitWithdrawRequest()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm shadow-md"><i class="fas fa-check mr-1"></i> Submit Request</button><button onclick="hideWithdrawForm()" class="flex-1 border-2 border-gray-300 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 text-sm">Cancel</button></div>
                                 </div>
                             </div>
-                            <!-- Wallet Transactions / History placeholder -->
-                            <div id="wallet-transactions" class="mb-4">
-                                <h3 class="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-history text-gray-400"></i> Recent Activity</h3>
-                                <div id="wallet-tx-list" class="space-y-2 text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-xl border">
-                                    <i class="fas fa-receipt text-3xl text-gray-300 mb-2 block"></i>
-                                    <p>No transactions yet</p>
-                                </div>
-                            </div>
-                            <!-- How to use -->
-                            <div class="bg-gray-50 rounded-xl p-4 border">
-                                <h3 class="font-bold text-sm text-gray-700 mb-3">How Wallet Works</h3>
-                                <ul class="space-y-2 text-xs text-gray-600">
-                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout for instant payment</span></li>
-                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Earn wallet balance through referrals &amp; order returns</span></li>
-                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Withdraw earned balance to your UPI / bank account</span></li>
-                                    <li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Minimum withdrawal amount: ₹50</span></li>
-                                </ul>
-                            </div>
+                            <div id="wallet-transactions" class="mb-4"><h3 class="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-history text-gray-400"></i> Recent Activity</h3><div id="wallet-tx-list" class="space-y-2 text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-xl border"><i class="fas fa-receipt text-3xl text-gray-300 mb-2 block"></i><p>No transactions yet</p></div></div>
+                            <div class="bg-gray-50 rounded-xl p-4 border"><h3 class="font-bold text-sm text-gray-700 mb-3">How Wallet Works</h3><ul class="space-y-2 text-xs text-gray-600"><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout for instant payment</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Earn wallet balance through referrals &amp; order returns</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Withdraw earned balance to your UPI / bank account</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Minimum withdrawal amount: ₹50</span></li></ul></div>
                         </div>
-
-                        <!-- ============================================================
-                             REFERRALS TAB — UPDATED with 3 tabs: Pending / Confirmed / Cancelled
-                             ============================================================ -->
                         <div id="tab-referrals" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
-                            <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2">
-                                <i class="fas fa-gift text-green-600"></i> My Referrals &amp; Earnings
-                            </h2>
-
-                            <!-- 3-card summary -->
+                            <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2"><i class="fas fa-gift text-green-600"></i> My Referrals &amp; Earnings</h2>
                             <div class="grid grid-cols-3 gap-3 mb-6">
-                                <div class="bg-gradient-to-br from-yellow-50 to-amber-50 p-3 rounded-xl border border-yellow-200">
-                                    <p class="text-[10px] text-amber-700 font-bold uppercase mb-1">Pending</p>
-                                    <p class="text-xl font-black text-amber-600" id="pending-earnings">₹0</p>
-                                    <p class="text-[10px] text-amber-600 mt-1">Confirms in 30d</p>
-                                </div>
-                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-xl border border-green-200">
-                                    <p class="text-[10px] text-green-700 font-bold uppercase mb-1">Confirmed</p>
-                                    <p class="text-xl font-black text-green-600" id="confirmed-earnings">₹0</p>
-                                    <p class="text-[10px] text-green-600 mt-1">Added to wallet</p>
-                                </div>
-                                <div class="bg-gradient-to-br from-red-50 to-rose-50 p-3 rounded-xl border border-red-200">
-                                    <p class="text-[10px] text-red-700 font-bold uppercase mb-1">Cancelled</p>
-                                    <p class="text-xl font-black text-red-400" id="cancelled-earnings">₹0</p>
-                                    <p class="text-[10px] text-red-500 mt-1">Order cancelled</p>
-                                </div>
+                                <div class="bg-gradient-to-br from-yellow-50 to-amber-50 p-3 rounded-xl border border-yellow-200"><p class="text-[10px] text-amber-700 font-bold uppercase mb-1">Pending</p><p class="text-xl font-black text-amber-600" id="pending-earnings">₹0</p></div>
+                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-xl border border-green-200"><p class="text-[10px] text-green-700 font-bold uppercase mb-1">Confirmed</p><p class="text-xl font-black text-green-600" id="confirmed-earnings">₹0</p></div>
+                                <div class="bg-gradient-to-br from-red-50 to-rose-50 p-3 rounded-xl border border-red-200"><p class="text-[10px] text-red-700 font-bold uppercase mb-1">Cancelled</p><p class="text-xl font-black text-red-400" id="cancelled-earnings">₹0</p></div>
                             </div>
-
-                            <!-- Info Box -->
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                <div class="flex gap-3">
-                                    <i class="fas fa-info-circle text-blue-500 text-xl mt-1"></i>
-                                    <div class="text-sm text-blue-800">
-                                        <p class="font-bold mb-2">How Referral Earnings Work:</p>
-                                        <ul class="space-y-1 text-xs">
-                                            <li>✓ Share products with your referral code</li>
-                                            <li>✓ Earn 5% when friends purchase via your link</li>
-                                            <li>✓ Earnings show as <strong>Pending</strong> after order placed</li>
-                                            <li>✓ Auto-confirmed &amp; wallet credited after <strong>30 days</strong></li>
-                                            <li>❌ If buyer cancels → earning is also <strong>Cancelled</strong> (no wallet credit)</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3 Tabs -->
                             <div class="flex gap-0 mb-4 border-b overflow-x-auto hide-scrollbar">
-                                <button class="pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600 whitespace-nowrap"
-                                    id="btn-ref-pending" onclick="switchReferralTab('pending')">
-                                    Pending (<span id="pending-count">0</span>)
-                                </button>
-                                <button class="pb-2 px-4 text-sm font-bold text-gray-500 hover:text-gray-700 whitespace-nowrap"
-                                    id="btn-ref-confirmed" onclick="switchReferralTab('confirmed')">
-                                    Confirmed (<span id="confirmed-count">0</span>)
-                                </button>
-                                <button class="pb-2 px-4 text-sm font-bold text-gray-500 hover:text-gray-700 whitespace-nowrap"
-                                    id="btn-ref-cancelled" onclick="switchReferralTab('cancelled')">
-                                    Cancelled (<span id="cancelled-count">0</span>)
-                                </button>
+                                <button class="pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600 whitespace-nowrap" id="btn-ref-pending" onclick="switchReferralTab('pending')">Pending (<span id="pending-count">0</span>)</button>
+                                <button class="pb-2 px-4 text-sm font-bold text-gray-500 hover:text-gray-700 whitespace-nowrap" id="btn-ref-confirmed" onclick="switchReferralTab('confirmed')">Confirmed (<span id="confirmed-count">0</span>)</button>
+                                <button class="pb-2 px-4 text-sm font-bold text-gray-500 hover:text-gray-700 whitespace-nowrap" id="btn-ref-cancelled" onclick="switchReferralTab('cancelled')">Cancelled (<span id="cancelled-count">0</span>)</button>
                             </div>
-
-                            <!-- Pending List -->
-                            <div id="referrals-pending-list" class="space-y-3">
-                                <div class="text-center py-10 text-gray-400">
-                                    <i class="fas fa-hourglass-half text-5xl mb-3"></i>
-                                    <p class="font-semibold">No pending referrals</p>
-                                    <p class="text-sm mt-1">Share products to start earning!</p>
-                                </div>
-                            </div>
-
-                            <!-- Confirmed List -->
-                            <div id="referrals-confirmed-list" class="space-y-3 hidden">
-                                <div class="text-center py-10 text-gray-400">
-                                    <i class="fas fa-check-circle text-5xl mb-3"></i>
-                                    <p class="font-semibold">No confirmed earnings yet</p>
-                                    <p class="text-sm mt-1">Earnings appear here after 30 days</p>
-                                </div>
-                            </div>
-
-                            <!-- Cancelled List -->
-                            <div id="referrals-cancelled-list" class="space-y-3 hidden">
-                                <div class="text-center py-10 text-gray-400">
-                                    <i class="fas fa-times-circle text-5xl mb-3"></i>
-                                    <p class="font-semibold">No cancelled referrals</p>
-                                    <p class="text-sm mt-1">Cancelled orders appear here</p>
-                                </div>
-                            </div>
+                            <div id="referrals-pending-list" class="space-y-3"></div>
+                            <div id="referrals-confirmed-list" class="space-y-3 hidden"></div>
+                            <div id="referrals-cancelled-list" class="space-y-3 hidden"></div>
                         </div>
-
-                        <!-- Security Tab -->
                         <div id="tab-security" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Security Settings</h2><div class="max-w-md space-y-3"><input type="password" id="sec-old-pass" placeholder="Current Password" class="w-full border p-2 rounded outline-none text-sm"><input type="password" id="sec-new-pass" placeholder="New Password" class="w-full border p-2 rounded outline-none text-sm"><button class="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-900" onclick="changePassword()">Change Password</button></div></div>
-
-                        <!-- Help Tab -->
                         <div id="tab-help" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2">Help, Info &amp; Policies</h2>
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6"><p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-2"></i><strong>Need immediate help?</strong> Use the WhatsApp or Email buttons in the sidebar menu on the left!</p></div>
                             <div class="space-y-3">
-                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">FAQs <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Q: How long does delivery take?</strong><br>A: Standard delivery takes 3-5 days.</p><p><strong>Q: How can I track my order?</strong><br>A: Click 'Track Order' in the My Orders tab.</p></div></div>
-                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">Our Policies <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Return Policy:</strong> Return unused items within 7 days.</p><p><strong>Privacy Policy:</strong> Your data is secured and never shared.</p></div></div>
-                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">About Us <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p class="font-bold text-gray-800">OutfitKart</p><p>Premium Fashion at Best Prices.</p><p><i class="fas fa-envelope text-rose-500 w-5"></i> <a href="/cdn-cgi/l/email-protection#6a19020b03060f1902011f070b1809020b1f020b0453595e5a2a0d070b030644090507" class="text-blue-600 hover:underline"><span class="__cf_email__" data-cfemail="0a79626b63666f7962617f676b7869626b7f626b6433393e3a4a6d676b636624696567">[email&#160;protected]</span></a></p></div></div>
+                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">FAQs <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Q: How long does delivery take?</strong><br>A: Standard delivery takes 3-5 days.</p></div></div>
+                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">Our Policies <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t"><p><strong>Return Policy:</strong> Return unused items within 7 days.</p></div></div>
                             </div>
                         </div>
                     </div>
@@ -862,64 +659,169 @@
             </div>
         </div>
 
-        <!-- ADMIN VIEW -->
+        <!-- ═══════════════════════════════════════════════════════
+             ADMIN VIEW — Professional Redesign
+             ═══════════════════════════════════════════════════════ -->
         <div id="view-admin" class="view-section hidden">
-            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white sticky top-16 z-30 shadow-lg">
-                <div class="flex items-center justify-between p-4">
+            <!-- Admin Header Bar — shows admin name -->
+            <div class="admin-sidebar-logo text-white sticky top-0 z-30 shadow-xl">
+                <div class="flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
-                        <button onclick="toggleAdminSidebar()" class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 active:scale-95"><i class="fas fa-bars text-xl"></i></button>
-                        <div><h2 class="text-xl font-black flex items-center gap-2"><i class="fas fa-shield-alt"></i> Admin Panel</h2><p class="text-xs text-purple-100">Manage your store</p></div>
+                        <button onclick="toggleAdminSidebar()" class="md:hidden w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/10 active:scale-95 transition-all">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-shield-alt text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-black leading-none">Admin Panel</h2>
+                                <p class="text-[10px] text-purple-200 mt-0.5">OutfitKart Control Center</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="exitAdmin()" class="text-xs text-purple-100 hover:text-white underline hidden md:block"><i class="fas fa-home mr-1"></i>Exit to Store</button>
-                        <button onclick="adminLogout()" class="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm"><i class="fas fa-sign-out-alt mr-1"></i>Logout</button>
+                    <div class="flex items-center gap-2">
+                        <!-- Admin name pill — shows logged-in admin name -->
+                        <div id="admin-user-name-pill" class="hidden md:flex items-center gap-1.5">
+                            <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-[10px] font-black" id="admin-avatar-initial">A</div>
+                            <span id="admin-display-name" class="text-xs font-bold">Admin</span>
+                        </div>
+                        <button onclick="exitAdmin()" class="hidden md:flex items-center gap-1.5 text-xs text-purple-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all">
+                            <i class="fas fa-home text-xs"></i> Store
+                        </button>
+                        <button onclick="adminLogout()" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
+                            <i class="fas fa-sign-out-alt text-xs"></i><span class="hidden sm:inline">Logout</span>
+                        </button>
                     </div>
                 </div>
+                <!-- Stats row -->
                 <div class="grid grid-cols-3 gap-2 px-4 pb-3">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center"><p class="text-[10px] text-purple-100 uppercase font-bold">Sales</p><h3 class="text-sm font-black" id="admin-total-sales">₹0</h3></div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center"><p class="text-[10px] text-purple-100 uppercase font-bold">Orders</p><h3 class="text-sm font-black" id="admin-order-count">0</h3></div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center"><p class="text-[10px] text-purple-100 uppercase font-bold">Payouts</p><h3 class="text-sm font-black" id="admin-pending-withdraw">0</h3></div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
+                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Revenue</p>
+                        <h3 class="text-sm font-black mt-0.5" id="admin-total-sales">₹0</h3>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
+                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Orders</p>
+                        <h3 class="text-sm font-black mt-0.5" id="admin-order-count">0</h3>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5 text-center border border-white/10">
+                        <p class="text-[10px] text-purple-200 uppercase font-bold tracking-wider">Payouts</p>
+                        <h3 class="text-sm font-black mt-0.5" id="admin-pending-withdraw">0</h3>
+                    </div>
                 </div>
             </div>
+
             <div class="flex min-h-screen bg-gray-50">
-                <div id="admin-sidebar" class="fixed md:sticky top-16 md:top-0 left-0 w-64 bg-white border-r shadow-xl z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 h-screen md:h-auto overflow-y-auto">
-                    <div class="md:hidden flex items-center justify-between p-4 border-b bg-purple-50"><span class="font-bold text-purple-700">Menu</span><button onclick="toggleAdminSidebar()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-purple-100"><i class="fas fa-times text-gray-600"></i></button></div>
-                    <nav class="p-3 space-y-1">
-                        <button onclick="switchAdminTab('dashboard')" id="btn-admin-dashboard" class="admin-nav-btn active w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-chart-line w-5"></i><span>Dashboard</span></button>
-                        <button onclick="switchAdminTab('products')" id="btn-admin-products" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-box-open w-5"></i><span>Products</span></button>
-                        <button onclick="switchAdminTab('inventory')" id="btn-admin-inventory" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-plus-circle w-5"></i><span>Add Product</span></button>
-                        <button onclick="switchAdminTab('order')" id="btn-admin-order" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-shopping-cart w-5"></i><span>Orders</span></button>
-                        <button onclick="switchAdminTab('users')" id="btn-admin-users" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-users w-5"></i><span>Users</span></button>
-                        <button onclick="switchAdminTab('payout')" id="btn-admin-payout" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-wallet w-5"></i><span>Withdrawals</span></button>
-                        <button onclick="switchAdminTab('referrals')" id="btn-admin-referrals" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg font-semibold text-sm transition-all"><i class="fas fa-gift w-5"></i><span>Referrals</span></button>
+                <!-- ═══ ADMIN SIDEBAR — Professional ═══ -->
+                <div id="admin-sidebar" class="fixed md:sticky top-0 left-0 w-64 bg-white border-r border-gray-100 shadow-xl z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 h-screen overflow-y-auto">
+                    <!-- Sidebar brand -->
+                    <div class="admin-sidebar-logo p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-shopping-bag text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="text-white font-black text-base leading-none">OutfitKart</div>
+                            <div class="text-purple-200 text-[10px] font-semibold mt-0.5">Admin Dashboard</div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile close button -->
+                    <div class="md:hidden flex items-center justify-between px-4 py-2 border-b bg-gray-50">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Navigation</span>
+                        <button onclick="toggleAdminSidebar()" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 active:scale-95">
+                            <i class="fas fa-times text-gray-500 text-sm"></i>
+                        </button>
+                    </div>
+
+                    <nav class="p-3 space-y-0.5">
+                        <!-- Overview section -->
+                        <div class="admin-nav-section-label">Overview</div>
+                        <button onclick="switchAdminTab('dashboard')" id="btn-admin-dashboard" class="admin-nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
+                            <span class="flex-1 text-left">Dashboard</span>
+                        </button>
+
+                        <!-- Catalog section -->
+                        <div class="admin-nav-section-label mt-2">Catalog</div>
+                        <button onclick="switchAdminTab('products')" id="btn-admin-products" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-box-open"></i></span>
+                            <span class="flex-1 text-left">All Products</span>
+                            <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold" id="sidebar-product-count">0</span>
+                        </button>
+                        <button onclick="switchAdminTab('inventory')" id="btn-admin-inventory" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-plus-circle"></i></span>
+                            <span class="flex-1 text-left">Add Product</span>
+                        </button>
+
+                        <!-- Operations section -->
+                        <div class="admin-nav-section-label mt-2">Operations</div>
+                        <button onclick="switchAdminTab('order')" id="btn-admin-order" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-shopping-cart"></i></span>
+                            <span class="flex-1 text-left">Orders</span>
+                            <span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold hidden" id="sidebar-orders-badge">!</span>
+                        </button>
+                        <button onclick="switchAdminTab('users')" id="btn-admin-users" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-users"></i></span>
+                            <span class="flex-1 text-left">Users</span>
+                        </button>
+
+                        <!-- Finance section -->
+                        <div class="admin-nav-section-label mt-2">Finance</div>
+                        <button onclick="switchAdminTab('payout')" id="btn-admin-payout" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-wallet"></i></span>
+                            <span class="flex-1 text-left">Withdrawals</span>
+                        </button>
+                        <button onclick="switchAdminTab('referrals')" id="btn-admin-referrals" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon"><i class="fas fa-gift"></i></span>
+                            <span class="flex-1 text-left">Referrals</span>
+                        </button>
+
+                        <!-- Footer actions -->
+                        <div class="pt-4 mt-4 border-t border-gray-100 space-y-1">
+                            <button onclick="exitAdmin()" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                                <span class="nav-icon"><i class="fas fa-home"></i></span>
+                                <span class="flex-1 text-left">Back to Store</span>
+                            </button>
+                            <button onclick="adminLogout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm text-red-500 hover:bg-red-50 transition-all">
+                                <span class="nav-icon bg-red-50 text-red-500"><i class="fas fa-sign-out-alt"></i></span>
+                                <span class="flex-1 text-left">Logout</span>
+                            </button>
+                        </div>
                     </nav>
                 </div>
+
                 <div id="admin-sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="toggleAdminSidebar()"></div>
-                <div class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full">
+
+                <div class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full min-w-0">
                     <div id="admin-tab-dashboard" class="admin-content-tab"><div id="admin-dashboard-content"></div></div>
+
+                    <!-- Products Tab — NO upload section shown here -->
                     <div id="admin-tab-products" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
-                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg text-gray-800">All Products</h3><button onclick="renderAdminProducts()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button></div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg text-gray-800">All Products</h3>
+                            <button onclick="renderAdminProducts()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+                        </div>
                         <div class="overflow-y-auto max-h-[70vh] border rounded-lg bg-gray-50" id="admin-product-list"></div>
                     </div>
+
+                    <!-- Add Product Tab — Full form with upload -->
                     <div id="admin-tab-inventory" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
                         <h3 class="font-bold text-lg md:text-xl mb-4 border-b pb-3 text-purple-700 flex items-center gap-2"><i class="fas fa-plus-circle"></i> Add New Product</h3>
                         <form id="add-product-form" onsubmit="adminAddProduct(event)" class="space-y-4">
                             <div class="flex items-center justify-center gap-6 bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border-2 border-purple-100 mb-2">
-                                <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="entry-mode" value="auto" id="mode-auto" checked class="w-5 h-5 accent-purple-600" onchange="toggleProductMode('auto')"><i class="fas fa-magic text-purple-500 text-lg"></i><span>🔍 Auto-Import (ScrapingBee)</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="entry-mode" value="auto" id="mode-auto" checked class="w-5 h-5 accent-purple-600" onchange="toggleProductMode('auto')"><i class="fas fa-magic text-purple-500 text-lg"></i><span>🔍 Auto-Import</span></label>
                                 <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="entry-mode" value="manual" id="mode-manual" class="w-5 h-5 accent-emerald-600" onchange="toggleProductMode('manual')"><i class="fas fa-calculator text-emerald-500 text-lg"></i><span>✏️ Manual Add</span></label>
                             </div>
                             <div id="auto-import-fields" class="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 border-2 border-indigo-200 rounded-2xl p-5 shadow-sm">
                                 <div class="flex items-center gap-3 mb-4">
                                     <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"><i class="fas fa-robot text-white text-sm"></i></div>
                                     <div class="flex-1 min-w-0"><h4 class="font-black text-sm text-indigo-800 uppercase tracking-wide">Smart Import</h4><p class="text-[11px] text-indigo-500 font-medium">Meesho · Amazon · Flipkart · Myntra</p></div>
-                                    <span class="bg-indigo-100 text-indigo-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-indigo-200 uppercase tracking-wide whitespace-nowrap flex-shrink-0"><i class="fas fa-bolt mr-1"></i>ScrapingBee</span>
                                 </div>
                                 <div class="flex gap-2">
-                                    <div class="flex-1 relative"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-link text-indigo-400 text-sm"></i></div><input type="url" id="scrape-url" placeholder="Paste supplier URL... (Meesho, Amazon, Flipkart, Myntra)" class="w-full pl-9 pr-4 py-3 border-2 border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none bg-white font-medium placeholder-indigo-300 transition-all"></div>
-                                    <button type="button" onclick="scrapeProductFromUrl()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-black text-sm shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center gap-2 flex-shrink-0"><i class="fas fa-search-plus"></i><span class="hidden sm:inline">Fetch Data</span></button>
+                                    <div class="flex-1 relative"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-link text-indigo-400 text-sm"></i></div><input type="url" id="scrape-url" placeholder="Paste supplier URL..." class="w-full pl-9 pr-4 py-3 border-2 border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium"></div>
+                                    <button type="button" onclick="scrapeProductFromUrl()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition-all flex items-center gap-2 flex-shrink-0"><i class="fas fa-search-plus"></i><span class="hidden sm:inline">Fetch</span></button>
                                 </div>
                                 <div id="scrape-status" class="hidden mt-3 items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border"></div>
-                                <div class="flex flex-wrap gap-1.5 mt-3 items-center"><span class="text-[10px] text-indigo-400 font-bold uppercase tracking-wide mr-1">Works with:</span><span class="bg-pink-100 text-pink-700 border border-pink-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Meesho</span><span class="bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Amazon</span><span class="bg-blue-100 text-blue-700 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Flipkart</span><span class="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full">Myntra</span><span class="bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-bold px-2 py-0.5 rounded-full">+ More</span></div>
                             </div>
                             <div id="manual-fields" class="space-y-4 hidden">
                                 <div class="grid grid-cols-2 gap-3">
@@ -934,39 +836,16 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <input type="text" id="ap-name" placeholder="Product Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
                                 <input type="number" id="ap-price" placeholder="Selling Price (Auto-calc)" required class="w-full border p-2.5 rounded-lg text-sm text-blue-600 font-bold outline-none">
-                                <select id="ap-category" onchange="updateDropdownSubs('ap-category','ap-sub')" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="Men">Men</option><option value="Women">Women</option><option value="Perfumes">Perfumes</option><option value="Kids">Kids</option></select>
+                                <select id="ap-category" onchange="updateDropdownSubs('ap-category','ap-sub'); updateSizeSection(this.value)" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="Men">Men</option><option value="Women">Women</option><option value="Perfumes">Perfumes</option><option value="Kids">Kids</option></select>
                                 <select id="ap-sub" class="w-full border p-2.5 rounded-lg text-sm bg-white" required><option value="">Select Subcategory</option></select>
                                 <input type="text" id="ap-brand" placeholder="Brand Name" required class="w-full border p-2.5 rounded-lg text-sm outline-none">
                             </div>
                             <div class="flex flex-col gap-1"><div class="flex justify-between items-center"><label class="text-[10px] font-bold text-gray-400 ml-1">DESCRIPTION</label><button type="button" onclick="autoGenerateDescription()" class="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200 font-bold">Auto Generate</button></div><textarea id="ap-desc" placeholder="Product details..." required class="w-full border p-2.5 rounded-lg h-20 text-sm outline-none"></textarea></div>
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500"><input type="number" id="ap-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0"></div>
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-stock" placeholder="Total Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50"></div>
-                            <!-- ML Size section for Perfumes -->
-                            <div id="admin-ml-section" class="hidden">
-                                <label class="text-[10px] font-bold text-purple-600 ml-1 mb-2 block uppercase">🌸 Available Volumes (ML) — Perfumes</label>
-                                <div class="grid grid-cols-3 md:grid-cols-9 gap-2 text-xs bg-purple-50 p-3 rounded-xl border border-purple-200">
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="10ml" class="ml-admin-chk accent-purple-600"> 10ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="20ml" class="ml-admin-chk accent-purple-600"> 20ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="30ml" class="ml-admin-chk accent-purple-600"> 30ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="50ml" class="ml-admin-chk accent-purple-600" checked> 50ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="75ml" class="ml-admin-chk accent-purple-600" checked> 75ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="100ml" class="ml-admin-chk accent-purple-600" checked> 100ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="150ml" class="ml-admin-chk accent-purple-600"> 150ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="200ml" class="ml-admin-chk accent-purple-600"> 200ml</label>
-                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="250ml" class="ml-admin-chk accent-purple-600"> 250ml</label>
-                                </div>
-                            </div>
-                            <!-- Clothing/footwear sizes section (hidden for perfumes) -->
-                            <div id="admin-size-section">
-                            <label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label>
-                                <div class="grid grid-cols-3 md:grid-cols-4 gap-1.5 text-xs">
-                                    <div class="border rounded p-1.5 bg-gray-50"><span class="text-[9px] font-bold text-gray-500 block text-center mb-1 uppercase">Clothing</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="XS" class="size-admin-chk"> XS</label><label><input type="checkbox" value="S" class="size-admin-chk" checked> S</label><label><input type="checkbox" value="M" class="size-admin-chk" checked> M</label><label><input type="checkbox" value="L" class="size-admin-chk" checked> L</label><label><input type="checkbox" value="XL" class="size-admin-chk"> XL</label><label><input type="checkbox" value="XXL" class="size-admin-chk"> XXL</label><label><input type="checkbox" value="XXXL" class="size-admin-chk"> 3XL</label></div></div>
-                                    <div class="border rounded p-1.5 bg-blue-50"><span class="text-[9px] font-bold text-blue-600 block text-center mb-1 uppercase">Pants/Jeans</span><div class="grid grid-cols-2 gap-1 text-[10px]"><label><input type="checkbox" value="28" class="size-admin-chk"> 28</label><label><input type="checkbox" value="30" class="size-admin-chk" checked> 30</label><label><input type="checkbox" value="32" class="size-admin-chk" checked> 32</label><label><input type="checkbox" value="34" class="size-admin-chk"> 34</label><label><input type="checkbox" value="36" class="size-admin-chk"> 36</label><label><input type="checkbox" value="38" class="size-admin-chk"> 38</label><label><input type="checkbox" value="40" class="size-admin-chk"> 40</label></div></div>
-                                    <div class="border rounded p-1.5 bg-green-50"><span class="text-[9px] font-bold text-green-600 block text-center mb-1 uppercase">Footwear</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="5" class="size-admin-chk"> 5</label><label><input type="checkbox" value="6" class="size-admin-chk"> 6</label><label><input type="checkbox" value="7" class="size-admin-chk"> 7</label><label><input type="checkbox" value="8" class="size-admin-chk" checked> 8</label><label><input type="checkbox" value="9" class="size-admin-chk" checked> 9</label><label><input type="checkbox" value="10" class="size-admin-chk"> 10</label><label><input type="checkbox" value="11" class="size-admin-chk"> 11</label><label><input type="checkbox" value="12" class="size-admin-chk"> 12</label></div></div>
-                                    <label class="col-span-full flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg cursor-pointer"><input type="checkbox" value="Free Size" class="size-admin-chk"> <span class="font-bold text-sm text-purple-700">Free Size</span></label>
-                                </div>
-                            </div>
-                            </div><!-- end admin-size-section -->
+                            <div id="admin-ml-section" class="hidden"><label class="text-[10px] font-bold text-purple-600 ml-1 mb-2 block uppercase">🌸 Available Volumes (ML)</label><div class="grid grid-cols-3 md:grid-cols-9 gap-2 text-xs bg-purple-50 p-3 rounded-xl border border-purple-200"><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="10ml" class="ml-admin-chk accent-purple-600"> 10ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="20ml" class="ml-admin-chk accent-purple-600"> 20ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="30ml" class="ml-admin-chk accent-purple-600"> 30ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="50ml" class="ml-admin-chk accent-purple-600" checked> 50ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="75ml" class="ml-admin-chk accent-purple-600" checked> 75ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="100ml" class="ml-admin-chk accent-purple-600" checked> 100ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="150ml" class="ml-admin-chk accent-purple-600"> 150ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="200ml" class="ml-admin-chk accent-purple-600"> 200ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="250ml" class="ml-admin-chk accent-purple-600"> 250ml</label></div></div>
+                            <div id="admin-size-section"><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label><div class="grid grid-cols-3 md:grid-cols-4 gap-1.5 text-xs"><div class="border rounded p-1.5 bg-gray-50"><span class="text-[9px] font-bold text-gray-500 block text-center mb-1 uppercase">Clothing</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="XS" class="size-admin-chk"> XS</label><label><input type="checkbox" value="S" class="size-admin-chk" checked> S</label><label><input type="checkbox" value="M" class="size-admin-chk" checked> M</label><label><input type="checkbox" value="L" class="size-admin-chk" checked> L</label><label><input type="checkbox" value="XL" class="size-admin-chk"> XL</label><label><input type="checkbox" value="XXL" class="size-admin-chk"> XXL</label><label><input type="checkbox" value="XXXL" class="size-admin-chk"> 3XL</label></div></div><div class="border rounded p-1.5 bg-blue-50"><span class="text-[9px] font-bold text-blue-600 block text-center mb-1 uppercase">Pants/Jeans</span><div class="grid grid-cols-2 gap-1 text-[10px]"><label><input type="checkbox" value="28" class="size-admin-chk"> 28</label><label><input type="checkbox" value="30" class="size-admin-chk" checked> 30</label><label><input type="checkbox" value="32" class="size-admin-chk" checked> 32</label><label><input type="checkbox" value="34" class="size-admin-chk"> 34</label><label><input type="checkbox" value="36" class="size-admin-chk"> 36</label><label><input type="checkbox" value="38" class="size-admin-chk"> 38</label><label><input type="checkbox" value="40" class="size-admin-chk"> 40</label></div></div><div class="border rounded p-1.5 bg-green-50"><span class="text-[9px] font-bold text-green-600 block text-center mb-1 uppercase">Footwear</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="5" class="size-admin-chk"> 5</label><label><input type="checkbox" value="6" class="size-admin-chk"> 6</label><label><input type="checkbox" value="7" class="size-admin-chk"> 7</label><label><input type="checkbox" value="8" class="size-admin-chk" checked> 8</label><label><input type="checkbox" value="9" class="size-admin-chk" checked> 9</label><label><input type="checkbox" value="10" class="size-admin-chk"> 10</label><label><input type="checkbox" value="11" class="size-admin-chk"> 11</label><label><input type="checkbox" value="12" class="size-admin-chk"> 12</label></div></div><label class="col-span-full flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg cursor-pointer"><input type="checkbox" value="Free Size" class="size-admin-chk"> <span class="font-bold text-sm text-purple-700">Free Size</span></label></div></div>
+                            <!-- Image Upload — ONLY shown in Add Product tab -->
                             <div class="flex flex-col mb-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ap-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
                             <div class="flex flex-col"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Image URLs</label><textarea id="ap-imgs" placeholder="Upload above or paste URLs (one per line)..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea></div>
                             <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">Add to Database</button>
@@ -991,6 +870,7 @@
                                 <div class="grid grid-cols-2 gap-3"><input type="number" id="ep-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500"><input type="number" id="ep-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0"></div>
                                 <input type="number" id="ep-stock" placeholder="Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50">
                                 <div><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label><div class="grid grid-cols-4 md:grid-cols-6 gap-2 text-xs" id="ep-sizes-grid"></div></div>
+                                <!-- Edit form also gets upload section -->
                                 <div class="flex flex-col mb-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ep-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
                                 <textarea id="ep-imgs" placeholder="Image URLs (one per line)..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea>
                                 <div class="flex gap-3 pt-4 border-t"><button type="submit" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">💾 Update Product</button><button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold hover:bg-gray-600">Cancel</button></div>
@@ -1028,22 +908,16 @@
                         </div>
                     </div>
 
-                    <!-- Referrals Admin Tab -->
+                    <!-- Referrals Tab -->
                     <div id="admin-tab-referrals" class="admin-content-tab hidden space-y-3">
                         <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="font-bold text-lg text-green-700 flex items-center gap-2"><i class="fas fa-gift"></i> All Referral Earnings</h3>
                                 <button onclick="loadAdminReferrals()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
                             </div>
-                            <div id="admin-referrals-content">
-                                <div class="text-center py-16 text-gray-400">
-                                    <i class="fas fa-gift text-5xl mb-4"></i>
-                                    <p class="font-semibold">Click Refresh to load referrals</p>
-                                </div>
-                            </div>
+                            <div id="admin-referrals-content"><div class="text-center py-16 text-gray-400"><i class="fas fa-gift text-5xl mb-4"></i><p class="font-semibold">Click Refresh to load referrals</p></div></div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -1105,10 +979,7 @@
 
     <!-- Order Cancelled Screen -->
     <div id="order-cancel-modal" class="fixed inset-0 bg-white z-[200] hidden flex-col items-center justify-center text-center p-6">
-        <div class="w-28 h-28 mb-6 relative">
-            <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><polygon points="60,48 10,28 60,8 110,28" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="10,28 10,78 60,98 60,48" fill="#f1f5f9" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="110,28 110,78 60,98 60,48" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/></svg>
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"><i class="fas fa-times text-white text-lg"></i></div>
-        </div>
+        <div class="w-28 h-28 mb-6 relative"><svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><polygon points="60,48 10,28 60,8 110,28" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="10,28 10,78 60,98 60,48" fill="#f1f5f9" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="110,28 110,78 60,98 60,48" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/></svg><div class="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"><i class="fas fa-times text-white text-lg"></i></div></div>
         <h2 class="text-3xl font-black text-gray-900 mb-2 uppercase">Order Cancelled</h2>
         <p class="text-gray-500 mb-3">Your order has been successfully cancelled.</p>
         <p id="cancel-refund-msg" class="text-sm text-green-600 font-semibold mb-8 hidden">💰 Refund will be credited to your UPI within 24-48 hours.</p>
@@ -1139,7 +1010,7 @@
 
     <!-- Admin Login Modal -->
     <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4 flex backdrop-blur-sm">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div class="text-center mb-6"><div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-alt text-purple-600 text-2xl"></i></div><h2 class="text-2xl font-black text-gray-900 mb-1">Admin Login</h2><p class="text-sm text-gray-500">Enter credentials to access admin panel</p></div>
             <form onsubmit="handleAdminLogin(event)" class="space-y-4">
                 <div><label class="block text-sm font-semibold text-gray-700 mb-2">Username</label><input type="text" id="admin-username" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none" placeholder="Enter username"></div>
@@ -1154,13 +1025,6 @@
     <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
         <div class="flex items-center gap-3"><div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><i class="fas fa-shopping-bag text-2xl"></i></div><div><h3 class="font-bold text-lg">OutfitKart</h3><p class="text-sm opacity-90">Install for better experience</p></div></div>
         <div class="flex gap-3"><button onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95">Install App</button><button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10">Not Now</button></div>
-    </div>
-
-    <!-- PWA Install Modal (Mobile) -->
-    <div id="pwa-install-modal" class="fixed inset-0 bg-white z-[70] hidden flex-col">
-        <div class="p-6 border-b flex items-center gap-3"><div class="w-16 h-16 bg-gradient-to-br from-rose-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-2xl"><i class="fas fa-crown text-2xl"></i></div><div><h2 class="text-2xl font-black text-gray-900">Add OutfitKart to Home Screen</h2><p class="text-gray-600 mt-1">Get lightning-fast access</p></div></div>
-        <div class="flex-1 p-8 text-center"><div class="mx-auto w-24 h-24 bg-rose-100 rounded-3xl flex items-center justify-center mb-6"><i class="fas fa-mobile-alt text-3xl text-rose-600"></i></div><ul class="text-left max-w-md mx-auto text-sm text-gray-600 space-y-2"><li class="flex items-center gap-2"><i class="fas fa-bolt text-rose-500"></i>Lightning fast loading</li><li class="flex items-center gap-2"><i class="fas fa-wifi text-rose-500"></i>Works offline</li><li class="flex items-center gap-2"><i class="fas fa-home text-rose-500"></i>Home screen icon</li></ul></div>
-        <div class="p-6 border-t bg-gray-50 space-y-3"><button onclick="installApp()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-4 px-6 rounded-2xl font-black text-lg shadow-2xl active:scale-[0.98]"><i class="fas fa-plus-circle mr-2"></i>Download Outfitkart</button><button onclick="hideInstallBanner()" class="w-full border-2 border-gray-300 text-gray-700 py-3.5 px-6 rounded-2xl font-bold hover:bg-gray-50">Maybe Later</button></div>
     </div>
 
     <script src="script.js"></script>
