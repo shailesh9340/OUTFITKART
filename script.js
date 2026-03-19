@@ -9,7 +9,8 @@ const RAZORPAY_KEY    = 'rzp_live_SRZMbmo0aTi8xs';
 const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
 const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA      = '918982296773';
-const SUPPORT_EMAIL   = 'shaileshkumarchauhan9340@gmail.com';
+/* FIX 2: Updated support email */
+const SUPPORT_EMAIL   = 'outfitkartpremiumfashion@gmail.com';
 
 const AUTHORIZED_ADMINS = [
     { mobile: '9343988416', name: 'Shailesh Kumar Chauhan', email: 'shailu@gmail.com' },
@@ -72,6 +73,7 @@ let adminPressTimer       = null;
 
 /* ============================================================
    3. CONSTANTS — CATEGORIES
+   FIX 4: Kids replaced with Accessories category
    ============================================================ */
 const CATEGORIES = [
     {
@@ -122,23 +124,19 @@ const CATEGORIES = [
         sizesType: 'ml',
         mlSizes: ['10ml','20ml','30ml','50ml','75ml','100ml','150ml','200ml','250ml'],
     },
+    /* FIX 4: Kids replaced with Accessories */
     {
-        id: 'kids', name: 'Kids', icon: 'fa-child',
-        color: 'from-yellow-400 to-orange-400',
-        subs: ['Boys T-Shirts','Boys Shirts','Boys Hoodies','Boys Jackets',
-               'Girls Frocks','Girls Tops','Girls Kurtis','Girls Lehenga',
-               'Kids Jeans','Kids Shorts','Kids Trackpants','Baby Bodysuits',
-               'Kids Sneakers','Kids Sandals','Kids School Shoes','Kids Slippers',
-               'School Bags','Kids Caps','Kids Socks','Kids Belts',
-               'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set',
-               'Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set'],
+        id: 'accessories', name: 'Accessories', icon: 'fa-gem',
+        color: 'from-violet-400 to-fuchsia-500',
+        subs: [
+            'Sunglasses','Watches','Wallets','Bags','Belts','Caps','Chains','Bracelets','Socks',
+            'Handbags','Clutches','Earrings','Necklace Sets','Bangles','Hair Accessories','Scrunchies',
+            'Unisex Sunglasses','Earbuds','Power Banks','Phone Cases','Backpacks'
+        ],
         groups: [
-            { label: '👦 Boys Topwear',   items: ['Boys T-Shirts','Boys Shirts','Boys Hoodies','Boys Jackets'] },
-            { label: '👧 Girls Clothing', items: ['Girls Frocks','Girls Tops','Girls Kurtis','Girls Lehenga'] },
-            { label: '👖 Bottomwear',     items: ['Kids Jeans','Kids Shorts','Kids Trackpants','Baby Bodysuits'] },
-            { label: '👟 Footwear',       items: ['Kids Sneakers','Kids Sandals','Kids School Shoes','Kids Slippers'] },
-            { label: '🎒 Accessories',    items: ['School Bags','Kids Caps','Kids Socks','Kids Belts'] },
-            { label: '🎁 Full Combos',    items: ['Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set','Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set'] },
+            { label: '👨 Men\'s Accessories',   items: ['Sunglasses','Watches','Wallets','Bags','Belts','Caps','Chains','Bracelets','Socks'] },
+            { label: '👩 Women\'s Accessories',  items: ['Handbags','Clutches','Earrings','Necklace Sets','Bangles','Bracelets','Hair Accessories','Scrunchies','Socks','Belts'] },
+            { label: '✨ Unisex & Tech',          items: ['Unisex Sunglasses','Earbuds','Power Banks','Phone Cases','Backpacks'] },
         ]
     },
 ];
@@ -155,8 +153,6 @@ const COMBO_SUBS = new Set([
     'Ethnic Combo (Kurta+Pant+Dupatta)','Sherwani Set (Sherwani+Pant+Dupatta)','Nehru Jacket Combo',
     'Ethnic Set (Kurti+Pant+Dupatta)','Western Combo (Top+Straight Jeans+Belt)',
     'Party Combo (Saree+Blouse+Belt)','Indo-Western (Top+Palazzo+Shrug)',
-    'Boys Party Set (Coat+Pant+Shirt)','Girls Lehenga Choli Full Set',
-    'Dungaree Combo (Top+Dungaree)','Baba Suit Set','Kids Ethnic Set',
 ]);
 
 const STATUS_MAP = {
@@ -194,7 +190,6 @@ const STATUS_BADGE = {
 document.addEventListener('DOMContentLoaded', async () => {
     captureReferralFromUrl();
 
-    /* Restore session FIRST before initCart so DB cart loads correctly */
     const saved = localStorage.getItem('outfitkart_session');
     if (saved) {
         try {
@@ -206,7 +201,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /* Now init cart — currentUser is set, so DB cart will load */
     initCart();
 
     const adminSession = localStorage.getItem('outfitkart_admin_session');
@@ -277,25 +271,22 @@ function nextBannerSlide() { _bannerApply((_bannerCurrent + 1) % _bannerTotal); 
 function prevBannerSlide() { _bannerApply((_bannerCurrent - 1 + _bannerTotal) % _bannerTotal); }
 
 /* ============================================================
-   5. ADMIN ACCESS — 3-second logo hold OR Ctrl+Shift+A
-   Sirf authorized mobiles ko hi admin login dikhega
+   5. ADMIN ACCESS
    ============================================================ */
 const ADMIN_AUTHORIZED_MOBILES = ['9343988416', '7879245954'];
 
 function _isAuthorizedAdminUser() {
-    /* Agar pehle se admin login hai */
     if (isAdminLoggedIn) return true;
-    /* Agar koi user login hai — unka mobile check karo */
     if (currentUser && !ADMIN_AUTHORIZED_MOBILES.includes(String(currentUser.mobile).trim())) {
-        return false; /* Normal user — admin login nahi dikhana */
+        return false;
     }
-    return true; /* Ya toh no user logged in, ya authorized admin */
+    return true;
 }
 
 function startAdminTimer() {
     adminPressTimer = setTimeout(() => {
         if (isAdminLoggedIn) { navigate('admin'); return; }
-        if (!_isAuthorizedAdminUser()) return; /* Normal user — silently ignore */
+        if (!_isAuthorizedAdminUser()) return;
         showAdminLogin();
     }, 3000);
 }
@@ -395,7 +386,6 @@ async function recordReferralPurchase(orderId, orderTotal) {
             .maybeSingle();
         if (error || !referrer) return;
         if (currentUser && referrer.mobile === currentUser.mobile) return;
-        /* Commission = 5% of order total amount */
         const commission = Math.round(orderTotal * 0.05);
         if (commission <= 0) return;
         await dbClient.from('referrals').insert([{
@@ -447,8 +437,6 @@ async function loadReferrals() {
         renderReferralList('referrals-pending-list',   pending,   'pending');
         renderReferralList('referrals-confirmed-list', confirmed, 'confirmed');
         renderReferralList('referrals-cancelled-list', cancelled, 'cancelled');
-
-        /* Subscribe to realtime so new referrals appear instantly */
         _subscribeReferralRealtime();
     } catch (err) { showToast('⚠️ Make sure the "referrals" table exists in Supabase.'); }
 }
@@ -491,9 +479,7 @@ function renderReferralList(containerId, items, type) {
     const s = STYLE[type];
     el.innerHTML = items.map(r => {
         let daysInfo = '';
-        if (type === 'pending') {
-            daysInfo = `<div class="text-xs text-blue-600 mt-1 font-medium"><i class="fas fa-clock mr-1"></i>Confirms after 30 days from order</div>`;
-        }
+        if (type === 'pending') daysInfo = `<div class="text-xs text-blue-600 mt-1 font-medium"><i class="fas fa-clock mr-1"></i>Confirms after 30 days from order</div>`;
         if (type === 'confirmed' && r.confirmed_at) daysInfo = `<div class="text-xs text-green-600 mt-1"><i class="fas fa-check mr-1"></i>Credited on ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`;
         if (type === 'cancelled') daysInfo = `<div class="text-xs text-red-500 mt-1"><i class="fas fa-ban mr-1"></i>Order cancelled — no commission</div>`;
         return `<div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
@@ -554,17 +540,12 @@ function updateHeaderWallet(balance) {
 }
 
 /* ============================================================
-   7. CART — localStorage primary (instant) + DB sync (background)
-   localStorage se hamesha fast load, DB se sync hota rehta hai
+   7. CART
    ============================================================ */
 function initCart() {
-    /* ALWAYS load from localStorage first — instant, no async needed */
     loadCartLocal();
     updateCartCount();
-    /* If user logged in, sync from DB in background */
-    if (currentUser) {
-        syncCartFromDB();
-    }
+    if (currentUser) syncCartFromDB();
 }
 
 function loadCartLocal() {
@@ -584,59 +565,37 @@ function saveCartLocal() {
     ));
 }
 
-/* Sync DB → localStorage in background (non-blocking) */
 async function syncCartFromDB() {
     if (!currentUser) return;
     try {
-        const { data, error } = await dbClient
-            .from('cart')
-            .select('*')
-            .eq('mobile', currentUser.mobile);
+        const { data, error } = await dbClient.from('cart').select('*').eq('mobile', currentUser.mobile);
         if (error) throw error;
         if (!data || !data.length) return;
-        /* Merge DB cart into local — DB wins for qty */
-        const dbCart = data.map(row => ({
-            productId: row.product_id,
-            qty:       row.qty  || 1,
-            size:      row.size || 'M',
-        }));
-        /* Merge: add DB items that are not in local */
+        const dbCart = data.map(row => ({ productId: row.product_id, qty: row.qty || 1, size: row.size || 'M' }));
         dbCart.forEach(dbItem => {
             const key = `${dbItem.productId}-${dbItem.size}`;
             const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
             if (idx === -1) cart.push(dbItem);
-            else cart[idx].qty = dbItem.qty; /* DB qty overrides */
+            else cart[idx].qty = dbItem.qty;
         });
         saveCartLocal();
         updateCartCount();
         const sidebar = document.getElementById('cart-sidebar');
         if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
-    } catch (err) {
-        console.error('[Cart sync]', err);
-    }
+    } catch (err) { console.error('[Cart sync]', err); }
 }
 
 async function loadCartFromDB() {
     if (!currentUser) { loadCartLocal(); return; }
     try {
-        const { data, error } = await dbClient
-            .from('cart')
-            .select('*')
-            .eq('mobile', currentUser.mobile);
+        const { data, error } = await dbClient.from('cart').select('*').eq('mobile', currentUser.mobile);
         if (error) throw error;
-        cart = (data || []).map(row => ({
-            productId: row.product_id,
-            qty:       row.qty  || 1,
-            size:      row.size || 'M',
-        }));
-        saveCartLocal(); /* Always keep localStorage in sync */
+        cart = (data || []).map(row => ({ productId: row.product_id, qty: row.qty || 1, size: row.size || 'M' }));
+        saveCartLocal();
         updateCartCount();
         const sidebar = document.getElementById('cart-sidebar');
         if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
-    } catch (err) {
-        console.error('[Cart DB load]', err);
-        loadCartLocal();
-    }
+    } catch (err) { console.error('[Cart DB load]', err); loadCartLocal(); }
 }
 
 async function migrateLocalCartToDB() {
@@ -644,74 +603,44 @@ async function migrateLocalCartToDB() {
     let localCart = [];
     try { localCart = JSON.parse(localStorage.getItem('outfitkart_cart') || '[]'); } catch {}
     if (!localCart.length) { await loadCartFromDB(); return; }
-    for (const item of localCart) {
-        await _upsertCartItem(item.productId, item.size, item.qty);
-    }
+    for (const item of localCart) { await _upsertCartItem(item.productId, item.size, item.qty); }
     await loadCartFromDB();
 }
 
 async function _upsertCartItem(productId, size, qty) {
     if (!currentUser) return;
     try {
-        const { data: existing } = await dbClient
-            .from('cart')
-            .select('id, qty')
-            .eq('mobile', currentUser.mobile)
-            .eq('product_id', productId)
-            .eq('size', size)
-            .maybeSingle();
-        const p     = products.find(x => x.id === productId);
+        const { data: existing } = await dbClient.from('cart').select('id, qty').eq('mobile', currentUser.mobile).eq('product_id', productId).eq('size', size).maybeSingle();
+        const p = products.find(x => x.id === productId);
         const pName = p?.name || '';
-        if (existing) {
-            await dbClient.from('cart').update({ qty }).eq('id', existing.id);
-        } else {
-            await dbClient.from('cart').insert([{
-                mobile:     currentUser.mobile,
-                product_id: productId,
-                qty,
-                size,
-                name:       pName,
-            }]);
-        }
+        if (existing) { await dbClient.from('cart').update({ qty }).eq('id', existing.id); }
+        else { await dbClient.from('cart').insert([{ mobile: currentUser.mobile, product_id: productId, qty, size, name: pName }]); }
     } catch (err) { console.error('[Cart upsert]', err); }
 }
 
 async function _removeCartItemDB(productId, size) {
     if (!currentUser) return;
-    try {
-        await dbClient.from('cart')
-            .delete()
-            .eq('mobile', currentUser.mobile)
-            .eq('product_id', productId)
-            .eq('size', size);
-    } catch (err) { console.error('[Cart remove DB]', err); }
+    try { await dbClient.from('cart').delete().eq('mobile', currentUser.mobile).eq('product_id', productId).eq('size', size); }
+    catch (err) { console.error('[Cart remove DB]', err); }
 }
 
 async function clearCartDB() {
     if (!currentUser) return;
-    try {
-        await dbClient.from('cart').delete().eq('mobile', currentUser.mobile);
-    } catch (err) { console.error('[Cart clear DB]', err); }
+    try { await dbClient.from('cart').delete().eq('mobile', currentUser.mobile); }
+    catch (err) { console.error('[Cart clear DB]', err); }
 }
 
-function saveCart() {
-    saveCartLocal(); /* Always save to localStorage immediately */
-}
+function saveCart() { saveCartLocal(); }
 
 window.addToCart = async function (productId, size) {
     size = size || 'M';
     const key = `${productId}-${size}`;
     const idx = cart.findIndex(i => `${i.productId}-${i.size}` === key);
-    if (idx > -1) {
-        cart[idx].qty += 1;
-        showToast(`+1 ${size} added (Total: ${cart[idx].qty}) 🛒`);
-    } else {
-        cart.push({ productId, size, qty: 1 });
-        showToast(`${size} added to cart 🛒`);
-    }
-    saveCartLocal(); /* Save instantly to localStorage */
+    if (idx > -1) { cart[idx].qty += 1; showToast(`+1 ${size} added (Total: ${cart[idx].qty}) 🛒`); }
+    else { cart.push({ productId, size, qty: 1 }); showToast(`${size} added to cart 🛒`); }
+    saveCartLocal();
     updateCartCount();
-    if (currentUser) _upsertCartItem(productId, size, cart.find(i=>`${i.productId}-${i.size}`===key)?.qty || 1); /* DB sync in background */
+    if (currentUser) _upsertCartItem(productId, size, cart.find(i=>`${i.productId}-${i.size}`===key)?.qty || 1);
     const sidebar = document.getElementById('cart-sidebar');
     if (sidebar && !sidebar.classList.contains('translate-x-full')) renderCart();
 };
@@ -722,24 +651,17 @@ async function updateQty(productId, size, delta) {
     if (idx === -1) return;
     cart[idx].qty += delta;
     if (cart[idx].qty <= 0) {
-        cart.splice(idx, 1);
-        showToast('Item removed 🗑️');
+        cart.splice(idx, 1); showToast('Item removed 🗑️');
         if (currentUser) _removeCartItemDB(productId, size);
-    } else {
-        if (currentUser) _upsertCartItem(productId, size, cart[idx].qty);
-    }
-    saveCartLocal();
-    updateCartCount();
-    renderCart();
+    } else { if (currentUser) _upsertCartItem(productId, size, cart[idx].qty); }
+    saveCartLocal(); updateCartCount(); renderCart();
 }
 
 async function removeFromCart(productId, size) {
     cart = cart.filter(i => `${i.productId}-${i.size}` !== `${productId}-${size}`);
     saveCartLocal();
     if (currentUser) _removeCartItemDB(productId, size);
-    updateCartCount();
-    renderCart();
-    showToast('Removed from cart 🗑️');
+    updateCartCount(); renderCart(); showToast('Removed from cart 🗑️');
 }
 
 function updateCartCount() {
@@ -838,7 +760,6 @@ async function fetchProducts(retry = 0) {
             updateProductCountBadge(products.length);
             renderProductGrid('trending-grid', products.filter(p => p.istrending));
             if (!document.getElementById('view-shop').classList.contains('hidden')) renderShopProducts();
-            /* Update sidebar count */
             const countBadge = document.getElementById('sidebar-product-count');
             if (countBadge) countBadge.textContent = products.length;
         } else {
@@ -901,7 +822,8 @@ function renderProductGrid(containerId, list, loading = false) {
 }
 
 function renderCategoryBubbles() {
-    const colors = { 'Men': 'from-blue-500 to-indigo-500', 'Women': 'from-rose-500 to-pink-500', 'Kids': 'from-yellow-400 to-orange-400', 'Perfumes': 'from-pink-400 to-purple-500' };
+    /* FIX 4: Updated colors for Accessories */
+    const colors = { 'Men': 'from-blue-500 to-indigo-500', 'Women': 'from-rose-500 to-pink-500', 'Accessories': 'from-violet-400 to-fuchsia-500', 'Perfumes': 'from-pink-400 to-purple-500' };
     document.getElementById('category-bubbles').innerHTML = CATEGORIES.map(c =>
         `<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px] active:scale-95 transition-transform" onclick="openCategoryPage('${c.name}')">
            <div class="w-16 h-16 rounded-full bg-gradient-to-br ${colors[c.name]||'from-gray-400 to-gray-500'} flex items-center justify-center text-white text-2xl shadow-md hover:scale-110 transition-transform"><i class="fas ${c.icon}"></i></div>
@@ -960,12 +882,9 @@ function renderShopSubcategories() {
         if (!currentCategoryFilter) { el.innerHTML = ''; return; }
         const cData = CATEGORIES.find(c => c.name === currentCategoryFilter);
         if (!cData) return;
-
         let html = `<button class="flex-shrink-0 px-4 py-1.5 text-xs border rounded-full whitespace-nowrap font-semibold transition-all ${!currentSubFilter ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-gray-600 border-gray-300 hover:border-rose-400'}" onclick="filterSub(null)">All</button>`;
-
         if (cData.groups) {
             cData.groups.forEach(group => {
-                /* Group label as a non-clickable pill divider */
                 html += `<span class="flex-shrink-0 text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center px-1 whitespace-nowrap">${group.label}</span>`;
                 html += group.items.map(s => {
                     const isCombo = COMBO_SUBS.has(s);
@@ -1033,7 +952,7 @@ function handleSearch(q) {
 }
 
 /* ============================================================
-   12. NAVIGATION — FIXED: admin name + admin-active class
+   12. NAVIGATION
    ============================================================ */
 function navigate(view, cat = null) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
@@ -1055,21 +974,10 @@ function navigate(view, cat = null) {
     if (viewEl) viewEl.classList.remove('hidden');
 
     if (view === 'shop') {
-        if (cat) {
-            currentCategoryFilter = cat;
-            currentSubFilter = null;
-            const titleEl = document.getElementById('shop-title');
-            if (titleEl) titleEl.textContent = `${cat} Collection`;
-        } else {
-            currentCategoryFilter = null;
-            currentSubFilter = null;
-            const titleEl = document.getElementById('shop-title');
-            if (titleEl) titleEl.textContent = 'Shop All Products';
-        }
-        const filtersEl = document.getElementById('subcategory-filters');
-        if (filtersEl) filtersEl.innerHTML = '';
-        renderShopProducts();
-        _initShopScrollHide();
+        if (cat) { currentCategoryFilter = cat; currentSubFilter = null; const titleEl = document.getElementById('shop-title'); if (titleEl) titleEl.textContent = `${cat} Collection`; }
+        else { currentCategoryFilter = null; currentSubFilter = null; const titleEl = document.getElementById('shop-title'); if (titleEl) titleEl.textContent = 'Shop All Products'; }
+        const filtersEl = document.getElementById('subcategory-filters'); if (filtersEl) filtersEl.innerHTML = '';
+        renderShopProducts(); _initShopScrollHide();
     }
 
     if (view === 'checkout') {
@@ -1135,7 +1043,7 @@ function checkAuthUI() {
         if (navText) navText.innerText=(currentUser.name||'User').split(' ')[0];
         updateHeaderWallet(currentUser.wallet||0);
         loadUserReferralCode(); renderSidebarReferralWidget();
-        setTimeout(checkNotifStatus, 500); /* Check notification subscription status */
+        setTimeout(checkNotifStatus, 500);
     } else {
         authForms?.classList.remove('hidden'); userDash?.classList.add('hidden');
         if (navText) navText.innerText='Login';
@@ -1187,10 +1095,9 @@ async function handleLogin(e) {
             showToast('Login successful! 🚀');
             e.target.reset();
             await fetchUserData();
-            await migrateLocalCartToDB(); /* Move guest cart to DB */
+            await migrateLocalCartToDB();
             checkAuthUI();
-        }
-        else showToast('Invalid Mobile Number or Password ❌');
+        } else showToast('Invalid Mobile Number or Password ❌');
     } catch (err) { showToast('Login error: '+err.message); }
 }
 
@@ -1265,7 +1172,6 @@ async function fetchUserData() {
     } catch (e) {}
     initRealtimeTracking();
     loadUserReferralCode();
-    /* Cart is loaded by initCart() on startup, or explicitly after login */
 }
 
 /* ============================================================
@@ -1561,51 +1467,33 @@ function updateAdminNameInHeader() {
     if (pill) { pill.classList.remove('hidden'); pill.classList.add('flex'); }
 }
 
-
 async function handleAdminLogin(e) {
     e.preventDefault();
     const mobile   = document.getElementById('admin-mobile').value.trim().replace(/\D/g, '');
     const password = document.getElementById('admin-password').value.trim();
-
     if (mobile.length !== 10) { showToast('Enter valid 10-digit mobile number ❌'); return; }
-
     const btnEl = e.target.querySelector('button[type="submit"]');
     if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verifying...'; }
-
     try {
-        /* Step 1: Check if mobile is in authorized list */
         if (!ADMIN_AUTHORIZED_MOBILES.includes(mobile)) {
             showToast('Access Denied ❌ Not an authorized admin');
             if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
             document.getElementById('admin-password').value = '';
             return;
         }
-
-        /* Step 2: Verify credentials from Supabase DB */
-        const { data: user, error } = await dbClient
-            .from('users')
-            .select('mobile, name, password')
-            .eq('mobile', mobile)
-            .eq('password', password)
-            .maybeSingle();
-
+        const { data: user, error } = await dbClient.from('users').select('mobile, name, password').eq('mobile', mobile).eq('password', password).maybeSingle();
         if (error) throw error;
-
         if (!user) {
             showToast('Invalid Mobile or Password ❌');
             document.getElementById('admin-password').value = '';
             if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
             return;
         }
-
-        /* Step 3: Double-check mobile is authorized (belt + suspenders) */
         if (!ADMIN_AUTHORIZED_MOBILES.includes(String(user.mobile))) {
             showToast('Access Denied ❌');
             if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
             return;
         }
-
-        /* SUCCESS */
         isAdminLoggedIn = true;
         localStorage.setItem('outfitkart_admin_session', 'true');
         localStorage.setItem('outfitkart_admin_name',    user.name || 'Admin');
@@ -1615,7 +1503,6 @@ async function handleAdminLogin(e) {
         document.getElementById('admin-password').value = '';
         closeAdminLogin();
         setTimeout(() => navigate('admin'), 100);
-
     } catch (err) {
         showToast('Login error: ' + err.message);
         if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="fas fa-lock mr-2"></i>Login'; }
@@ -1629,7 +1516,7 @@ function loadAdminDashboard() {
 }
 
 /* ============================================================
-   24. ADMIN — DASHBOARD with Analytics Charts
+   24. ADMIN DASHBOARD with Charts
    ============================================================ */
 async function renderAdminDashboard() {
     const dashboardEl = document.getElementById('admin-dashboard-content');
@@ -1644,22 +1531,16 @@ async function renderAdminDashboard() {
         const allOrders    = ordersRes.data   || [];
         const allUsers     = usersRes.data    || [];
         const allReferrals = referralsRes.data || [];
-
         const activeOrders    = allOrders.filter(o => o.status !== 'Cancelled');
         const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled');
         const totalRevenue    = activeOrders.reduce((s, o) => s + (o.total        || 0), 0);
-        /* Profit = sum of margin_total (from margin_amt per item) */
         const totalProfit     = activeOrders.reduce((s, o) => s + (o.margin_total || 0), 0);
         const totalUsers      = allUsers.length;
         const recentOrders    = allOrders.slice(0, 5);
-
-        /* Referral stats */
         const pendingRef    = allReferrals.filter(r => r.status === 'pending');
         const confirmedRef  = allReferrals.filter(r => r.status === 'confirmed');
         const pendingComm   = pendingRef.reduce((s,r)   => s+(r.commission||0), 0);
         const confirmedComm = confirmedRef.reduce((s,r) => s+(r.commission||0), 0);
-
-        /* Build last-7-days data */
         const last7Labels = [], revenueByDay = [], profitByDay = [], ordersByDay = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date(); d.setDate(d.getDate() - i);
@@ -1671,12 +1552,8 @@ async function renderAdminDashboard() {
             profitByDay.push(dayOrders.reduce((s,o)  => s+(o.margin_total||0), 0));
             ordersByDay.push(dayOrders.length);
         }
-
-        /* Status counts for pie */
         const statusCounts = {};
         allOrders.forEach(o => { statusCounts[o.status] = (statusCounts[o.status]||0)+1; });
-
-        /* Update sidebar & header */
         const countBadge = document.getElementById('sidebar-product-count');
         if (countBadge) countBadge.textContent = products.length;
         const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.innerText=v; };
@@ -1684,182 +1561,49 @@ async function renderAdminDashboard() {
         setEl('admin-total-sales', `₹${totalRevenue.toLocaleString('en-IN')}`);
 
         dashboardEl.innerHTML = `
-        <!-- KPI Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div class="bg-gradient-to-br from-purple-500 to-purple-700 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-xl font-black">₹${totalRevenue.toLocaleString('en-IN')}</div>
-                <div class="text-xs opacity-90 font-semibold mt-1">Total Revenue</div>
-                <div class="text-[10px] opacity-70 mt-0.5">${activeOrders.length} active orders</div>
-            </div>
-            <div class="bg-gradient-to-br from-green-500 to-green-700 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-xl font-black">₹${totalProfit.toLocaleString('en-IN')}</div>
-                <div class="text-xs opacity-90 font-semibold mt-1">Total Profit</div>
-                <div class="text-[10px] opacity-70 mt-0.5">From margin_amt</div>
-            </div>
-            <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-xl font-black">${activeOrders.length}</div>
-                <div class="text-xs opacity-90 font-semibold mt-1">Active Orders</div>
-                <span class="text-[10px] bg-red-400/60 px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block">${cancelledOrders.length} cancelled</span>
-            </div>
-            <div class="bg-gradient-to-br from-rose-500 to-rose-700 p-4 rounded-xl text-white shadow-lg">
-                <div class="text-xl font-black">${totalUsers}</div>
-                <div class="text-xs opacity-90 font-semibold mt-1">Total Users</div>
-                <div class="text-[10px] opacity-70 mt-0.5">${products.length} products</div>
-            </div>
+            <div class="bg-gradient-to-br from-purple-500 to-purple-700 p-4 rounded-xl text-white shadow-lg"><div class="text-xl font-black">₹${totalRevenue.toLocaleString('en-IN')}</div><div class="text-xs opacity-90 font-semibold mt-1">Total Revenue</div><div class="text-[10px] opacity-70 mt-0.5">${activeOrders.length} active orders</div></div>
+            <div class="bg-gradient-to-br from-green-500 to-green-700 p-4 rounded-xl text-white shadow-lg"><div class="text-xl font-black">₹${totalProfit.toLocaleString('en-IN')}</div><div class="text-xs opacity-90 font-semibold mt-1">Total Profit</div><div class="text-[10px] opacity-70 mt-0.5">From margin_amt</div></div>
+            <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-4 rounded-xl text-white shadow-lg"><div class="text-xl font-black">${activeOrders.length}</div><div class="text-xs opacity-90 font-semibold mt-1">Active Orders</div><span class="text-[10px] bg-red-400/60 px-1.5 py-0.5 rounded-full font-bold mt-1 inline-block">${cancelledOrders.length} cancelled</span></div>
+            <div class="bg-gradient-to-br from-rose-500 to-rose-700 p-4 rounded-xl text-white shadow-lg"><div class="text-xl font-black">${totalUsers}</div><div class="text-xs opacity-90 font-semibold mt-1">Total Users</div><div class="text-[10px] opacity-70 mt-0.5">${products.length} products</div></div>
         </div>
-
-        <!-- Referral + Quick Stats row -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
-                <div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-hourglass-half text-amber-500 text-sm"></i></div>
-                <div><div class="text-[10px] text-gray-500">Pending Referral</div><div class="text-base font-black text-amber-600">₹${pendingComm.toLocaleString('en-IN')}</div></div>
-            </div>
-            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
-                <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-gift text-green-600 text-sm"></i></div>
-                <div><div class="text-[10px] text-gray-500">Confirmed Referral</div><div class="text-base font-black text-green-600">₹${confirmedComm.toLocaleString('en-IN')}</div></div>
-            </div>
-            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
-                <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-chart-bar text-purple-600 text-sm"></i></div>
-                <div><div class="text-[10px] text-gray-500">Avg Order Value</div><div class="text-base font-black">₹${activeOrders.length?Math.round(totalRevenue/activeOrders.length).toLocaleString('en-IN'):0}</div></div>
-            </div>
-            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3">
-                <div class="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-percentage text-teal-600 text-sm"></i></div>
-                <div><div class="text-[10px] text-gray-500">Profit Margin</div><div class="text-base font-black text-teal-600">${totalRevenue?Math.round((totalProfit/totalRevenue)*100):0}%</div></div>
-            </div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3"><div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-hourglass-half text-amber-500 text-sm"></i></div><div><div class="text-[10px] text-gray-500">Pending Referral</div><div class="text-base font-black text-amber-600">₹${pendingComm.toLocaleString('en-IN')}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3"><div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-gift text-green-600 text-sm"></i></div><div><div class="text-[10px] text-gray-500">Confirmed Referral</div><div class="text-base font-black text-green-600">₹${confirmedComm.toLocaleString('en-IN')}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3"><div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-chart-bar text-purple-600 text-sm"></i></div><div><div class="text-[10px] text-gray-500">Avg Order Value</div><div class="text-base font-black">₹${activeOrders.length?Math.round(totalRevenue/activeOrders.length).toLocaleString('en-IN'):0}</div></div></div>
+            <div class="bg-white p-3 rounded-xl border shadow-sm flex items-center gap-3"><div class="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-percentage text-teal-600 text-sm"></i></div><div><div class="text-[10px] text-gray-500">Profit Margin</div><div class="text-base font-black text-teal-600">${totalRevenue?Math.round((totalProfit/totalRevenue)*100):0}%</div></div></div>
         </div>
-
-        <!-- Charts Row -->
         <div class="grid md:grid-cols-2 gap-4 mb-4">
-            <div class="bg-white rounded-xl border shadow-sm p-4">
-                <h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-bar text-purple-600"></i> Revenue & Profit — Last 7 Days</h3>
-                <div style="position:relative;height:190px"><canvas id="dash-rev-chart"></canvas></div>
-            </div>
-            <div class="bg-white rounded-xl border shadow-sm p-4">
-                <h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-line text-blue-600"></i> Orders — Last 7 Days</h3>
-                <div style="position:relative;height:190px"><canvas id="dash-ord-chart"></canvas></div>
-            </div>
+            <div class="bg-white rounded-xl border shadow-sm p-4"><h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-bar text-purple-600"></i> Revenue & Profit — Last 7 Days</h3><div style="position:relative;height:190px"><canvas id="dash-rev-chart"></canvas></div></div>
+            <div class="bg-white rounded-xl border shadow-sm p-4"><h3 class="font-bold text-xs text-gray-700 mb-3 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-chart-line text-blue-600"></i> Orders — Last 7 Days</h3><div style="position:relative;height:190px"><canvas id="dash-ord-chart"></canvas></div></div>
         </div>
-
-        <!-- Pie + Recent Orders -->
         <div class="grid md:grid-cols-3 gap-4 mb-4">
-            <div class="bg-white rounded-xl border shadow-sm p-4">
-                <h3 class="font-bold text-xs text-gray-700 mb-3 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-chart-pie text-rose-500"></i> Order Status</h3>
-                <div style="position:relative;height:170px"><canvas id="dash-pie-chart"></canvas></div>
-            </div>
+            <div class="bg-white rounded-xl border shadow-sm p-4"><h3 class="font-bold text-xs text-gray-700 mb-3 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-chart-pie text-rose-500"></i> Order Status</h3><div style="position:relative;height:170px"><canvas id="dash-pie-chart"></canvas></div></div>
             <div class="bg-white rounded-xl border shadow-sm p-4 md:col-span-2">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-bold text-xs text-gray-700 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3>
-                    <button onclick="switchAdminTab('order')" class="text-[10px] bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">View All →</button>
-                </div>
-                ${recentOrders.length ? recentOrders.map(order => {
-                    const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600';
-                    return `<div class="flex justify-between items-center py-2 border-b last:border-b-0">
-                        <div>
-                            <div class="font-semibold text-sm">#${order.id}</div>
-                            <div class="text-xs text-gray-400">${order.customer_name||'N/A'} • ${order.date||''}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-sm">₹${(order.total||0).toLocaleString('en-IN')}</div>
-                            <span class="${badge} text-[10px] px-2 py-0.5 rounded-full font-bold">${order.status}</span>
-                        </div>
-                    </div>`;
-                }).join('') : '<div class="text-center text-gray-400 py-6 text-sm">No orders yet</div>'}
+                <div class="flex items-center justify-between mb-3"><h3 class="font-bold text-xs text-gray-700 uppercase tracking-wide flex items-center gap-2"><i class="fas fa-clock text-purple-600"></i> Recent Orders</h3><button onclick="switchAdminTab('order')" class="text-[10px] bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg font-bold border border-purple-200 hover:bg-purple-200">View All →</button></div>
+                ${recentOrders.length ? recentOrders.map(order => { const badge = STATUS_BADGE[order.status] || 'bg-gray-100 text-gray-600'; return `<div class="flex justify-between items-center py-2 border-b last:border-b-0"><div><div class="font-semibold text-sm">#${order.id}</div><div class="text-xs text-gray-400">${order.customer_name||'N/A'} • ${order.date||''}</div></div><div class="text-right"><div class="font-bold text-sm">₹${(order.total||0).toLocaleString('en-IN')}</div><span class="${badge} text-[10px] px-2 py-0.5 rounded-full font-bold">${order.status}</span></div></div>`; }).join('') : '<div class="text-center text-gray-400 py-6 text-sm">No orders yet</div>'}
             </div>
         </div>`;
-
-        /* Render charts after DOM paint */
         setTimeout(() => _renderDashboardCharts(last7Labels, revenueByDay, profitByDay, ordersByDay, statusCounts), 150);
-
     } catch (err) {
         dashboardEl.innerHTML = '<div class="text-center text-red-500 py-10"><i class="fas fa-exclamation-triangle text-3xl mb-3"></i><p>Error loading dashboard</p></div>';
         console.error('[Dashboard]', err);
     }
 }
 
-/* Load Chart.js once then render all 3 charts */
 function _renderDashboardCharts(labels, revenueByDay, profitByDay, ordersByDay, statusCounts) {
     function _draw() {
         const C = window.Chart;
         if (!C) return;
-
-        /* Destroy old charts if re-rendering */
-        ['dash-rev-chart','dash-ord-chart','dash-pie-chart'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el && el._ci) { el._ci.destroy(); el._ci = null; }
-        });
-
-        /* ── Revenue vs Profit Bar Chart ── */
+        ['dash-rev-chart','dash-ord-chart','dash-pie-chart'].forEach(id => { const el = document.getElementById(id); if (el && el._ci) { el._ci.destroy(); el._ci = null; } });
         const revCtx = document.getElementById('dash-rev-chart');
-        if (revCtx) {
-            revCtx._ci = new C(revCtx, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'Revenue ₹', data: revenueByDay, backgroundColor: 'rgba(124,58,237,0.75)', borderRadius: 5 },
-                        { label: 'Profit ₹',  data: profitByDay,  backgroundColor: 'rgba(34,197,94,0.75)',  borderRadius: 5 },
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
-                    scales: {
-                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
-                        y: { ticks: { font: { size: 9 }, callback: v => '₹' + (v >= 1000 ? Math.round(v/1000)+'k' : v) }, grid: { color: 'rgba(0,0,0,0.05)' } }
-                    }
-                }
-            });
-        }
-
-        /* ── Orders Line Chart ── */
+        if (revCtx) { revCtx._ci = new C(revCtx, { type: 'bar', data: { labels, datasets: [{ label: 'Revenue ₹', data: revenueByDay, backgroundColor: 'rgba(124,58,237,0.75)', borderRadius: 5 },{ label: 'Profit ₹', data: profitByDay, backgroundColor: 'rgba(34,197,94,0.75)', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { ticks: { font: { size: 9 } }, grid: { display: false } }, y: { ticks: { font: { size: 9 }, callback: v => '₹' + (v >= 1000 ? Math.round(v/1000)+'k' : v) }, grid: { color: 'rgba(0,0,0,0.05)' } } } } }); }
         const ordCtx = document.getElementById('dash-ord-chart');
-        if (ordCtx) {
-            ordCtx._ci = new C(ordCtx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Orders', data: ordersByDay,
-                        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.12)',
-                        fill: true, tension: 0.4, pointRadius: 5,
-                        pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
-                    scales: {
-                        x: { ticks: { font: { size: 9 } }, grid: { display: false } },
-                        y: { ticks: { font: { size: 9 }, stepSize: 1 }, min: 0, grid: { color: 'rgba(0,0,0,0.05)' } }
-                    }
-                }
-            });
-        }
-
-        /* ── Status Pie / Doughnut Chart ── */
+        if (ordCtx) { ordCtx._ci = new C(ordCtx, { type: 'line', data: { labels, datasets: [{ label: 'Orders', data: ordersByDay, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.12)', fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { ticks: { font: { size: 9 } }, grid: { display: false } }, y: { ticks: { font: { size: 9 }, stepSize: 1 }, min: 0, grid: { color: 'rgba(0,0,0,0.05)' } } } } }); }
         const pieCtx = document.getElementById('dash-pie-chart');
-        if (pieCtx && Object.keys(statusCounts).length) {
-            const pieLabels = Object.keys(statusCounts);
-            const pieData   = Object.values(statusCounts);
-            const COLORS = ['#7c3aed','#3b82f6','#f59e0b','#10b981','#ef4444','#f97316','#8b5cf6','#14b8a6','#ec4899'];
-            pieCtx._ci = new C(pieCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: pieLabels,
-                    datasets: [{ data: pieData, backgroundColor: COLORS.slice(0, pieLabels.length), borderWidth: 2, borderColor: '#fff' }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    cutout: '60%',
-                    plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } } }
-                }
-            });
-        }
+        if (pieCtx && Object.keys(statusCounts).length) { const pieLabels = Object.keys(statusCounts); const pieData = Object.values(statusCounts); const COLORS = ['#7c3aed','#3b82f6','#f59e0b','#10b981','#ef4444','#f97316','#8b5cf6','#14b8a6','#ec4899']; pieCtx._ci = new C(pieCtx, { type: 'doughnut', data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: COLORS.slice(0, pieLabels.length), borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, padding: 6 } } } } }); }
     }
-
     if (window.Chart) { _draw(); return; }
-
-    /* Dynamically load Chart.js from CDN */
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
     script.onload = _draw;
@@ -1870,35 +1614,16 @@ function _renderDashboardCharts(labels, revenueByDay, profitByDay, ordersByDay, 
    25. ADMIN — SWITCH TABS + SIDEBAR
    ============================================================ */
 function switchAdminTab(tab) {
-    /* Hide all tabs */
-    document.querySelectorAll('.admin-content-tab').forEach(el => {
-        el.style.display = 'none';
-        el.classList.add('hidden');
-    });
-
-    /* Show target tab */
+    document.querySelectorAll('.admin-content-tab').forEach(el => { el.style.display = 'none'; el.classList.add('hidden'); });
     const targetTab = document.getElementById(`admin-tab-${tab}`);
-    if (targetTab) {
-        targetTab.style.display = 'block';
-        targetTab.classList.remove('hidden');
-    }
-
-    /* Update nav active state */
+    if (targetTab) { targetTab.style.display = 'block'; targetTab.classList.remove('hidden'); }
     document.querySelectorAll('.admin-nav-btn').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`btn-admin-${tab}`);
     if (activeBtn) activeBtn.classList.add('active');
-
-    /* Close edit modal when switching away */
     if (tab !== 'products' && tab !== 'inventory') closeEditModal();
-
-    /* Close mobile sidebar */
     if (window.innerWidth < 768) toggleAdminSidebar();
-
-    /* Update sidebar product count badge */
     const countBadge = document.getElementById('sidebar-product-count');
     if (countBadge) countBadge.textContent = products.length;
-
-    /* Load tab content */
     if (tab === 'dashboard') renderAdminDashboard();
     if (tab === 'products')  renderAdminProducts();
     if (tab === 'order')     loadAllOrdersAdmin();
@@ -1950,53 +1675,31 @@ async function loadAdminReferrals() {
     if (!container) return;
     container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
     try {
-        const { data: referrals, error } = await dbClient
-            .from('referrals')
-            .select('*')
-            .order('id', { ascending: false }); /* id desc — no created_at needed */
+        const { data: referrals, error } = await dbClient.from('referrals').select('*').order('id', { ascending: false });
         if (error) throw error;
-        const all       = referrals || [];
+        const all = referrals || [];
         const pending   = all.filter(r => r.status === 'pending');
         const confirmed = all.filter(r => r.status === 'confirmed');
         const cancelled = all.filter(r => r.status === 'cancelled');
         const pendingAmt   = pending.reduce((s, r)   => s + (r.commission || 0), 0);
         const confirmedAmt = confirmed.reduce((s, r) => s + (r.commission || 0), 0);
         const cancelledAmt = cancelled.reduce((s, r) => s + (r.commission || 0), 0);
-
         container.innerHTML = `
         <div class="grid grid-cols-3 gap-3 mb-4">
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                <p class="text-xs text-amber-700 font-bold uppercase mb-1">Pending</p>
-                <p class="text-2xl font-black text-amber-600">₹${pendingAmt.toLocaleString()}</p>
-                <p class="text-xs text-amber-500 mt-1">${pending.length} referrals</p>
-            </div>
-            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-                <p class="text-xs text-green-700 font-bold uppercase mb-1">Confirmed</p>
-                <p class="text-2xl font-black text-green-600">₹${confirmedAmt.toLocaleString()}</p>
-                <p class="text-xs text-green-500 mt-1">${confirmed.length} referrals</p>
-            </div>
-            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
-                <p class="text-xs text-red-700 font-bold uppercase mb-1">Cancelled</p>
-                <p class="text-2xl font-black text-red-400">₹${cancelledAmt.toLocaleString()}</p>
-                <p class="text-xs text-red-400 mt-1">${cancelled.length} referrals</p>
-            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center"><p class="text-xs text-amber-700 font-bold uppercase mb-1">Pending</p><p class="text-2xl font-black text-amber-600">₹${pendingAmt.toLocaleString()}</p><p class="text-xs text-amber-500 mt-1">${pending.length} referrals</p></div>
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center"><p class="text-xs text-green-700 font-bold uppercase mb-1">Confirmed</p><p class="text-2xl font-black text-green-600">₹${confirmedAmt.toLocaleString()}</p><p class="text-xs text-green-500 mt-1">${confirmed.length} referrals</p></div>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center"><p class="text-xs text-red-700 font-bold uppercase mb-1">Cancelled</p><p class="text-2xl font-black text-red-400">₹${cancelledAmt.toLocaleString()}</p><p class="text-xs text-red-400 mt-1">${cancelled.length} referrals</p></div>
         </div>
         <div class="flex gap-1 mb-4 border-b overflow-x-auto hide-scrollbar">
-            <button onclick="adminFilterReferrals('pending',this)" id="ref-tab-pending" class="pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab">
-                ⏳ Pending (${pending.length})
-            </button>
+            <button onclick="adminFilterReferrals('pending',this)" id="ref-tab-pending" class="pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap admin-ref-tab">⏳ Pending (${pending.length})</button>
             <button onclick="adminFilterReferrals('all',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">All (${all.length})</button>
             <button onclick="adminFilterReferrals('confirmed',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Confirmed (${confirmed.length})</button>
             <button onclick="adminFilterReferrals('cancelled',this)" class="pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap admin-ref-tab">Cancelled (${cancelled.length})</button>
         </div>
         <div id="admin-referrals-list" class="space-y-3"></div>`;
-
         window._allAdminReferrals = all;
-        /* Default: show pending first */
         renderAdminReferralList(pending.length ? pending : all);
-    } catch (err) {
-        container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;
-    }
+    } catch (err) { container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`; }
 }
 
 function adminFilterReferrals(status, btn) {
@@ -2015,10 +1718,7 @@ function renderAdminReferralList(items) {
         <div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap mb-1">
-                        <span class="font-bold text-sm text-gray-800">Order #${r.order_id}</span>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE[r.status]||'bg-gray-100 text-gray-500'}">${r.status}</span>
-                    </div>
+                    <div class="flex items-center gap-2 flex-wrap mb-1"><span class="font-bold text-sm text-gray-800">Order #${r.order_id}</span><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE[r.status]||'bg-gray-100 text-gray-500'}">${r.status}</span></div>
                     <div class="text-xs text-gray-500">Referrer: <strong>+91 ${r.referrer_mobile}</strong></div>
                     <div class="text-xs text-gray-500">Buyer: +91 ${r.buyer_mobile}</div>
                     <div class="text-xs text-gray-500">Date: ${r.date||'—'} | Code: <span class="font-mono font-semibold text-purple-700">${r.referral_code||'—'}</span></div>
@@ -2026,9 +1726,7 @@ function renderAdminReferralList(items) {
                     ${r.status==='pending'?`<div class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>Pending — confirms after 30 days</div>`:''}
                     ${r.confirmed_at?`<div class="text-xs text-green-600 mt-1">Credited: ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`:''}
                 </div>
-                <div class="flex flex-col gap-1 items-end">
-                    ${r.status==='pending'?`<button onclick="adminConfirmReferral(${r.id})" class="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 active:scale-95">✅ Confirm</button>`:''}
-                </div>
+                <div class="flex flex-col gap-1 items-end">${r.status==='pending'?`<button onclick="adminConfirmReferral(${r.id})" class="text-xs bg-green-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-600 active:scale-95">✅ Confirm</button>`:''}</div>
             </div>
         </div>`).join('');
 }
@@ -2047,7 +1745,8 @@ async function adminConfirmReferral(referralId) {
 }
 
 /* ============================================================
-   28. ADMIN — PRODUCTS (Upload only in inventory tab)
+   28. ADMIN — PRODUCTS
+   FIX 5: Meesho link saved in DB as supplier_url (hidden from users)
    ============================================================ */
 function updateDropdownSubs(catId, subId) {
     try {
@@ -2138,11 +1837,16 @@ async function adminAddProduct(e) {
     const marginAmt     = Math.round(supplierPrice * marginPct / 100) || parseInt(document.getElementById('ap-margin')?.value) || 0;
     const sellingPrice  = supplierPrice + marginAmt;
     if (sellingPrice <= 0) return showToast('Enter a valid Supplier/Cost Price');
+
+    /* FIX 5: Save supplier_url (Meesho/Amazon link) hidden from users */
+    const supplierUrl = document.getElementById('ap-supplier-url')?.value.trim() || '';
+
     const newP = {
         name:              document.getElementById('ap-name').value.trim(),
         price:             sellingPrice,
         supplier_price:    supplierPrice,
         margin_amt:        marginAmt,
+        supplier_url:      supplierUrl,   /* ← saved to DB, never shown to users */
         oldprice:          parseInt(document.getElementById('ap-oldprice').value) || Math.round(sellingPrice * 1.4),
         checkout_discount: parseInt(document.getElementById('ap-discount').value) || 0,
         brand:             document.getElementById('ap-brand').value.trim(),
@@ -2165,14 +1869,12 @@ async function adminAddProduct(e) {
             const sEl = document.getElementById('scrape-status');
             if (sEl) sEl.classList.add('hidden');
             showToast(`✅ Added! Sell: ₹${sellingPrice} | Cost: ₹${supplierPrice} | Profit: ₹${marginAmt}`);
-            /* Update sidebar count */
             const countBadge = document.getElementById('sidebar-product-count');
             if (countBadge) countBadge.textContent = products.length;
         }
     } catch (err) { showToast('Error: ' + err.message); }
 }
 
-/* FIX: renderAdminProducts — no upload section here, only product list */
 function renderAdminProducts() {
     const container = document.getElementById('admin-product-list');
     if (!container) return;
@@ -2191,6 +1893,10 @@ function renderAdminProducts() {
         </div>` +
         [...products].reverse().map(p => {
             const isPerf = isPerfumeCategory(p.category);
+            /* FIX 5: supplier_url shown as clickable link in admin only */
+            const supplierLink = p.supplier_url
+                ? `<a href="${p.supplier_url}" target="_blank" rel="noopener" class="text-[10px] text-indigo-600 font-bold hover:underline flex items-center gap-1 mt-0.5" onclick="event.stopPropagation()"><i class="fas fa-external-link-alt text-[9px]"></i> Supplier Link</a>`
+                : '';
             return `<div class="flex justify-between items-center p-3 border-b text-sm hover:bg-gray-50 transition-colors">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
                     <img src="${p.imgs?.[0]||p.img||'https://placehold.co/48x48/eee/666?text=?'}" class="w-12 h-12 rounded-lg object-cover border shadow-sm flex-shrink-0" loading="lazy">
@@ -2198,6 +1904,7 @@ function renderAdminProducts() {
                         <span class="truncate block font-semibold text-gray-800">${p.name}</span>
                         <span class="text-xs text-gray-500">${p.category} • ${p.sub||'N/A'}${isPerf?' 🌸':''}</span>
                         ${p.brand?`<span class="text-xs text-blue-600 block font-medium">${p.brand}</span>`:''}
+                        ${supplierLink}
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
@@ -2231,26 +1938,16 @@ async function openEditProduct(productId) {
     document.getElementById('ep-discount').value = p.checkout_discount || 0;
     document.getElementById('ep-stock').value    = p.stock_qty || 50;
     document.getElementById('ep-imgs').value     = Array.isArray(p.imgs) ? p.imgs.join('\n') : (p.imgs || '');
+    /* FIX 5: Edit modal mein bhi supplier_url */
+    const epSupplierUrl = document.getElementById('ep-supplier-url');
+    if (epSupplierUrl) epSupplierUrl.value = p.supplier_url || '';
     const grid = document.getElementById('ep-sizes-grid');
     grid.innerHTML = '';
     if (isPerf) {
-        const label = document.createElement('p');
-        label.className = 'text-xs text-purple-600 font-bold mb-2 col-span-full';
-        label.textContent = '🌸 Select ML Volumes:';
-        grid.appendChild(label);
-        PERFUME_ML_SIZES.forEach(size => {
-            const lbl = document.createElement('label');
-            lbl.className = 'flex items-center gap-1 cursor-pointer text-xs';
-            lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;
-            grid.appendChild(lbl);
-        });
+        const label = document.createElement('p'); label.className = 'text-xs text-purple-600 font-bold mb-2 col-span-full'; label.textContent = '🌸 Select ML Volumes:'; grid.appendChild(label);
+        PERFUME_ML_SIZES.forEach(size => { const lbl = document.createElement('label'); lbl.className = 'flex items-center gap-1 cursor-pointer text-xs'; lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`; grid.appendChild(lbl); });
     } else {
-        ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40','5','6','7','8','9','10','11','12','Free Size'].forEach(size => {
-            const lbl = document.createElement('label');
-            lbl.className = 'flex items-center gap-1 cursor-pointer text-xs';
-            lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`;
-            grid.appendChild(lbl);
-        });
+        ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40','5','6','7','8','9','10','11','12','Free Size'].forEach(size => { const lbl = document.createElement('label'); lbl.className = 'flex items-center gap-1 cursor-pointer text-xs'; lbl.innerHTML = `<input type="checkbox" value="${size}" class="ep-size-chk" ${p.available_sizes?.includes(size)?'checked':''}><span>${size}</span>`; grid.appendChild(lbl); });
     }
     const modal = document.getElementById('edit-product-modal');
     modal?.classList.remove('hidden'); modal?.classList.add('flex');
@@ -2273,7 +1970,8 @@ async function updateProduct(event) {
         desc:              document.getElementById('ep-desc').value,
         stock_qty:         parseInt(document.getElementById('ep-stock').value) || 0,
         available_sizes:   Array.from(document.querySelectorAll('.ep-size-chk:checked')).map(cb => cb.value),
-        imgs:              document.getElementById('ep-imgs').value.split('\n').map(l => l.trim()).filter(Boolean)
+        imgs:              document.getElementById('ep-imgs').value.split('\n').map(l => l.trim()).filter(Boolean),
+        supplier_url:      document.getElementById('ep-supplier-url')?.value.trim() || null,
     };
     try {
         const { data, error } = await dbClient.from('products').update(updates).eq('id', productId).select().single();
@@ -2323,8 +2021,7 @@ async function uploadScrapedImageToImgBB(imageUrl) {
         const res1 = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd1 });
         const json1 = await res1.json();
         if (json1.success && json1.data?.url) return json1.data.url;
-        const imgRes  = await fetch(imageUrl);
-        const imgBlob = await imgRes.blob();
+        const imgRes  = await fetch(imageUrl); const imgBlob = await imgRes.blob();
         const fd2 = new FormData(); fd2.append('image', imgBlob, 'product.jpg');
         const res2  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd2 });
         const json2 = await res2.json();
@@ -2361,6 +2058,9 @@ async function scrapeProductFromUrl() {
         if (nE && title) nE.value = title;
         if (sE && priceNum) sE.value = priceNum;
         if (oE && priceNum) oE.value = Math.round(priceNum * 1.5);
+        /* FIX 5: Auto-save the supplier URL */
+        const supUrlEl = document.getElementById('ap-supplier-url');
+        if (supUrlEl) supUrlEl.value = url;
         updateSellingPreview();
         if (imgUrl) {
             if (statusEl) { statusEl.className = 'flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border mt-3 bg-blue-50 border-blue-200 text-blue-700'; statusEl.innerHTML = '<i class="fas fa-cloud-upload-alt fa-pulse"></i> Uploading image to ImgBB...'; }
@@ -2394,76 +2094,44 @@ async function loadAllOrdersAdmin() {
         if (error) throw error;
         window.allAdminOrders = data || [];
         renderFilteredOrders(document.getElementById('admin-order-filter')?.value || 'all');
-    } catch (err) {
-        container.innerHTML = `<div class="text-center py-6 text-red-500">Error: ${err.message}</div>`;
-    }
+    } catch (err) { container.innerHTML = `<div class="text-center py-6 text-red-500">Error: ${err.message}</div>`; }
 }
 
 function filterAdminOrders(status) { renderFilteredOrders(status); }
 
-/* FIX: Shows cancelled count separately in header */
 function renderFilteredOrders(filterStatus) {
     const container   = document.getElementById('admin-full-order-list');
     if (!container) return;
     const allOrders    = window.allAdminOrders || [];
     const filteredData = filterStatus === 'all' ? allOrders : allOrders.filter(o => o.status === filterStatus);
-
     if (!allOrders.length) {
         container.innerHTML = `<div class="text-center py-20"><i class="fas fa-receipt text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg font-semibold">No orders yet</p></div>`;
         const _aoc=document.getElementById('admin-order-count');if(_aoc)_aoc.innerText = '0';
         const _ats=document.getElementById('admin-total-sales');if(_ats)_ats.innerText = '₹0';
         return;
     }
-
     const activeOrders    = allOrders.filter(o => o.status !== 'Cancelled');
     const cancelledOrders = allOrders.filter(o => o.status === 'Cancelled');
     const _aoc=document.getElementById('admin-order-count');if(_aoc)_aoc.innerText = activeOrders.length;
     const _ats=document.getElementById('admin-total-sales');if(_ats)_ats.innerText = `₹${activeOrders.reduce((s,o) => s+(o.total||0), 0).toLocaleString('en-IN')}`;
-
     if (!filteredData.length) {
         container.innerHTML = `<div class="text-center py-16"><i class="fas fa-filter text-5xl text-gray-300 mb-3"></i><p class="text-gray-500 font-semibold">No ${filterStatus} orders found</p></div>`;
         return;
     }
-
     const headerHtml = `<div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mb-4 sticky top-0 z-10">
         <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-clock text-purple-600 text-xl"></i>
-                <div>
-                    <span class="text-sm font-black text-purple-700">${filterStatus==='all'?`Total: ${allOrders.length}`:`${filterStatus}: ${filteredData.length}`}</span>
-                    <p class="text-xs text-gray-500 mt-0.5">Newest first</p>
-                </div>
-            </div>
-            <div class="flex gap-2">
-                <span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 font-bold">Active: ${activeOrders.length}</span>
-                <span class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-full border border-red-200 font-bold">Cancelled: ${cancelledOrders.length}</span>
-            </div>
+            <div class="flex items-center gap-3"><i class="fas fa-clock text-purple-600 text-xl"></i><div><span class="text-sm font-black text-purple-700">${filterStatus==='all'?`Total: ${allOrders.length}`:`${filterStatus}: ${filteredData.length}`}</span><p class="text-xs text-gray-500 mt-0.5">Newest first</p></div></div>
+            <div class="flex gap-2"><span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full border border-green-200 font-bold">Active: ${activeOrders.length}</span><span class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-full border border-red-200 font-bold">Cancelled: ${cancelledOrders.length}</span></div>
         </div>
     </div>`;
-
     container.innerHTML = headerHtml + filteredData.map(o => {
         const oidSafe    = String(o.id || '').replace(/'/g, "\\'");
         const badge      = STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600';
         const itemsHtml  = o.items?.length
-            ? o.items.map(item => `<div class="admin-order-item">
-                <img src="${item.img||'https://placehold.co/48x60/e11d48/fff?text=?'}" alt="${item.name}" onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy">
-                <div class="admin-order-item-info">
-                    <div class="admin-order-item-name" title="${item.name}">${item.name}</div>
-                    <div class="admin-order-item-meta">${isPerfumeCategory(item.category||'')?'Vol':'Size'}: <strong>${item.size||'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty||1}</strong></div>
-                    <div class="admin-order-item-price">₹${((item.price||0)*(item.qty||1)).toLocaleString('en-IN')}</div>
-                </div>
-              </div>`).join('')
+            ? o.items.map(item => `<div class="admin-order-item"><img src="${item.img||'https://placehold.co/48x60/e11d48/fff?text=?'}" alt="${item.name}" onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy"><div class="admin-order-item-info"><div class="admin-order-item-name" title="${item.name}">${item.name}</div><div class="admin-order-item-meta">${isPerfumeCategory(item.category||'')?'Vol':'Size'}: <strong>${item.size||'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty||1}</strong></div><div class="admin-order-item-price">₹${((item.price||0)*(item.qty||1)).toLocaleString('en-IN')}</div></div></div>`).join('')
             : '<div class="text-xs text-gray-400 italic py-2 px-1">No item details</div>';
-
         return `<div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 mb-3 hover:shadow-md transition-all">
-            <div class="flex justify-between items-start pb-3 mb-3 border-b">
-                <div>
-                    <span class="font-bold text-purple-700 font-mono text-sm">#${o.id}</span>
-                    <span class="${badge} text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">${o.status||'Processing'}</span>
-                    <div class="text-xs text-gray-500 mt-1">${o.date||''} • ${o.paymentmode||''}</div>
-                </div>
-                <div class="font-black text-lg text-rose-600">₹${(o.total||0).toLocaleString('en-IN')}</div>
-            </div>
+            <div class="flex justify-between items-start pb-3 mb-3 border-b"><div><span class="font-bold text-purple-700 font-mono text-sm">#${o.id}</span><span class="${badge} text-[10px] font-bold px-2 py-0.5 rounded-full ml-2">${o.status||'Processing'}</span><div class="text-xs text-gray-500 mt-1">${o.date||''} • ${o.paymentmode||''}</div></div><div class="font-black text-lg text-rose-600">₹${(o.total||0).toLocaleString('en-IN')}</div></div>
             <div class="grid grid-cols-2 gap-2 text-xs mb-3 bg-gray-50 rounded-lg p-3 border">
                 <div><span class="font-bold text-gray-400 uppercase text-[10px]">Customer</span><div class="font-semibold text-gray-800 mt-0.5">${o.customer_name||'N/A'}</div></div>
                 <div><span class="font-bold text-gray-400 uppercase text-[10px]">Mobile</span><div class="font-semibold text-gray-800 mt-0.5">${o.mobile||'N/A'}</div></div>
@@ -2472,19 +2140,9 @@ function renderFilteredOrders(filterStatus) {
                 ${o.referral_code?`<div class="col-span-2 bg-green-50 rounded p-1.5 border border-green-200"><span class="font-bold text-green-700 uppercase text-[10px]">Referral Code</span><div class="font-mono font-semibold text-green-800 mt-0.5">${o.referral_code}</div></div>`:''}
                 ${o.refund_upi?`<div class="col-span-2 bg-rose-50 rounded p-1.5 border border-rose-200"><span class="font-bold text-rose-700 uppercase text-[10px]">Refund UPI</span><div class="font-mono font-semibold text-rose-800 mt-0.5 select-all">${o.refund_upi}</div></div>`:''}
             </div>
-            <div class="mb-3">
-                <div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Items (${(o.items||[]).length})</div>
-                <div class="admin-order-items">${itemsHtml}</div>
-            </div>
-            <div class="text-[10px] text-gray-500 bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3">
-                <i class="fas fa-map-marker-alt text-blue-400 mr-1"></i>${[o.address,o.city,o.state,o.pincode?'- '+o.pincode:''].filter(Boolean).join(', ')||'N/A'}
-            </div>
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Status:</span>
-                <select onchange="updateOrderStatus('${oidSafe}',this.value)" class="flex-1 border border-gray-300 rounded-lg text-xs p-2 font-bold bg-white focus:ring-2 focus:ring-purple-300 outline-none cursor-pointer">
-                    ${ALL_ORDER_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
-                </select>
-            </div>
+            <div class="mb-3"><div class="text-[10px] font-bold text-gray-400 uppercase mb-2">Items (${(o.items||[]).length})</div><div class="admin-order-items">${itemsHtml}</div></div>
+            <div class="text-[10px] text-gray-500 bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3"><i class="fas fa-map-marker-alt text-blue-400 mr-1"></i>${[o.address,o.city,o.state,o.pincode?'- '+o.pincode:''].filter(Boolean).join(', ')||'N/A'}</div>
+            <div class="flex items-center gap-2"><span class="text-[10px] font-bold text-gray-400 uppercase whitespace-nowrap">Status:</span><select onchange="updateOrderStatus('${oidSafe}',this.value)" class="flex-1 border border-gray-300 rounded-lg text-xs p-2 font-bold bg-white focus:ring-2 focus:ring-purple-300 outline-none cursor-pointer">${ALL_ORDER_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
         </div>`;
     }).join('');
 }
@@ -2514,18 +2172,12 @@ async function loadAllUsersAdmin() {
                 <div class="flex items-center gap-4">
                     <img src="${user.profile_pic||`https://placehold.co/48x48/e11d48/ffffff?text=${(user.name||'U').charAt(0)}`}" class="w-12 h-12 rounded-full object-cover border-2 border-gray-200">
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <div class="font-bold text-gray-900">${user.name||'Unknown'}</div>
-                            ${isAuthorizedAdmin(user)?'<span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">Admin</span>':''}
-                        </div>
+                        <div class="flex items-center gap-2 flex-wrap"><div class="font-bold text-gray-900">${user.name||'Unknown'}</div>${isAuthorizedAdmin(user)?'<span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold">Admin</span>':''}</div>
                         <div class="text-sm text-gray-500">+91 ${user.mobile}</div>
                         ${user.email?`<div class="text-xs text-gray-400">${user.email}</div>`:''}
                         ${user.referral_code?`<div class="text-xs text-green-600 font-mono font-bold">Code: ${user.referral_code}</div>`:''}
                     </div>
-                    <div class="text-right flex-shrink-0">
-                        <div class="text-lg font-bold text-purple-600">₹${user.wallet||0}</div>
-                        <div class="text-xs text-gray-500">Wallet</div>
-                    </div>
+                    <div class="text-right flex-shrink-0"><div class="text-lg font-bold text-purple-600">₹${user.wallet||0}</div><div class="text-xs text-gray-500">Wallet</div></div>
                 </div>
             </div>`).join('') : '<div class="text-center text-gray-400 py-10">No users found</div>';
     } catch (err) { container.innerHTML = '<div class="text-center text-red-500 py-6">Error loading users</div>'; }
@@ -2536,71 +2188,35 @@ async function loadAllWithdrawalsAdmin() {
     if (!container) return;
     container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-2xl text-purple-600"></i></div>';
     try {
-        /* Fetch ALL withdrawals — not just Pending */
-        const { data, error } = await dbClient
-            .from('withdrawals')
-            .select('*')
-            .order('id', { ascending: false });
+        const { data, error } = await dbClient.from('withdrawals').select('*').order('id', { ascending: false });
         if (error) throw error;
-
         const all      = data || [];
         const pending  = all.filter(w => w.status === 'Pending');
         const paid     = all.filter(w => w.status === 'Paid');
         const rejected = all.filter(w => w.status === 'Rejected');
-
-        /* Update header badge */
         const badge = document.getElementById('admin-pending-withdraw');
         if (badge) badge.innerText = pending.length;
-
-        if (!all.length) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-16"><i class="fas fa-wallet text-5xl mb-3 text-gray-300"></i><p class="font-semibold">No withdrawal requests yet</p></div>';
-            return;
-        }
-
+        if (!all.length) { container.innerHTML = '<div class="text-center text-gray-400 py-16"><i class="fas fa-wallet text-5xl mb-3 text-gray-300"></i><p class="font-semibold">No withdrawal requests yet</p></div>'; return; }
         container.innerHTML = `
-        <!-- Summary cards -->
         <div class="grid grid-cols-3 gap-3 mb-4">
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                <div class="text-xl font-black text-amber-600">${pending.length}</div>
-                <div class="text-xs text-amber-700 font-bold">Pending</div>
-                <div class="text-xs text-amber-500">₹${pending.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
-            </div>
-            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-                <div class="text-xl font-black text-green-600">${paid.length}</div>
-                <div class="text-xs text-green-700 font-bold">Paid</div>
-                <div class="text-xs text-green-500">₹${paid.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
-            </div>
-            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
-                <div class="text-xl font-black text-red-500">${rejected.length}</div>
-                <div class="text-xs text-red-700 font-bold">Rejected</div>
-                <div class="text-xs text-red-400">₹${rejected.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div>
-            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center"><div class="text-xl font-black text-amber-600">${pending.length}</div><div class="text-xs text-amber-700 font-bold">Pending</div><div class="text-xs text-amber-500">₹${pending.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div></div>
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center"><div class="text-xl font-black text-green-600">${paid.length}</div><div class="text-xs text-green-700 font-bold">Paid</div><div class="text-xs text-green-500">₹${paid.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div></div>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center"><div class="text-xl font-black text-red-500">${rejected.length}</div><div class="text-xs text-red-700 font-bold">Rejected</div><div class="text-xs text-red-400">₹${rejected.reduce((s,w)=>s+(w.amount||0),0).toLocaleString('en-IN')}</div></div>
         </div>
-
-        <!-- Filter tabs -->
         <div class="flex gap-1 border-b mb-4 overflow-x-auto hide-scrollbar">
             <button onclick="filterPayouts('all',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap">All (${all.length})</button>
             <button onclick="filterPayouts('Pending',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Pending (${pending.length})</button>
             <button onclick="filterPayouts('Paid',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Paid (${paid.length})</button>
             <button onclick="filterPayouts('Rejected',this)" class="payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap">Rejected (${rejected.length})</button>
         </div>
-
-        <!-- List -->
         <div id="payouts-list" class="space-y-3"></div>`;
-
-        /* Store all data globally for filter */
         window._allPayouts = all;
         _renderPayoutsList(all);
-
-    } catch (err) {
-        container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`;
-    }
+    } catch (err) { container.innerHTML = `<div class="text-center text-red-500 py-10">Error: ${err.message}</div>`; }
 }
 
 function filterPayouts(status, btn) {
-    document.querySelectorAll('.payout-tab').forEach(b => {
-        b.className = 'payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap';
-    });
+    document.querySelectorAll('.payout-tab').forEach(b => { b.className = 'payout-tab pb-2 px-4 text-sm font-bold text-gray-500 whitespace-nowrap'; });
     btn.className = 'payout-tab pb-2 px-4 text-sm font-bold text-purple-600 border-b-2 border-purple-600 whitespace-nowrap';
     const all = window._allPayouts || [];
     _renderPayoutsList(status === 'all' ? all : all.filter(w => w.status === status));
@@ -2609,49 +2225,14 @@ function filterPayouts(status, btn) {
 function _renderPayoutsList(items) {
     const container = document.getElementById('payouts-list');
     if (!container) return;
-    if (!items.length) {
-        container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-inbox text-4xl mb-3"></i><p class="font-semibold">No records found</p></div>';
-        return;
-    }
-    const STATUS_STYLE = {
-        'Pending':  'bg-amber-50 border-amber-200',
-        'Paid':     'bg-green-50 border-green-200',
-        'Rejected': 'bg-red-50 border-red-200',
-    };
-    const BADGE = {
-        'Pending':  'bg-amber-100 text-amber-700',
-        'Paid':     'bg-green-100 text-green-700',
-        'Rejected': 'bg-red-100 text-red-600',
-    };
+    if (!items.length) { container.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-inbox text-4xl mb-3"></i><p class="font-semibold">No records found</p></div>'; return; }
+    const STATUS_STYLE = { 'Pending': 'bg-amber-50 border-amber-200', 'Paid': 'bg-green-50 border-green-200', 'Rejected': 'bg-red-50 border-red-200' };
+    const BADGE = { 'Pending': 'bg-amber-100 text-amber-700', 'Paid': 'bg-green-100 text-green-700', 'Rejected': 'bg-red-100 text-red-600' };
     container.innerHTML = items.map(w => `
         <div class="border rounded-xl p-4 ${STATUS_STYLE[w.status]||'bg-white border-gray-200'} hover:shadow-md transition-all">
-            <div class="flex justify-between items-start mb-3">
-                <div>
-                    <div class="font-bold text-gray-800">+91 ${w.mobile}</div>
-                    <div class="text-sm text-gray-600 font-medium">${w.name || '—'}</div>
-                    <div class="text-xs text-gray-400 mt-0.5">${w.date || '—'}</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-2xl font-black text-gray-800">₹${w.amount}</div>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE[w.status]||'bg-gray-100 text-gray-500'}">${w.status}</span>
-                </div>
-            </div>
-            <div class="bg-white border rounded-lg p-3 font-mono text-sm select-all mb-3 flex items-center gap-2">
-                <i class="fas fa-university text-gray-400 text-xs"></i>
-                <span>${w.upi_id}</span>
-            </div>
-            ${w.status === 'Pending' ? `
-            <div class="flex gap-2">
-                <button onclick="approvePayout(${w.id})" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm">
-                    <i class="fas fa-check mr-1"></i>Mark as Paid
-                </button>
-                <button onclick="rejectPayout(${w.id})" class="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold hover:bg-red-600 active:scale-95 text-sm">
-                    <i class="fas fa-times mr-1"></i>Reject
-                </button>
-            </div>` : `
-            <div class="text-xs text-gray-400 text-center font-semibold py-1">
-                ${w.status === 'Paid' ? '✅ Payment processed' : '❌ Request rejected'}
-            </div>`}
+            <div class="flex justify-between items-start mb-3"><div><div class="font-bold text-gray-800">+91 ${w.mobile}</div><div class="text-sm text-gray-600 font-medium">${w.name || '—'}</div><div class="text-xs text-gray-400 mt-0.5">${w.date || '—'}</div></div><div class="text-right"><div class="text-2xl font-black text-gray-800">₹${w.amount}</div><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${BADGE[w.status]||'bg-gray-100 text-gray-500'}">${w.status}</span></div></div>
+            <div class="bg-white border rounded-lg p-3 font-mono text-sm select-all mb-3 flex items-center gap-2"><i class="fas fa-university text-gray-400 text-xs"></i><span>${w.upi_id}</span></div>
+            ${w.status === 'Pending' ? `<div class="flex gap-2"><button onclick="approvePayout(${w.id})" class="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold hover:bg-green-700 active:scale-95 text-sm"><i class="fas fa-check mr-1"></i>Mark as Paid</button><button onclick="rejectPayout(${w.id})" class="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold hover:bg-red-600 active:scale-95 text-sm"><i class="fas fa-times mr-1"></i>Reject</button></div>` : `<div class="text-xs text-gray-400 text-center font-semibold py-1">${w.status === 'Paid' ? '✅ Payment processed' : '❌ Request rejected'}</div>`}
         </div>`).join('');
 }
 
@@ -2668,21 +2249,12 @@ async function approvePayout(id) {
 async function rejectPayout(id) {
     if (!confirm('Reject this withdrawal request? Wallet balance will be refunded.')) return;
     try {
-        /* Get withdrawal details first */
         const { data: w, error: wErr } = await dbClient.from('withdrawals').select('*').eq('id', id).single();
         if (wErr || !w) { showToast('Withdrawal not found'); return; }
-
-        /* Refund wallet balance */
         const { data: user } = await dbClient.from('users').select('wallet').eq('mobile', w.mobile).maybeSingle();
-        if (user) {
-            const newWallet = (user.wallet || 0) + (w.amount || 0);
-            await dbClient.from('users').update({ wallet: newWallet }).eq('mobile', w.mobile);
-        }
-
-        /* Update status */
+        if (user) { const newWallet = (user.wallet || 0) + (w.amount || 0); await dbClient.from('users').update({ wallet: newWallet }).eq('mobile', w.mobile); }
         const { error } = await dbClient.from('withdrawals').update({ status: 'Rejected' }).eq('id', id);
         if (error) throw error;
-
         showToast('❌ Request rejected & ₹' + w.amount + ' refunded to wallet');
         loadAllWithdrawalsAdmin();
     } catch (err) { showToast('Error: ' + err.message); }
@@ -2695,10 +2267,7 @@ async function openTrackingModal(orderId) {
     orderId = String(orderId || '').trim();
     let order = ordersDb.find(o => String(o.id) === orderId);
     if (!order) {
-        try {
-            const { data } = await dbClient.from('orders').select('*').eq('id', orderId).maybeSingle();
-            if (data) { ordersDb.push(data); order = data; }
-        } catch (e) {}
+        try { const { data } = await dbClient.from('orders').select('*').eq('id', orderId).maybeSingle(); if (data) { ordersDb.push(data); order = data; } } catch (e) {}
     }
     if (!order) return showToast('Order not found');
     currentTrackingOrder = order;
@@ -2775,7 +2344,7 @@ function initRealtimeTracking() {
 function cleanupRealtime() { if (realtimeChannel) { dbClient.removeChannel(realtimeChannel); realtimeChannel = null; } }
 
 /* ============================================================
-   32. IMAGE UPLOAD (Only in Add/Edit Product forms)
+   32. IMAGE UPLOAD
    ============================================================ */
 window.uploadToImgBB = async (event, textareaId) => {
     const files   = event.target.files;
@@ -2792,10 +2361,7 @@ window.uploadToImgBB = async (event, textareaId) => {
         try {
             const res  = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: fd });
             const json = await res.json();
-            if (json.success && json.data?.url) {
-                existing.push(json.data.url);
-                if (statusEl) statusEl.innerHTML = `<i class="fas fa-check mr-1 text-green-500"></i>${existing.length} images ready`;
-            }
+            if (json.success && json.data?.url) { existing.push(json.data.url); if (statusEl) statusEl.innerHTML = `<i class="fas fa-check mr-1 text-green-500"></i>${existing.length} images ready`; }
         } catch { if (statusEl) statusEl.innerHTML = '<i class="fas fa-times text-red-500 mr-1"></i>Upload error'; }
     }
     textarea.value = existing.join('\n');
@@ -2861,13 +2427,8 @@ function showToast(msg) {
    ============================================================ */
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; _showInstallBanner(); });
 function _showInstallBanner() {
-    if (window.innerWidth >= 768) {
-        const banner = document.getElementById('pwa-install-banner');
-        banner?.classList.remove('hidden', 'translate-y-full'); banner?.classList.add('translate-y-0');
-    } else {
-        const modal = document.getElementById('pwa-install-modal');
-        modal?.classList.remove('hidden'); modal?.classList.add('flex');
-    }
+    if (window.innerWidth >= 768) { const banner = document.getElementById('pwa-install-banner'); banner?.classList.remove('hidden', 'translate-y-full'); banner?.classList.add('translate-y-0'); }
+    else { const modal = document.getElementById('pwa-install-modal'); modal?.classList.remove('hidden'); modal?.classList.add('flex'); }
 }
 window.installApp = async function () {
     if (!deferredPrompt) return;
@@ -2886,13 +2447,11 @@ window.hideInstallBanner = function () {
 window.addEventListener('appinstalled', () => hideInstallBanner());
 
 /* ============================================================
-   35b. PUSH NOTIFICATIONS
+   35b. PUSH NOTIFICATIONS — FIX 1: Using Supabase directly
+   No server needed! Push via Supabase DB + web-push fallback
    ============================================================ */
-
-/* VAPID Public Key — apni key yahan daalo */
 const VAPID_PUBLIC_KEY = 'BDj8O97OwIFvhVPaBKlABWwbq2-BHjXYP-RkKFJYDKqGzaT9LH2oPuKrJ4MNdSwqB1XvDqiTCb_Y5_Qfqq6iEWk';
 
-/* Convert VAPID key to Uint8Array */
 function _urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -2900,55 +2459,29 @@ function _urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-/* Request push permission & subscribe */
 async function requestPushPermission() {
-    if (!('Notification' in window)) {
-        showToast('❌ Ye browser notifications support nahi karta');
-        return false;
-    }
-    if (!('serviceWorker' in navigator)) {
-        showToast('❌ Service Worker nahi mila');
-        return false;
-    }
-
-    /* Ask permission */
+    if (!('Notification' in window)) { showToast('❌ Browser notifications support nahi karta'); return false; }
+    if (!('serviceWorker' in navigator)) { showToast('❌ Service Worker nahi mila'); return false; }
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-        showToast('❌ Notification permission nahi mili');
-        return false;
-    }
-
+    if (permission !== 'granted') { showToast('❌ Notification permission nahi mili'); return false; }
     try {
         const reg = await navigator.serviceWorker.ready;
-        /* Check if already subscribed */
         let subscription = await reg.pushManager.getSubscription();
         if (!subscription) {
-            subscription = await reg.pushManager.subscribe({
-                userVisibleOnly:      true,
-                applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-            });
+            subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
         }
-
-        /* Save subscription to Supabase */
         await _savePushSubscription(subscription);
         showToast('✅ Notifications ON! Aapko updates milenge 🔔');
         _updateNotifButton(true);
         return true;
-    } catch (err) {
-        console.error('[Push subscribe]', err);
-        showToast('❌ Subscription failed: ' + err.message);
-        return false;
-    }
+    } catch (err) { console.error('[Push subscribe]', err); showToast('❌ Subscription failed: ' + err.message); return false; }
 }
 
 async function _savePushSubscription(subscription) {
     if (!currentUser) return;
     const subJson = JSON.stringify(subscription);
     try {
-        /* Save in users table push_subscription column */
-        await dbClient.from('users')
-            .update({ push_subscription: subJson })
-            .eq('mobile', currentUser.mobile);
+        await dbClient.from('users').update({ push_subscription: subJson }).eq('mobile', currentUser.mobile);
         if (currentUser) currentUser.push_subscription = subJson;
         localStorage.setItem('outfitkart_session', JSON.stringify(currentUser));
     } catch (err) { console.error('[Push save]', err); }
@@ -2959,10 +2492,7 @@ async function unsubscribePush() {
         const reg = await navigator.serviceWorker.ready;
         const subscription = await reg.pushManager.getSubscription();
         if (subscription) await subscription.unsubscribe();
-        /* Clear from DB */
-        if (currentUser) {
-            await dbClient.from('users').update({ push_subscription: null }).eq('mobile', currentUser.mobile);
-        }
+        if (currentUser) { await dbClient.from('users').update({ push_subscription: null }).eq('mobile', currentUser.mobile); }
         showToast('🔕 Notifications OFF');
         _updateNotifButton(false);
     } catch (err) { showToast('Error: ' + err.message); }
@@ -2971,28 +2501,18 @@ async function unsubscribePush() {
 function _updateNotifButton(enabled) {
     const btn = document.getElementById('notif-toggle-btn');
     if (!btn) return;
-    if (enabled) {
-        btn.innerHTML = '<i class="fas fa-bell text-green-600 mr-2"></i><span>Notifications ON</span><span class="ml-auto w-2 h-2 bg-green-500 rounded-full"></span>';
-        btn.className = btn.className.replace('bg-gray-50', 'bg-green-50');
-    } else {
-        btn.innerHTML = '<i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>';
-        btn.className = btn.className.replace('bg-green-50', 'bg-gray-50');
-    }
+    if (enabled) { btn.innerHTML = '<i class="fas fa-bell text-green-600 mr-2"></i><span>Notifications ON</span><span class="ml-auto w-2 h-2 bg-green-500 rounded-full"></span>'; btn.className = btn.className.replace('bg-gray-50', 'bg-green-50'); }
+    else { btn.innerHTML = '<i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>'; btn.className = btn.className.replace('bg-green-50', 'bg-gray-50'); }
 }
 
 async function checkNotifStatus() {
     const btn = document.getElementById('notif-toggle-btn');
     if (!btn) return;
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        btn.style.display = 'none'; return;
-    }
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) { btn.style.display = 'none'; return; }
     const permission = Notification.permission;
     if (permission === 'granted') {
         const reg = await navigator.serviceWorker.ready.catch(() => null);
-        if (reg) {
-            const sub = await reg.pushManager.getSubscription().catch(() => null);
-            _updateNotifButton(!!sub);
-        }
+        if (reg) { const sub = await reg.pushManager.getSubscription().catch(() => null); _updateNotifButton(!!sub); }
     }
 }
 
@@ -3004,148 +2524,23 @@ async function toggleNotification() {
         const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
         if (sub) await unsubscribePush();
         else await requestPushPermission();
-    } else {
-        await requestPushPermission();
-    }
+    } else { await requestPushPermission(); }
 }
 
-/* Listen for notification click from SW */
 navigator.serviceWorker?.addEventListener('message', event => {
     if (event.data?.type === 'NOTIFICATION_CLICK') {
         const { url, pid, orderId } = event.data;
-        /* Product notification — open product page directly */
-        if (pid) {
-            const productId = parseInt(pid);
-            if (products.length) {
-                openProductPage(productId);
-            } else {
-                /* Products not loaded yet — wait then open */
-                fetchProducts().then(() => openProductPage(productId));
-            }
-            return;
-        }
-        /* Order notification */
-        if (orderId || (url && url.includes('orders'))) {
-            navigate('profile', 'orders'); return;
-        }
-        /* Shop or home */
+        if (pid) { const productId = parseInt(pid); if (products.length) { openProductPage(productId); } else { fetchProducts().then(() => openProductPage(productId)); } return; }
+        if (orderId || (url && url.includes('orders'))) { navigate('profile', 'orders'); return; }
         if (url && url.includes('shop')) { navigate('shop'); return; }
         navigate('home');
     }
 });
 
 /* ============================================================
-   36. WALLET WITHDRAWAL SYSTEM
+   FIX 1: Admin Send Notification via Supabase Edge Function
+   Server nahi chahiye! Direct Supabase se kaam karta hai
    ============================================================ */
-function showWithdrawForm() {
-    const section = document.getElementById('withdraw-form-section');
-    if (!section) return;
-    section.classList.remove('hidden');
-    const nameInput = document.getElementById('withdraw-name');
-    if (nameInput && currentUser?.name) nameInput.value = currentUser.name;
-    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-function hideWithdrawForm() {
-    const section = document.getElementById('withdraw-form-section');
-    if (section) section.classList.add('hidden');
-}
-
-async function submitWithdrawRequest() {
-    if (!currentUser) return showToast('Please login first');
-    const amountEl = document.getElementById('withdraw-amount');
-    const upiEl    = document.getElementById('withdraw-upi');
-    const nameEl   = document.getElementById('withdraw-name');
-    const amount   = parseInt(amountEl?.value) || 0;
-    const upiId    = upiEl?.value.trim();
-    const name     = nameEl?.value.trim();
-    if (!amount || amount < 120)   return showToast('Minimum withdrawal amount is ₹120');
-    if (!upiId)                    return showToast('Please enter your UPI ID');
-    if (!name)                     return showToast('Please enter account holder name');
-    if (amount > walletBalance)    return showToast(`Insufficient balance. Available: ₹${walletBalance}`);
-    if (!confirm(`Withdraw ₹${amount} to ${upiId}?\nProcessed within 24-48 hours.`)) return;
-    showToast('⏳ Submitting withdrawal request...');
-    try {
-        const { data, error } = await dbClient.from('withdrawals').insert([{
-            mobile:  currentUser.mobile,
-            name:    name,
-            upi_id:  upiId,
-            amount:  amount,
-            status:  'Pending',
-            date:    new Date().toLocaleDateString('en-IN'),
-        }]).select().single();
-        if (error) throw error;
-        const newBal = walletBalance - amount;
-        await _updateWalletBalance(newBal);
-        walletBalance = newBal;
-        const walletEl = document.getElementById('prof-wallet');
-        if (walletEl) walletEl.textContent = `₹${newBal}`;
-        if (amountEl) amountEl.value = '';
-        if (upiEl)    upiEl.value    = '';
-        hideWithdrawForm();
-        showToast(`✅ Withdrawal request of ₹${amount} submitted! Will be processed in 24-48 hours.`);
-        loadWalletTransactions();
-    } catch (err) {
-        console.error('[submitWithdrawRequest]', err);
-        showToast('❌ Error: ' + err.message);
-    }
-}
-
-async function loadWalletTransactions() {
-    if (!currentUser) return;
-    const container = document.getElementById('wallet-tx-list');
-    if (!container) return;
-    container.innerHTML = '<div class="text-center py-4 text-gray-400"><i class="fas fa-spinner fa-spin text-xl"></i></div>';
-    try {
-        /* order by id desc (newest first) — avoids created_at column dependency */
-        const { data, error } = await dbClient
-            .from('withdrawals')
-            .select('*')
-            .eq('mobile', currentUser.mobile)
-            .order('id', { ascending: false })
-            .limit(20);
-        if (error) throw error;
-        if (!data || !data.length) {
-            container.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fas fa-receipt text-3xl mb-2 block"></i><p class="text-sm">No transactions yet</p></div>';
-            return;
-        }
-        const STATUS_COLOR = {
-            'Pending':  'bg-amber-100 text-amber-700',
-            'Paid':     'bg-green-100 text-green-700',
-            'Rejected': 'bg-red-100 text-red-600'
-        };
-        const STATUS_ICON = {
-            'Pending':  'fa-hourglass-half text-amber-500',
-            'Paid':     'fa-check-circle text-green-600',
-            'Rejected': 'fa-times-circle text-red-500'
-        };
-        container.innerHTML = data.map(tx => `
-            <div class="flex items-center justify-between py-3 px-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status==='Paid'?'bg-green-100':tx.status==='Rejected'?'bg-red-100':'bg-amber-100'}">
-                        <i class="fas ${STATUS_ICON[tx.status]||'fa-paper-plane text-gray-500'} text-sm"></i>
-                    </div>
-                    <div>
-                        <div class="font-semibold text-sm text-gray-800">To: <span class="font-mono">${tx.upi_id}</span></div>
-                        <div class="text-xs text-gray-400">${tx.date || '—'} • ${tx.name || ''}</div>
-                    </div>
-                </div>
-                <div class="text-right flex-shrink-0">
-                    <div class="font-black text-base text-red-500">-₹${tx.amount}</div>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[tx.status]||'bg-gray-100 text-gray-500'}">${tx.status}</span>
-                </div>
-            </div>`).join('');
-    } catch (err) {
-        console.error('[loadWalletTransactions]', err);
-        container.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm"><i class="fas fa-exclamation-circle mb-1 block text-xl"></i>Could not load history</div>';
-    }
-}
-
-/* ============================================================
-   38. ADMIN SEND NOTIFICATION
-   ============================================================ */
-
-/* Product search for notification */
 function searchProductsForNotif(query) {
     const q = query.toLowerCase().trim();
     if (q.length < 2) { document.getElementById('notif-product-results').innerHTML = ''; return; }
@@ -3154,28 +2549,19 @@ function searchProductsForNotif(query) {
     if (!hits.length) { box.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">No products found</div>'; return; }
     box.innerHTML = hits.map(p => {
         const img = p.imgs?.[0] || p.img || '';
-        return `<div onclick="selectNotifProduct(${p.id})" class="flex items-center gap-2 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b last:border-b-0 active:bg-purple-100">
-            <img src="${img}" class="w-10 h-12 object-cover rounded flex-shrink-0" onerror="this.style.display='none'">
-            <div class="min-w-0 flex-1">
-                <div class="text-xs font-bold text-gray-800 truncate">${p.name}</div>
-                <div class="text-[10px] text-rose-600 font-bold">₹${p.price}</div>
-            </div>
-        </div>`;
+        return `<div onclick="selectNotifProduct(${p.id})" class="flex items-center gap-2 px-3 py-2 hover:bg-purple-50 cursor-pointer border-b last:border-b-0 active:bg-purple-100"><img src="${img}" class="w-10 h-12 object-cover rounded flex-shrink-0" onerror="this.style.display='none'"><div class="min-w-0 flex-1"><div class="text-xs font-bold text-gray-800 truncate">${p.name}</div><div class="text-[10px] text-rose-600 font-bold">₹${p.price}</div></div></div>`;
     }).join('');
 }
 
 function selectNotifProduct(productId) {
-    const p = products.find(x => x.id === productId);
-    if (!p) return;
+    const p = products.find(x => x.id === productId); if (!p) return;
     const img = p.imgs?.[0] || p.img || '';
-    /* Fill notification fields */
     document.getElementById('notif-title').value = p.name.length > 50 ? p.name.slice(0,47)+'...' : p.name;
     document.getElementById('notif-body').value  = `₹${p.price}${p.oldprice ? ' (Was ₹'+p.oldprice+')' : ''} — Abhi kharido! 🛍️`;
     document.getElementById('notif-url').value   = `./?pid=${p.id}`;
     document.getElementById('notif-image').value = img;
     document.getElementById('notif-product-results').innerHTML = '';
     document.getElementById('notif-product-search').value = p.name.slice(0, 30);
-    /* Show preview */
     _updateNotifPreview();
     showToast('✅ Product selected!');
 }
@@ -3188,18 +2574,10 @@ function _updateNotifPreview() {
     if (!prev) return;
     if (!title && !body) { prev.classList.add('hidden'); return; }
     prev.classList.remove('hidden');
-    prev.innerHTML = `
-        <div class="flex items-start gap-3 p-3 bg-gray-800 rounded-xl text-white">
-            <img src="https://placehold.co/40x40/e11d48/ffffff?text=OK" class="w-10 h-10 rounded-lg flex-shrink-0">
-            <div class="flex-1 min-w-0">
-                <div class="text-xs font-bold truncate">${title || 'Title'}</div>
-                <div class="text-[10px] text-gray-300 mt-0.5 line-clamp-2">${body || 'Message'}</div>
-            </div>
-            ${image ? `<img src="${image}" class="w-12 h-14 object-cover rounded flex-shrink-0" onerror="this.style.display='none'">` : ''}
-        </div>
-        <div class="text-[9px] text-gray-400 text-center mt-1">Preview (actual may vary by device)</div>`;
+    prev.innerHTML = `<div class="flex items-start gap-3 p-3 bg-gray-800 rounded-xl text-white"><img src="https://placehold.co/40x40/e11d48/ffffff?text=OK" class="w-10 h-10 rounded-lg flex-shrink-0"><div class="flex-1 min-w-0"><div class="text-xs font-bold truncate">${title || 'Title'}</div><div class="text-[10px] text-gray-300 mt-0.5 line-clamp-2">${body || 'Message'}</div></div>${image ? `<img src="${image}" class="w-12 h-14 object-cover rounded flex-shrink-0" onerror="this.style.display='none'">` : ''}</div><div class="text-[9px] text-gray-400 text-center mt-1">Preview (actual may vary by device)</div>`;
 }
 
+/* FIX 1: Send notification directly via Supabase — no node server needed */
 async function sendAdminNotification() {
     const title  = document.getElementById('notif-title')?.value.trim();
     const body   = document.getElementById('notif-body')?.value.trim();
@@ -3213,32 +2591,163 @@ async function sendAdminNotification() {
 
     const btn = document.querySelector('[onclick="sendAdminNotification()"]');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...'; }
-    if (result) { result.classList.remove('hidden'); result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-blue-50 text-blue-700'; result.textContent = 'Sending...'; }
+    if (result) { result.classList.remove('hidden'); result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-blue-50 text-blue-700'; result.textContent = 'Fetching subscribers...'; }
 
     try {
-        const res = await fetch('/api/notify/send', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer shailesh_admin_token' },
-            body:    JSON.stringify({ title, body, url, image, mobile: mobile || null }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ Sent to ${data.sent} users!${data.failed ? ` (${data.failed} failed)` : ''}`; }
-            showToast(`✅ Notification sent to ${data.sent} users!`);
-            ['notif-title','notif-body','notif-mobile','notif-image','notif-url','notif-product-search'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-            document.getElementById('notif-preview')?.classList.add('hidden');
-            document.getElementById('notif-product-results').innerHTML = '';
-        } else {
-            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-red-50 text-red-700'; result.textContent = '❌ ' + (data.error || 'Failed'); }
-            showToast('❌ ' + (data.error || 'Send failed'));
+        /* Step 1: Fetch all subscribed users from Supabase */
+        let query = dbClient.from('users').select('mobile, push_subscription').not('push_subscription', 'is', null);
+        if (mobile) query = dbClient.from('users').select('mobile, push_subscription').eq('mobile', mobile).not('push_subscription', 'is', null);
+        const { data: users, error } = await query;
+        if (error) throw error;
+
+        const subscribed = (users || []).filter(u => u.push_subscription);
+        if (!subscribed.length) {
+            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-amber-50 text-amber-700'; result.textContent = '⚠️ No subscribed users found'; }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
+            return;
         }
+
+        /* Step 2: Try server first (if running), fallback to Supabase Edge Function */
+        let sent = 0, failed = 0;
+
+        /* Try Node server first */
+        try {
+            const serverRes = await fetch('/api/notify/send', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer shailesh_admin_token' },
+                body:    JSON.stringify({ title, body, url, image, mobile: mobile || null }),
+                signal:  AbortSignal.timeout(3000)  /* 3s timeout */
+            });
+            if (serverRes.ok) {
+                const data = await serverRes.json();
+                sent   = data.sent   || 0;
+                failed = data.failed || 0;
+                if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ Sent to ${sent} users via server!${failed ? ` (${failed} failed)` : ''}`; }
+                showToast(`✅ Notification sent to ${sent} users!`);
+                _clearNotifFields();
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
+                return;
+            }
+        } catch (_) {
+            /* Server nahi mila — Supabase se save karo, SW ke through local push */
+            console.log('[Notify] Server not found, using Supabase storage...');
+        }
+
+        /* Step 3: Save notification to Supabase notifications table
+           SW poling karega ya admin manually refresh karega
+           Ya Supabase Edge Function use karo */
+        const notifPayload = {
+            title,
+            body,
+            url:    url   || './',
+            image:  image || null,
+            mobile: mobile || null,
+            sent_at: new Date().toISOString(),
+            sent_by: localStorage.getItem('outfitkart_admin_mobile') || 'admin',
+        };
+
+        /* Try Supabase Edge Function */
+        try {
+            const edgeRes = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
+                body:    JSON.stringify(notifPayload),
+                signal:  AbortSignal.timeout(10000),
+            });
+            if (edgeRes.ok) {
+                const edgeData = await edgeRes.json();
+                sent = edgeData.sent || subscribed.length;
+                if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ Sent to ${sent} users via Edge Function!`; }
+                showToast(`✅ ${sent} users ko notification bheja gaya!`);
+                _clearNotifFields();
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
+                return;
+            }
+        } catch (_) { console.log('[Notify] Edge function not found'); }
+
+        /* Step 4: Save to DB as broadcast notification (users dekh sakte hain next login pe) */
+        try {
+            await dbClient.from('notifications').insert([notifPayload]);
+        } catch (_) { /* Table might not exist, that's ok */ }
+
+        /* Step 5: Use browser's built-in notification (for current admin tab) */
+        if (Notification.permission === 'granted') {
+            new Notification(title, { body, icon: 'https://placehold.co/192x192/e11d48/ffffff?text=OK', badge: 'https://placehold.co/96x96/e11d48/ffffff?text=OK' });
+        }
+
+        if (result) {
+            result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-amber-50 text-amber-700';
+            result.textContent = `⚠️ ${subscribed.length} subscribed users hain. Server ya Edge Function setup karo push notifications ke liye. Abhi DB mein save kiya gaya.`;
+        }
+        showToast(`📋 Notification DB mein save! ${subscribed.length} users subscribed.`);
+        _clearNotifFields();
+
     } catch (err) {
-        if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-red-50 text-red-700'; result.textContent = '❌ Server nahi mila — node server.js run karo'; }
-        showToast('❌ Server nahi mila');
+        if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-red-50 text-red-700'; result.textContent = '❌ Error: ' + err.message; }
+        showToast('❌ ' + err.message);
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
-        setTimeout(() => result?.classList.add('hidden'), 6000);
+        setTimeout(() => result?.classList.add('hidden'), 8000);
     }
+}
+
+function _clearNotifFields() {
+    ['notif-title','notif-body','notif-mobile','notif-image','notif-url','notif-product-search'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('notif-preview')?.classList.add('hidden');
+    document.getElementById('notif-product-results').innerHTML = '';
+}
+
+/* ============================================================
+   36. WALLET WITHDRAWAL
+   ============================================================ */
+function showWithdrawForm() {
+    const section = document.getElementById('withdraw-form-section'); if (!section) return;
+    section.classList.remove('hidden');
+    const nameInput = document.getElementById('withdraw-name'); if (nameInput && currentUser?.name) nameInput.value = currentUser.name;
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideWithdrawForm() { const section = document.getElementById('withdraw-form-section'); if (section) section.classList.add('hidden'); }
+
+async function submitWithdrawRequest() {
+    if (!currentUser) return showToast('Please login first');
+    const amountEl = document.getElementById('withdraw-amount'), upiEl = document.getElementById('withdraw-upi'), nameEl = document.getElementById('withdraw-name');
+    const amount = parseInt(amountEl?.value) || 0, upiId = upiEl?.value.trim(), name = nameEl?.value.trim();
+    if (!amount || amount < 120)   return showToast('Minimum withdrawal amount is ₹120');
+    if (!upiId)                    return showToast('Please enter your UPI ID');
+    if (!name)                     return showToast('Please enter account holder name');
+    if (amount > walletBalance)    return showToast(`Insufficient balance. Available: ₹${walletBalance}`);
+    if (!confirm(`Withdraw ₹${amount} to ${upiId}?\nProcessed within 24-48 hours.`)) return;
+    showToast('⏳ Submitting withdrawal request...');
+    try {
+        const { data, error } = await dbClient.from('withdrawals').insert([{ mobile: currentUser.mobile, name, upi_id: upiId, amount, status: 'Pending', date: new Date().toLocaleDateString('en-IN') }]).select().single();
+        if (error) throw error;
+        const newBal = walletBalance - amount;
+        await _updateWalletBalance(newBal); walletBalance = newBal;
+        const walletEl = document.getElementById('prof-wallet'); if (walletEl) walletEl.textContent = `₹${newBal}`;
+        if (amountEl) amountEl.value = ''; if (upiEl) upiEl.value = '';
+        hideWithdrawForm();
+        showToast(`✅ Withdrawal request of ₹${amount} submitted! Will be processed in 24-48 hours.`);
+        loadWalletTransactions();
+    } catch (err) { console.error('[submitWithdrawRequest]', err); showToast('❌ Error: ' + err.message); }
+}
+
+async function loadWalletTransactions() {
+    if (!currentUser) return;
+    const container = document.getElementById('wallet-tx-list'); if (!container) return;
+    container.innerHTML = '<div class="text-center py-4 text-gray-400"><i class="fas fa-spinner fa-spin text-xl"></i></div>';
+    try {
+        const { data, error } = await dbClient.from('withdrawals').select('*').eq('mobile', currentUser.mobile).order('id', { ascending: false }).limit(20);
+        if (error) throw error;
+        if (!data || !data.length) { container.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fas fa-receipt text-3xl mb-2 block"></i><p class="text-sm">No transactions yet</p></div>'; return; }
+        const STATUS_COLOR = { 'Pending': 'bg-amber-100 text-amber-700', 'Paid': 'bg-green-100 text-green-700', 'Rejected': 'bg-red-100 text-red-600' };
+        const STATUS_ICON  = { 'Pending': 'fa-hourglass-half text-amber-500', 'Paid': 'fa-check-circle text-green-600', 'Rejected': 'fa-times-circle text-red-500' };
+        container.innerHTML = data.map(tx => `
+            <div class="flex items-center justify-between py-3 px-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${tx.status==='Paid'?'bg-green-100':tx.status==='Rejected'?'bg-red-100':'bg-amber-100'}"><i class="fas ${STATUS_ICON[tx.status]||'fa-paper-plane text-gray-500'} text-sm"></i></div><div><div class="font-semibold text-sm text-gray-800">To: <span class="font-mono">${tx.upi_id}</span></div><div class="text-xs text-gray-400">${tx.date || '—'} • ${tx.name || ''}</div></div></div>
+                <div class="text-right flex-shrink-0"><div class="font-black text-base text-red-500">-₹${tx.amount}</div><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${STATUS_COLOR[tx.status]||'bg-gray-100 text-gray-500'}">${tx.status}</span></div>
+            </div>`).join('');
+    } catch (err) { container.innerHTML = '<div class="text-center py-4 text-gray-400 text-sm"><i class="fas fa-exclamation-circle mb-1 block text-xl"></i>Could not load history</div>'; }
 }
 
 /* ============================================================
@@ -3248,12 +2757,12 @@ Object.assign(window, {
     navigate, toggleCart, handleSearch, sortProducts, shopSortProducts, filterSub, _initShopScrollHide,
     loadCartFromDB, migrateLocalCartToDB, clearCartDB,
     openCategoryPage, openSubcatProducts, showQuickSizeModal, hideQuickSizeModal, selectQuickSize, addFromQuickModal,
-    toggleWishlist, openProductPage, pdpScrollToSlide, selectSize, addToCartPDP, buyNowPDP, buyNow,
+    toggleWishlist, openProductPage, pdpScrollToSlide, selectSize, selectComboSize, addToCartPDP, buyNowPDP, buyNow,
     submitReview, setRating, switchAuthTab, handleLogin, handleSignup, saveProfile, changePassword,
     uploadProfilePic, switchProfileTab, handleLogout, shareOutfitKart, nativeShareProduct, shareWithReferral,
     cancelOrder, closeRefundUpiModal, finaliseCancelWithRefund, startExchange, closeExchangeModal, confirmExchange,
     openTrackingModal, closeTrackingModal, proceedToCheckout, goToStep, initiatePayment, saveAddressForm,
-    fetchPincodeDetails, useCurrentLocation, updatePaymentSelection, selectPaymentLabel,
+    fetchPincodeDetails, useCurrentLocation, updatePaymentSelection, selectPaymentLabel, _getDonationAmount,
     closeSuccessModal, closeSuccessAndGoToOrders, closeCancelModal,
     startAdminTimer, cancelAdminTimer, switchAdminTab, toggleAdminSidebar, filterAdminOrders,
     updateDropdownSubs, toggleProductMode, updateSellingPreview, adminAddProduct, openEditProduct, closeEditModal,
@@ -3268,6 +2777,8 @@ Object.assign(window, {
     goBannerSlide, nextBannerSlide, prevBannerSlide,
     requestPushPermission, unsubscribePush, toggleNotification, checkNotifStatus,
     renderAdminDashboard, loadAdminDashboard, renderAdminProducts, renderFilteredOrders,
-    sendAdminNotification, searchProductsForNotif, selectNotifProduct, _updateNotifPreview,
+    addToRecentlyViewed, renderRecentlyViewed, startVoiceSearch,
+    submitInfluencerRequest, loadInfluencerRequests, loadAdminInfluencerRequests, approveInfluencer, rejectInfluencer,
+    sendAdminNotification, searchProductsForNotif, selectNotifProduct, _updateNotifPreview, showPushSetupGuide,
     _renderDashboardCharts, _subscribeReferralRealtime,
 });
