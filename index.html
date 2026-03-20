@@ -111,14 +111,15 @@
         #scrape-status { transition: background 0.25s, border-color 0.25s, color 0.25s; }
 
         /* ── Shop header — glued right below main header ── */
-        #shop-header-bar {
-            position: sticky;
-            top: 64px; /* main header height */
-            z-index: 30;
-            background: white;
-            border-bottom: 1px solid #f3f4f6;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
-            margin-top: 0;
+      #shop-header-bar {
+            position: sticky !important;
+            top: 5px !important;
+            z-index: 40 !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+            margin: 0 !important;
+            padding-bottom: 8px !important;
         }
         #view-shop { padding-top: 0; }
         #shop-grid {
@@ -246,7 +247,7 @@
         }
 
         /* ── Category subcat page fix — no pink View All floating box ── */
-        #view-category .sticky { background: white; }
+        #view-category .sticky {top: 8px !important; z-index: 0 !important;;background: white; }
         #cat-view-all-btn { display: flex !important; visibility: visible !important; }
 
         /* Admin header name pill */
@@ -1259,8 +1260,9 @@
         <div class="flex gap-3"><button onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95">Install App</button><button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10">Not Now</button>
              </div>
 
-    <script src="script.js"></script>
-    <script>
+    <script src="script-core.js"></script>
+<script src="script-admin.js"></script>
+<script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () =>
           navigator.serviceWorker.register('./sw.js').catch(() => {})
