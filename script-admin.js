@@ -217,9 +217,12 @@ function updateDropdownSubs(catId,subId){
 }
 
 function updateSizeSection(categoryName){
-    const sizeSection=document.getElementById('admin-size-section');const mlSection=document.getElementById('admin-ml-section');if(!sizeSection||!mlSection)return;
-    if(isPerfumeCategory(categoryName)){sizeSection.classList.add('hidden');mlSection.classList.remove('hidden');}
-    else{sizeSection.classList.remove('hidden');mlSection.classList.add('hidden');}
+    const sizeSection=document.getElementById('admin-size-section');
+    const mlSection=document.getElementById('admin-ml-section');
+    if(!sizeSection||!mlSection)return;
+    const isPerf=isPerfumeCategory(categoryName);
+    mlSection.classList.toggle('hidden',!isPerf);
+    sizeSection.querySelectorAll('.admin-size-standard').forEach(el=>el.classList.toggle('hidden',isPerf));
 }
 
 function toggleProductMode(mode){
@@ -274,7 +277,10 @@ async function adminAddProduct(e){
     const catVal=document.getElementById('ap-category').value;const isPerf=isPerfumeCategory(catVal);
     let sizes=[];
     if(isPerf){sizes=Array.from(document.querySelectorAll('.ml-admin-chk:checked')).map(cb=>cb.value);if(!sizes.length)sizes=PERFUME_ML_SIZES;}
-    else{sizes=Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb=>cb.value);}
+    else{
+        sizes=Array.from(document.querySelectorAll('.size-admin-chk:checked')).map(cb=>cb.value);
+        if(!sizes.length&&String(catVal).toLowerCase()==='accessories')sizes=['Free Size'];
+    }
     const supplierPrice=parseInt(document.getElementById('ap-supplier-price')?.value)||0;
     const marginPct=parseFloat(document.getElementById('ap-margin-pct')?.value)||0;
     const marginAmt=Math.round(supplierPrice*marginPct/100)||parseInt(document.getElementById('ap-margin')?.value)||0;
