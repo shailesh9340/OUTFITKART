@@ -800,7 +800,7 @@
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-oldprice" placeholder="MRP (Auto-calc)" class="w-full border p-2.5 rounded-lg text-sm text-red-500" oninput="this.dataset.manualEdit=this.value?'1':''"><input type="number" id="ap-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0"></div>
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-stock" placeholder="Total Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50"></div>
                             <div id="admin-size-section"><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label>
-                                <div class="border rounded p-1.5 bg-gray-50">
+                                <div class="border rounded p-1.5 bg-gray-50 admin-size-standard">
                                     <span class="text-[9px] font-bold text-gray-500 block text-center mb-1 uppercase">Clothing</span>
                                     <div class="grid grid-cols-4 gap-1 text-[10px]">
                                         <label><input type="checkbox" value="XS" class="size-admin-chk"> XS</label>
@@ -813,7 +813,7 @@
                                         <label><input type="checkbox" value="4XL" class="size-admin-chk"> 4XL</label>
                                     </div>
                                 </div>
-                                <div class="border rounded p-1.5 bg-blue-50">
+                                <div class="border rounded p-1.5 bg-blue-50 admin-size-standard">
                                     <span class="text-[9px] font-bold text-blue-600 block text-center mb-1 uppercase">Pants/Jeans</span>
                                     <div class="grid grid-cols-3 gap-1 text-[10px]">
                                         <label><input type="checkbox" value="24" class="size-admin-chk"> 24</label>
@@ -827,7 +827,7 @@
                                         <label><input type="checkbox" value="40" class="size-admin-chk"> 40</label>
                                     </div>
                                 </div>
-                                <div class="border rounded p-1.5 bg-green-50">
+                                <div class="border rounded p-1.5 bg-green-50 admin-size-standard">
                                     <span class="text-[9px] font-bold text-green-600 block text-center mb-1 uppercase">Footwear</span>
                                     <div class="grid grid-cols-3 gap-1 text-[10px]">
                                         <label><input type="checkbox" value="4" class="size-admin-chk"> 4</label>
@@ -862,6 +862,12 @@
                                         <span class="text-xs font-bold text-purple-700 flex-shrink-0">➕ Custom:</span>
                                         <div class="flex items-center border border-purple-300 rounded-lg overflow-hidden bg-white"><span class="bg-purple-100 px-2 py-1.5 text-purple-700 font-black text-xs border-r border-purple-200">ml</span><input type="number" id="custom-ml-input" placeholder="e.g. 45" min="1" max="2000" class="w-24 px-2 py-1.5 text-xs font-bold outline-none" style="font-size:14px;"></div>
                                         <button type="button" onclick="addCustomMlVolume()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 active:scale-95">Add</button>
+                                    </div>
+                                </div>
+                                <div class="border rounded p-1.5 bg-purple-50 admin-size-standard">
+                                    <span class="text-[9px] font-bold text-purple-700 block text-center mb-1 uppercase">One Size</span>
+                                    <div class="grid grid-cols-2 gap-1 text-[10px]">
+                                        <label><input type="checkbox" value="Free Size" class="size-admin-chk"> Free Size</label>
                                     </div>
                                 </div>
                                 <div class="flex flex-col mb-2 mt-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ap-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
