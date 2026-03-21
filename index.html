@@ -4,33 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#e11d48">
-    <!-- PWA: iPhone / iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="OutfitKart">
     <link rel="apple-touch-icon" href="https://placehold.co/180x180/e11d48/ffffff?text=OK">
-    <link rel="apple-touch-icon" sizes="120x120" href="https://placehold.co/120x120/e11d48/ffffff?text=OK">
-    <link rel="apple-touch-icon" sizes="152x152" href="https://placehold.co/152x152/e11d48/ffffff?text=OK">
-    <link rel="apple-touch-icon" sizes="167x167" href="https://placehold.co/167x167/e11d48/ffffff?text=OK">
-    <link rel="apple-touch-icon" sizes="180x180" href="https://placehold.co/180x180/e11d48/ffffff?text=OK">
-    <link rel="apple-touch-startup-image" media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)" href="https://placehold.co/1170x2532/e11d48/ffffff?text=OutfitKart">
-    <link rel="apple-touch-startup-image" media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)" href="https://placehold.co/1125x2436/e11d48/ffffff?text=OutfitKart">
-    <link rel="apple-touch-startup-image" media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2)" href="https://placehold.co/828x1792/e11d48/ffffff?text=OutfitKart">
-    <!-- PWA: Android / Windows -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="OutfitKart">
-    <meta name="msapplication-TileColor" content="#e11d48">
-    <meta name="msapplication-TileImage" content="https://placehold.co/144x144/e11d48/ffffff?text=OK">
-    <meta name="format-detection" content="telephone=no">
-    <!-- Manifest -->
     <link rel="manifest" href="./manifest.json">
-    <!-- SEO & OG -->
-    <meta name="description" content="OutfitKart — Premium Fashion at Best Prices. Men, Women, Kids & Perfumes. COD available.">
+    <meta name="description" content="OutfitKart — Premium Fashion at Best Prices. Men, Women, Accessories & Perfumes. COD available.">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="OutfitKart">
     <title>OutfitKart | Premium Fashion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
@@ -40,55 +25,19 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .tab-btn.active { border-left: 4px solid #e11d48; background-color: #fff1f2; color: #e11d48; font-weight: bold; }
-
-        /* ── ADMIN NAV — Professional Sidebar ── */
-        .admin-nav-btn {
-            color: #6b7280;
-            background-color: transparent;
-            transition: all 0.18s ease;
-        }
-        .admin-nav-btn:hover {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-        }
-        .admin-nav-btn.active {
-            background: linear-gradient(90deg, #ede9fe 0%, #f5f3ff 100%);
-            color: #7c3aed;
-            border-left: 3px solid #7c3aed;
-            font-weight: 700;
-        }
-        .admin-nav-btn .nav-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: background 0.18s;
-            flex-shrink: 0;
-        }
-        .admin-nav-btn.active .nav-icon {
-            background: #7c3aed;
-            color: white;
-        }
-        .admin-nav-btn:not(.active) .nav-icon {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-        .admin-nav-btn:hover:not(.active) .nav-icon {
-            background: #ede9fe;
-            color: #7c3aed;
-        }
-
+        .admin-nav-btn { color: #6b7280; background-color: transparent; transition: all 0.18s ease; }
+        .admin-nav-btn:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .admin-nav-btn.active { background: linear-gradient(90deg, #ede9fe 0%, #f5f3ff 100%); color: #7c3aed; border-left: 3px solid #7c3aed; font-weight: 700; }
+        .admin-nav-btn .nav-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: background 0.18s; flex-shrink: 0; }
+        .admin-nav-btn.active .nav-icon { background: #7c3aed; color: white; }
+        .admin-nav-btn:not(.active) .nav-icon { background: #f3f4f6; color: #6b7280; }
+        .admin-nav-btn:hover:not(.active) .nav-icon { background: #ede9fe; color: #7c3aed; }
+        /* Gold nav btn special styling */
+        #btn-admin-gold.active { background: linear-gradient(90deg,#fffbeb,#fef3c7) !important; border-left: 3px solid #C9A84C !important; }
+        #btn-admin-gold.active .nav-icon { background: linear-gradient(135deg,#C9A84C,#B8860B) !important; color: #1a0800 !important; }
         .size-btn.selected { border-color: #e11d48; background-color: #e11d48; color: white; }
-        .payment-modal { backdrop-filter: blur(5px); }
         #tracking-modal { backdrop-filter: blur(8px); }
-        .step-circle {
-            width: 2rem; height: 2rem; border-radius: 9999px;
-            border: 2px solid #d1d5db; display: flex; align-items: center;
-            justify-content: center; font-size: 0.875rem; transition: all 0.3s;
-        }
+        .step-circle { width: 2rem; height: 2rem; border-radius: 9999px; border: 2px solid #d1d5db; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; transition: all 0.3s; }
         .pdp-img-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; gap: 0; border-radius: 0.5rem; border: 1px solid #e5e7eb; }
         .pdp-img-slider img { scroll-snap-align: start; min-width: 100%; height: 420px; object-fit: cover; flex-shrink: 0; }
         .pdp-thumb-strip { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
@@ -105,162 +54,70 @@
         .admin-order-item-name { font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #111827; }
         .admin-order-item-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
         .admin-order-item-price { font-size: 12px; font-weight: 700; color: #e11d48; margin-top: 2px; }
-        #recommended-products-grid .bg-white { min-width: unset !important; width: 100% !important; }
         @keyframes sharePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,72,0.4); } 50% { box-shadow: 0 0 0 8px rgba(225,29,72,0); } }
         .share-outfitkart-btn { animation: sharePulse 2.5s infinite; }
         #scrape-status { transition: background 0.25s, border-color 0.25s, color 0.25s; }
-
-        /* ── Shop header — glued right below main header ── */
-      #shop-header-bar {
-            position: sticky !important;
-            top: 5px !important;
-            z-index: 40 !important;
-            background: #ffffff !important;
-            border-bottom: 1px solid #f3f4f6 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
-            margin: 0 !important;
-            padding-bottom: 8px !important;
-        }
+        #shop-header-bar { position: sticky !important; top: 5px !important; z-index: 40 !important; background: #ffffff !important; border-bottom: 1px solid #f3f4f6 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important; margin: 0 !important; padding-bottom: 8px !important; }
         #view-shop { padding-top: 0; }
-        #shop-grid {
-            padding-top: 0.5rem;
-            position: relative;
-            z-index: 1;
-        }
+        #shop-grid { padding-top: 0.5rem; position: relative; z-index: 1; }
         .product-card { position: relative; z-index: 1; }
-        /* Subcategory filters inside shop header — always in flow */
-        #shop-header-bar #subcategory-filters {
-            padding-bottom: 8px;
-        }
-
-        #subcategory-filters {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 6px;
-            overflow-x: auto;
-            overflow-y: hidden;
-            white-space: nowrap;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding-bottom: 6px;
-            max-height: none;
-            opacity: 1;
-            transition: opacity 0.3s ease, max-height 0.3s ease;
-        }
+        #subcategory-filters { display: flex; flex-direction: row; align-items: center; gap: 6px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 6px; max-height: none; opacity: 1; transition: opacity 0.3s ease, max-height 0.3s ease; }
         #subcategory-filters::-webkit-scrollbar { display: none; }
         #subcategory-filters.subcat-hidden { max-height: 0; opacity: 0; overflow: hidden; padding: 0 !important; }
-
-        /* Hide bottom nav in admin panel */
         body.admin-active > nav { display: none !important; }
         body.admin-active { padding-bottom: 0 !important; }
-
-        /* ── Responsive global fixes ── */
         *, *::before, *::after { box-sizing: border-box; }
         img { max-width: 100%; height: auto; }
         body, main, .view-section { overflow-x: hidden; max-width: 100vw; }
-
         .product-card { height: 100%; }
         .product-card img { height: 180px; width: 100%; object-fit: cover; }
         @media (min-width: 640px)  { .product-card img { height: 200px; } }
         @media (min-width: 1024px) { .product-card img { height: 220px; } }
-
         .pdp-img-slider img { height: 320px; }
         @media (min-width: 768px) { .pdp-img-slider img { height: 420px; } }
-
+        #view-checkout { overflow-x: hidden; }
+        #checkout-steps-container { padding: 0.75rem; overflow-x: hidden; }
+        #checkout-step-2 .lg\:grid, #checkout-step-3 .lg\:grid { overflow: visible; }
         @media (max-width: 768px) {
-            #checkout-steps-container { padding: 0.75rem; }
-            .checkout-progress { padding: 0.5rem 1rem; }
+            #checkout-step-2 > div, #checkout-step-3 > div { display: flex; flex-direction: column; gap: 1rem; }
+            #checkout-step-2 > div > div, #checkout-step-3 > div > div { width: 100% !important; }
+            .lg\:col-span-2, .lg\:col-span-1 { width: 100% !important; }
         }
         @media (max-width: 640px) {
-            #admin-tab-products, #admin-tab-inventory,
-            #admin-tab-order,    #admin-tab-users,
-            #admin-tab-payout,   #admin-tab-referrals,
-        #admin-tab-influencer,
-            #admin-tab-dashboard { padding: 0.75rem; }
+            #admin-tab-products, #admin-tab-inventory, #admin-tab-order, #admin-tab-users, #admin-tab-payout, #admin-tab-referrals, #admin-tab-influencer, #admin-tab-dashboard, #admin-tab-gold { padding: 0.75rem; }
             .admin-order-items { max-height: 240px; }
         }
-
         #cart-sidebar { display: flex; flex-direction: column; }
-        #cart-items   { flex: 1 1 0; min-height: 0; overflow-y: auto; }
-
+        #cart-items { flex: 1 1 0; min-height: 0; overflow-y: auto; }
         #banner-carousel { height: 300px; }
         @media (min-width: 640px)  { #banner-carousel { height: 340px; } }
         @media (min-width: 1024px) { #banner-carousel { height: 400px; } }
-
-        @media (max-width: 768px) {
-            #user-dashboard > div { display: block; }
-            #user-dashboard > div > div:first-child { margin-bottom: 1rem; }
-        }
-
+        @media (max-width: 768px) { #user-dashboard > div { display: block; } #user-dashboard > div > div:first-child { margin-bottom: 1rem; } }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         button, a, [onclick] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
         nav { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
-        @supports (padding-bottom: env(safe-area-inset-bottom)) {
-            body { padding-bottom: max(5rem, calc(4rem + env(safe-area-inset-bottom))); }
-        }
+        @supports (padding-bottom: env(safe-area-inset-bottom)) { body { padding-bottom: max(5rem, calc(4rem + env(safe-area-inset-bottom))); } }
         .fixed.inset-0 .overflow-y-auto { -webkit-overflow-scrolling: touch; }
-
-        /* ADMIN PANEL LAYOUT FIXES */
         body.admin-active header { display: none !important; }
         body.admin-active main { padding-top: 0 !important; }
-        body.admin-active #admin-sidebar {
-            top: 0 !important;
-            height: 100vh !important;
-        }
+        body.admin-active #admin-sidebar { top: 0 !important; height: 100vh !important; }
         body.admin-active .flex-1 { padding-top: 0 !important; }
         .admin-content-tab.hidden { display: none !important; }
-
         @media (max-width: 768px) {
             body.admin-active #view-admin > div:first-child { top: 0 !important; }
-            body.admin-active #admin-sidebar {
-                top: 0 !important;
-                height: 100vh !important;
-            }
+            body.admin-active #admin-sidebar { top: 0 !important; height: 100vh !important; }
             #admin-sidebar { height: calc(100vh - 4rem); top: 4rem; }
         }
-
         input, select, textarea, button { font-size: 16px; }
-        @media (max-width: 640px) {
-            input[type="text"], input[type="number"], input[type="tel"],
-            input[type="email"], input[type="password"], select, textarea {
-                font-size: 16px !important;
-            }
-        }
-
-        /* ── Admin Sidebar Professional Styles ── */
-        #admin-sidebar {
-            background: #ffffff;
-        }
-        .admin-sidebar-logo {
-            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-        }
-        .admin-nav-section-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #9ca3af;
-            padding: 0 16px;
-            margin: 12px 0 4px;
-        }
-
-        /* ── Category subcat page fix — no pink View All floating box ── */
-        #view-category .sticky {top: 8px !important; z-index: 0 !important;;background: white; }
+        @media (max-width: 640px) { input[type="text"], input[type="number"], input[type="tel"], input[type="email"], input[type="password"], select, textarea { font-size: 16px !important; } }
+        #admin-sidebar { background: #ffffff; }
+        .admin-sidebar-logo { background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); }
+        .admin-nav-section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca3af; padding: 0 16px; margin: 12px 0 4px; }
+        #view-category .sticky { top: 8px !important; z-index: 0 !important; background: white; }
         #cat-view-all-btn { display: flex !important; visibility: visible !important; }
-
-        /* Admin header name pill */
-        #admin-user-name-pill {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 9999px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            backdrop-filter: blur(4px);
-        }
+        #admin-user-name-pill { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 9999px; padding: 4px 12px; font-size: 12px; font-weight: 700; color: white; backdrop-filter: blur(4px); }
+        .ok-logo-img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 8px rgba(200,16,46,0.3); }
+        #view-gold { background: #fdfcfa; min-height: 100vh; }
     </style>
 </head>
 
@@ -268,7 +125,9 @@
 
     <!-- HEADER -->
     <header class="fixed top-0 w-full bg-white shadow-sm z-50 h-16 flex items-center justify-between px-4 md:px-8">
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white font-black text-sm flex-shrink-0"
+                 style="background:linear-gradient(135deg,#C8102E,#e11d48);box-shadow:0 2px 8px rgba(200,16,46,0.35);">OK</div>
             <h1 class="text-2xl font-bold text-rose-600 cursor-pointer tracking-tight select-none"
                 onmousedown="startAdminTimer()" onmouseup="cancelAdminTimer()" onmouseleave="cancelAdminTimer()"
                 ontouchstart="startAdminTimer()" ontouchend="cancelAdminTimer()">
@@ -286,12 +145,12 @@
             </select>
             <div id="desktop-search-results" class="absolute top-11 left-0 w-full bg-white shadow-lg rounded-b-md hidden max-h-64 overflow-y-auto z-50"></div>
         </div>
-        <div class="flex items-center gap-5">
+        <div class="flex items-center gap-3">
             <button class="text-gray-600 hover:text-rose-600 relative" onclick="navigate('profile','wishlist')">
                 <i class="far fa-heart text-xl"></i>
                 <span id="wishlist-count" class="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center hidden">0</span>
             </button>
-            <button class="text-gray-600 hover:text-rose-600 relative mr-2" onclick="toggleCart()">
+            <button class="text-gray-600 hover:text-rose-600 relative mr-1" onclick="toggleCart()">
                 <i class="fas fa-shopping-bag text-xl"></i>
                 <span id="cart-count" class="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
             </button>
@@ -299,7 +158,7 @@
                 <i class="fas fa-wallet text-blue-600 text-xs"></i>
                 <span id="header-wallet-display" class="text-xs font-black text-blue-700">₹0</span>
             </div>
-            <div class="flex flex-col items-center relative text-xs text-gray-500 group cursor-default mr-1">
+            <div class="flex flex-col items-center relative text-xs text-gray-500 group cursor-default">
                 <i class="fas fa-th-large text-lg"></i>
                 <span id="products-count" class="absolute -top-1 right-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">?</span>
                 <span id="supabase-status-dot" class="w-2 h-2 bg-gray-400 rounded-full absolute bottom-0 left-0 shadow-sm" title="Checking..."></span>
@@ -315,7 +174,8 @@
             <div class="md:hidden p-3 bg-white z-20">
                 <div class="flex items-center bg-gray-100 rounded-md relative border border-transparent focus-within:border-rose-500 focus-within:bg-white shadow-sm">
                     <i class="fas fa-search text-gray-400 pl-3"></i>
-                    <input type="text" id="mobile-search" placeholder="Search..." class="w-full bg-transparent py-2 px-3 focus:outline-none text-sm" oninput="handleSearch(this.value)"><button id="voice-search-btn" onclick="startVoiceSearch()" class="flex-shrink-0 px-2 text-gray-400 hover:text-rose-600 transition-colors" title="Voice Search"><i class="fas fa-microphone text-sm"></i></button>
+                    <input type="text" id="mobile-search" placeholder="Search..." class="w-full bg-transparent py-2 px-3 focus:outline-none text-sm" oninput="handleSearch(this.value)">
+                    <button id="voice-search-btn" onclick="startVoiceSearch()" class="flex-shrink-0 px-2 text-gray-400 hover:text-rose-600 transition-colors" title="Voice Search"><i class="fas fa-microphone text-sm"></i></button>
                     <div class="h-5 w-px bg-gray-300"></div>
                     <select id="price-sort-mobile" onchange="sortProducts(this.value)" class="bg-transparent text-xs text-gray-700 font-bold focus:outline-none py-2 pl-2 pr-2 cursor-pointer max-w-[85px] appearance-none">
                         <option value="default">Sort</option>
@@ -325,6 +185,7 @@
                     <div id="mobile-search-results" class="absolute top-11 left-0 w-full bg-white shadow-lg rounded-b-md hidden max-h-64 overflow-y-auto z-50"></div>
                 </div>
             </div>
+
             <!-- AUTO-SLIDING BANNER CAROUSEL -->
             <div id="banner-carousel" class="w-full relative select-none" style="height:340px;overflow:hidden;">
                 <!-- SLIDE 0 -->
@@ -368,11 +229,34 @@
                     </div>
                     <div style="position:absolute;bottom:0;left:0;right:0;"><svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg></div>
                 </div>
+                <!-- SLIDE 3 — OutfitKart GOLD -->
+                <div class="banner-slide" data-index="3" style="position:absolute;inset:0;opacity:0;z-index:0;transition:opacity 0.7s ease;background:linear-gradient(135deg,#1a0800 0%,#3d2c00 30%,#6b4c00 60%,#3d2c00 80%,#1a0800 100%);">
+                    <div style="position:absolute;inset:0;background-image:radial-gradient(ellipse at 50% 50%,rgba(201,168,76,0.15) 0%,transparent 70%);"></div>
+                    <div style="position:absolute;top:1rem;right:1rem;z-index:3;">
+                        <div style="background:linear-gradient(135deg,#C9A84C,#F5E6C0);color:#1a0800;font-weight:900;font-size:0.65rem;padding:0.35rem 0.75rem;border-radius:9999px;box-shadow:0 4px 12px rgba(201,168,76,0.5);letter-spacing:0.15em;">⭐ PREMIUM</div>
+                    </div>
+                    <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;height:100%;padding:3.5rem 1.5rem;">
+                        <div style="font-size:0.65rem;font-weight:900;text-transform:uppercase;letter-spacing:0.3em;color:rgba(245,230,192,0.7);margin-bottom:0.5rem;">Introducing</div>
+                        <h2 style="font-weight:900;line-height:1.05;margin-bottom:0.5rem;font-size:clamp(2rem,6vw,4rem);">
+                            <span style="background:linear-gradient(135deg,#C9A84C,#F5E6C0,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.02em;">OutfitKart</span><br>
+                            <span style="background:linear-gradient(135deg,#F5E6C0,#C9A84C,#B8860B);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-style:italic;">Gold</span>
+                            <span style="font-size:1.5rem;">⭐</span>
+                        </h2>
+                        <p style="color:rgba(245,230,192,0.75);font-size:0.875rem;margin-bottom:1.75rem;max-width:22rem;">Premium curated fashion for Men &amp; Women. <span style="color:#F5E6C0;font-weight:700;">Exclusive picks, luxury quality.</span></p>
+                        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;">
+                            <button onclick="openGoldSection()" style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;font-weight:900;padding:0.75rem 2rem;border-radius:9999px;border:none;cursor:pointer;font-size:0.8rem;box-shadow:0 6px 20px rgba(201,168,76,0.5);letter-spacing:0.05em;">Explore Gold ⭐</button>
+                            <button onclick="openGoldSection()" style="background:rgba(201,168,76,0.15);backdrop-filter:blur(8px);border:1.5px solid rgba(201,168,76,0.4);color:#F5E6C0;font-weight:700;padding:0.75rem 1.5rem;border-radius:9999px;cursor:pointer;font-size:0.8rem;">👔 Men's Gold</button>
+                        </div>
+                    </div>
+                    <div style="position:absolute;bottom:0;left:0;right:0;"><svg viewBox="0 0 1440 36" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:36px;"><path d="M0 36 C360 0 1080 0 1440 36 L1440 36 L0 36 Z" fill="#f9fafb"/></svg></div>
+                </div>
+
                 <!-- Dots -->
                 <div style="position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:0.4rem;align-items:center;">
-                    <button id="banner-dot-0" onclick="goBannerSlide(0)" style="width:1.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:1;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
-                    <button id="banner-dot-1" onclick="goBannerSlide(1)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
-                    <button id="banner-dot-2" onclick="goBannerSlide(2)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
+                    <button class="banner-dot" id="banner-dot-0" onclick="goBannerSlide(0)" style="width:1.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:1;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
+                    <button class="banner-dot" id="banner-dot-1" onclick="goBannerSlide(1)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
+                    <button class="banner-dot" id="banner-dot-2" onclick="goBannerSlide(2)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:white;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
+                    <button class="banner-dot" id="banner-dot-3" onclick="goBannerSlide(3)" style="width:0.5rem;height:0.4rem;border-radius:9999px;background:#C9A84C;opacity:0.4;border:none;cursor:pointer;transition:all 0.3s ease;"></button>
                 </div>
                 <button onclick="prevBannerSlide()" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center"><i class="fas fa-chevron-left text-sm"></i></button>
                 <button onclick="nextBannerSlide()" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;border-radius:9999px;background:rgba(255,255,255,0.2);backdrop-filter:blur(4px);border:none;cursor:pointer;color:white;display:none;" class="md:flex items-center justify-center"><i class="fas fa-chevron-right text-sm"></i></button>
@@ -392,13 +276,23 @@
                     <div class="col-span-full text-center py-10"><i class="fas fa-spinner fa-spin text-rose-500 text-3xl"></i><p class="mt-2 text-gray-500">Loading...</p></div>
                 </div>
             </div>
+            <!-- Instagram Follow Button -->
+            <div class="mt-4 mx-4 mb-4">
+                <a href="https://www.instagram.com/outfitkart_ecommers?igsh=MWUwNTNzczI4YjZsdw==" target="_blank" rel="noopener"
+                   class="flex items-center justify-center gap-3 w-full py-3 rounded-2xl font-bold text-white text-sm shadow-lg"
+                   style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);box-shadow:0 4px 20px rgba(253,29,29,0.3);">
+                    <i class="fab fa-instagram text-xl"></i>
+                    Follow OutfitKart on Instagram
+                    <i class="fas fa-external-link-alt text-xs opacity-70"></i>
+                </a>
+            </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════
-             CATEGORY SUBCAT PAGE — FIX: Clean header, no floating pink box
-             ═══════════════════════════════════════════════════════ -->
+        <!-- OUTFITKART GOLD VIEW -->
+        <div id="view-gold" class="view-section hidden pb-24"></div>
+
+        <!-- CATEGORY SUBCAT PAGE -->
         <div id="view-category" class="view-section hidden pb-24">
-            <!-- Sticky header bar -->
             <div class="sticky top-16 z-10 bg-white border-b shadow-sm">
                 <div class="flex items-center gap-3 px-4 py-3">
                     <button onclick="navigate('home')" class="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:scale-95 transition-all flex-shrink-0">
@@ -407,7 +301,6 @@
                     <h2 id="cat-page-title" class="font-black text-xl text-gray-900 flex-1 truncate">Collection</h2>
                 </div>
             </div>
-            <!-- View All button + Subcats — NOT inside sticky header -->
             <div class="px-4 pt-3 pb-2">
                 <button id="cat-view-all-btn" onclick="openSubcatProducts(this.dataset.cat, null)" data-cat=""
                     class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-rose-600 to-rose-700 text-white font-black text-base py-4 rounded-2xl shadow-lg hover:from-rose-700 hover:to-rose-800 active:scale-[0.98] transition-all">
@@ -416,11 +309,10 @@
                     <i class="fas fa-arrow-right text-sm"></i>
                 </button>
             </div>
-            <!-- Subcategory grid -->
             <div id="cat-page-subcat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 pt-1"></div>
         </div>
 
-        <!-- SHOP VIEW — FIX: header sticks correctly, products not hidden -->
+        <!-- SHOP VIEW -->
         <div id="view-shop" class="view-section hidden">
             <div id="shop-header-bar" class="bg-white px-4 pt-3 pb-2">
                 <div class="flex items-center justify-between gap-3">
@@ -440,7 +332,7 @@
 
         <!-- PRODUCT DETAIL PAGE -->
         <div id="view-product" class="view-section hidden p-4 md:p-8 max-w-6xl mx-auto">
-            <button onclick="navigate('home')" class="text-gray-500 text-sm mb-4"><i class="fas fa-arrow-left"></i> Back</button>
+            <button onclick="history.length>1?history.back():navigate('home')" class="text-gray-500 text-sm mb-4 flex items-center gap-1 hover:text-gray-700"><i class="fas fa-arrow-left"></i> Back</button>
             <div class="grid md:grid-cols-2 gap-8 bg-white p-4 rounded-xl shadow-sm border" id="pdp-container"></div>
             <div class="mt-8 bg-white p-6 rounded-xl shadow-sm border">
                 <h3 class="font-bold text-xl border-b pb-2 mb-4">Customer Reviews <i class="fas fa-star text-yellow-400"></i></h3>
@@ -461,16 +353,16 @@
         </div>
 
         <!-- CHECKOUT VIEW -->
-        <div id="view-checkout" class="view-section hidden max-w-6xl mx-auto mt-4 pb-24 md:pb-0">
+        <div id="view-checkout" class="view-section hidden max-w-4xl mx-auto mt-4 pb-24 md:pb-0 overflow-x-hidden">
             <button onclick="navigate('home')" class="text-gray-600 text-sm mb-4 flex items-center gap-1 hover:text-gray-800 px-4 pt-4"><i class="fas fa-arrow-left"></i> Continue Shopping</button>
-            <div class="checkout-progress sticky top-16 z-20 bg-white shadow-lg py-3 px-6 border-b">
-                <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="checkout-progress sticky top-16 z-20 bg-white shadow-lg py-3 px-4 border-b">
+                <div class="max-w-xl mx-auto flex items-center justify-between">
                     <div class="flex-1 flex items-center justify-center relative">
                         <div class="progress-step flex flex-col items-center"><div class="step-circle bg-[#fb641b] text-white font-bold border-[#fb641b]">1</div><span class="text-xs mt-1 font-medium text-[#fb641b]">Address</span></div>
                         <div class="progress-line absolute right-0 top-4 w-1/2 h-0.5 bg-[#fb641b] z-0"></div>
                     </div>
                     <div class="flex-1 flex items-center justify-center relative">
-                        <div class="progress-step flex flex-col items-center"><div class="step-circle border-[#fb641b] text-[#fb641b] font-bold">2</div><span class="text-xs mt-1 font-medium text-gray-500">Order Summary</span></div>
+                        <div class="progress-step flex flex-col items-center"><div class="step-circle border-[#fb641b] text-[#fb641b] font-bold">2</div><span class="text-xs mt-1 font-medium text-gray-500">Summary</span></div>
                         <div class="progress-line absolute right-0 top-4 w-1/2 h-0.5 bg-gray-300 z-0"></div>
                     </div>
                     <div class="flex-1 flex items-center justify-center">
@@ -478,143 +370,133 @@
                     </div>
                 </div>
             </div>
-            <div id="checkout-steps-container" class="grid lg:grid-cols-3 gap-6 px-4 md:px-8 py-6">
-                <div id="checkout-step-1" class="lg:col-span-3 space-y-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                        <h3 class="font-bold text-xl mb-6 flex items-center gap-2 text-gray-900"><i class="fas fa-map-marker-alt text-[#fb641b]"></i> Add a new address</h3>
-                        <form id="address-form" class="space-y-4" onsubmit="saveAddressForm(event)">
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label><input type="text" id="addr-fullname" required class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] focus:border-transparent shadow-sm" placeholder="John Doe"></div>
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">Mobile Number *</label><div class="flex"><span class="bg-gray-100 border border-r-0 rounded-l-xl px-4 py-3 text-gray-500 font-semibold">+91</span><input type="tel" id="addr-mobile" pattern="[0-9]{10}" required class="flex-1 border border-l-0 rounded-r-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="98xxxxxxxx"></div></div>
-                            <div class="grid grid-cols-3 gap-3">
-                                <div class="col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-2">Pincode *</label><input type="text" id="addr-pincode" maxlength="6" required class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="110001" oninput="fetchPincodeDetails(this.value)"></div>
-                                <button type="button" onclick="useCurrentLocation()" class="col-span-1 bg-[#fb641b] text-white py-3 px-4 rounded-xl font-semibold text-sm shadow-md hover:bg-[#f45012] transition-all mt-7"><i class="fas fa-location-arrow mr-1 text-xs"></i> My Location</button>
+            <div id="checkout-steps-container" class="px-3 md:px-6 py-4">
+                <!-- Step 1: Address -->
+                <div id="checkout-step-1" class="space-y-4 max-w-xl mx-auto">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-lg mb-5 flex items-center gap-2 text-gray-900"><i class="fas fa-map-marker-alt text-[#fb641b]"></i> Add a new address</h3>
+                        <form id="address-form" class="space-y-3" onsubmit="saveAddressForm(event)">
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Full Name *</label><input type="text" id="addr-fullname" required class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] focus:border-transparent shadow-sm" placeholder="John Doe"></div>
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Mobile Number *</label><div class="flex"><span class="bg-gray-100 border border-r-0 rounded-l-xl px-3 py-2.5 text-gray-500 font-semibold text-sm">+91</span><input type="tel" id="addr-mobile" pattern="[0-9]{10}" required class="flex-1 border border-l-0 rounded-r-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="98xxxxxxxx"></div></div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1">Pincode *</label><input type="text" id="addr-pincode" maxlength="6" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="110001" oninput="fetchPincodeDetails(this.value)"></div>
+                                <button type="button" onclick="useCurrentLocation()" class="col-span-1 bg-[#fb641b] text-white py-2.5 px-3 rounded-xl font-semibold text-xs shadow-md hover:bg-[#f45012] transition-all mt-6"><i class="fas fa-location-arrow mr-1"></i> Locate</button>
                             </div>
-                            <div id="pincode-loader" class="hidden text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-1"></i> Fetching location...</div>
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">House No, Building Name</label><input type="text" id="addr-house" required class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="H.No 123, Sunshine Apartments"></div>
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">Road Name, Area, Colony</label><input type="text" id="addr-road" required class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="MG Road, Banjara Hills"></div>
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">Landmark (Optional)</label><input type="text" id="addr-landmark" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Near City Center Mall"></div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-sm font-semibold text-gray-700 mb-2">City</label><input type="text" id="addr-city" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Auto-filled"></div>
-                                <div><label class="block text-sm font-semibold text-gray-700 mb-2">State</label><input type="text" id="addr-state" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Auto-filled"></div>
+                            <div id="pincode-loader" class="hidden text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-1"></i> Fetching...</div>
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-1">House No, Building Name</label><input type="text" id="addr-house" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="H.No 123, Sunshine Apartments"></div>
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Road Name, Area, Colony</label><input type="text" id="addr-road" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="MG Road, Banjara Hills"></div>
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-1">Landmark (Optional)</label><input type="text" id="addr-landmark" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Near City Center Mall"></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="block text-sm font-semibold text-gray-700 mb-1">City</label><input type="text" id="addr-city" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Auto-filled"></div>
+                                <div><label class="block text-sm font-semibold text-gray-700 mb-1">State</label><input type="text" id="addr-state" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#fb641b] shadow-sm" placeholder="Auto-filled"></div>
                             </div>
-                            <div><label class="block text-sm font-semibold text-gray-700 mb-3">Address Type</label>
-                                <div class="grid grid-cols-3 gap-3">
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="home" required class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-sm font-medium">🏠 Home</span></label>
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="work" class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-sm font-medium">💼 Work</span></label>
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="other" class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-sm font-medium">📍 Other</span></label>
+                            <div><label class="block text-sm font-semibold text-gray-700 mb-2">Address Type</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <label class="flex items-center p-2.5 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="home" required class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-xs font-medium">🏠 Home</span></label>
+                                    <label class="flex items-center p-2.5 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="work" class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-xs font-medium">💼 Work</span></label>
+                                    <label class="flex items-center p-2.5 border border-gray-300 rounded-xl cursor-pointer hover:border-[#fb641b] transition-all"><input type="radio" name="addr-type" value="other" class="w-4 h-4 accent-[#fb641b] mr-2"><span class="text-xs font-medium">📍 Other</span></label>
                                 </div>
                             </div>
                             <label class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer hover:bg-blue-100 transition-all"><input type="checkbox" id="addr-default" class="w-5 h-5 accent-[#fb641b] mr-3 rounded"><span class="text-sm font-semibold text-gray-800">Set as default address</span></label>
-                            <button type="submit" class="w-full bg-[#fb641b] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#f45012] active:scale-[0.98] transition-all">SAVE &amp; CONTINUE</button>
+                            <button type="submit" class="w-full bg-[#fb641b] text-white py-3.5 rounded-xl font-bold text-base shadow-lg hover:bg-[#f45012] active:scale-[0.98] transition-all">SAVE &amp; CONTINUE</button>
                         </form>
                     </div>
                 </div>
-                <div id="checkout-step-2" class="lg:col-span-3 hidden">
-                    <div class="lg:grid lg:grid-cols-3 lg:gap-6">
-                        <div class="lg:col-span-2 space-y-6">
-                            <div class="bg-white p-6 rounded-xl shadow-sm border">
-                                <div class="flex items-start justify-between mb-4">
-                                    <div class="flex items-center gap-3"><div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div><div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
-                                    <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-blue-700 shadow-md">CHANGE</button>
-                                </div>
-                                <div id="delivery-address-display" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border"></div>
+
+                <!-- Step 2: Order Summary -->
+                <div id="checkout-step-2" class="hidden">
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🏠</div><div><h3 class="font-bold text-base text-gray-900">Deliver to</h3><p id="checkout-user-name" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
+                                <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-blue-700 shadow">CHANGE</button>
                             </div>
+                            <div id="delivery-address-display" class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border"></div>
                         </div>
-                        <div class="lg:col-span-1 space-y-4 mt-4 lg:mt-0">
-                            <div class="bg-white p-4 rounded-lg shadow-sm"><h3 class="font-bold text-base mb-3 border-b pb-2">Order Summary</h3><div id="checkout-items-list" class="space-y-3 max-h-80 overflow-y-auto pr-1 mb-4"></div></div>
-                            <div class="bg-white p-4 rounded-lg shadow-sm border">
-                                <h4 class="font-bold text-sm uppercase tracking-wide text-gray-700 mb-3">Price Details</h4>
-                                <div class="space-y-2 mb-4 text-sm">
-                                    <div class="flex justify-between"><span>Price (MRP)</span><span id="price-mrp">₹0</span></div>
-                                    <div class="flex justify-between text-green-600 font-bold"><span>Discount</span><span id="price-discount">- ₹0</span></div>
-                                    <div class="flex justify-between text-gray-600"><span>Platform Fee</span><span>₹7</span></div>
-                                    <div class="flex justify-between text-green-600 font-bold"><span>Delivery</span><span>FREE</span></div>
-                                    <div class="flex justify-between hidden" id="handling-fee-row"><span>Handling Fee</span><span>₹9</span></div>
-                                </div>
-                                <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-lg text-center font-bold text-sm mb-3">You save <span id="total-save">₹0</span> on this order</div>
-                                <div class="flex justify-between font-black text-xl text-gray-900 border-t pt-3"><span>Total Amount</span><span id="final-total-step2" class="text-orange-500">₹0</span></div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm"><h3 class="font-bold text-sm mb-3 border-b pb-2">Order Summary</h3><div id="checkout-items-list" class="space-y-3 max-h-72 overflow-y-auto pr-1 mb-3"></div></div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border">
+                            <h4 class="font-bold text-xs uppercase tracking-wide text-gray-700 mb-3">Price Details</h4>
+                            <div class="space-y-2 mb-3 text-sm">
+                                <div class="flex justify-between"><span>Price (MRP)</span><span id="price-mrp">₹0</span></div>
+                                <div class="flex justify-between text-green-600 font-bold"><span>Discount</span><span id="price-discount">- ₹0</span></div>
+                                <div class="flex justify-between text-gray-600"><span>Platform Fee</span><span>₹7</span></div>
+                                <div class="flex justify-between text-green-600 font-bold"><span>Delivery</span><span>FREE</span></div>
+                                <div class="flex justify-between hidden" id="handling-fee-row"><span>Handling Fee</span><span>₹9</span></div>
                             </div>
-                            <button onclick="goToStep(3)" class="w-full bg-[#fb641b] text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-[#f45012] active:scale-[0.98] transition-all">CONTINUE</button>
+                            <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-lg text-center font-bold text-xs mb-3">You save <span id="total-save">₹0</span> on this order</div>
+                            <div class="flex justify-between font-black text-lg text-gray-900 border-t pt-3"><span>Total Amount</span><span id="final-total-step2" class="text-orange-500">₹0</span></div>
                         </div>
+                        <button onclick="goToStep(3)" class="w-full bg-[#fb641b] text-white py-4 rounded-xl font-bold text-base shadow-lg hover:bg-[#f45012] active:scale-[0.98] transition-all">CONTINUE</button>
                     </div>
                 </div>
-                <div id="checkout-step-3" class="lg:col-span-3 hidden">
-                    <div class="lg:grid lg:grid-cols-3 lg:gap-6">
-                        <div class="lg:col-span-2 space-y-4">
-                            <div class="bg-white p-6 rounded-xl shadow-sm">
-                                <div class="flex items-start justify-between mb-4">
-                                    <div class="flex items-center gap-3"><div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-sm">🏠</div><div><h3 class="font-bold text-lg text-gray-900">Deliver to</h3><p id="checkout-user-name-step3" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
-                                    <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-blue-700 shadow-md">CHANGE</button>
-                                </div>
-                                <div id="delivery-address-display-step3" class="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border"></div>
+
+                <!-- Step 3: Payment -->
+                <div id="checkout-step-3" class="hidden">
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xs">🏠</div><div><h3 class="font-bold text-base text-gray-900">Deliver to</h3><p id="checkout-user-name-step3" class="text-sm text-gray-600 font-medium">Loading...</p></div></div>
+                                <button onclick="goToStep(1)" class="bg-[#2874f0] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-blue-700 shadow">CHANGE</button>
                             </div>
-                            <div class="bg-white p-6 rounded-xl shadow-sm border">
-                                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-gray-900"><i class="fas fa-credit-card text-orange-500"></i> Payment Method</h3>
-                                <div class="space-y-3">
-                                    <label id="label-upi" class="flex items-start gap-4 p-4 border-2 border-orange-400 rounded-xl cursor-pointer bg-orange-50 transition-all" onclick="selectPaymentLabel('upi')">
-                                        <input type="radio" name="checkout-payment" value="upi" id="payment-upi" class="accent-orange-500 w-5 h-5 mt-0.5" checked onchange="updatePaymentSelection('upi')">
-                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">UPI Payment</div><div class="text-xs text-gray-500">GPay, PhonePe, Paytm &amp; more</div></div>
-                                        <span class="text-[10px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 self-start whitespace-nowrap">No extra fee</span>
-                                    </label>
-                                    <label id="label-cod" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-gray-400 transition-all" onclick="selectPaymentLabel('cod')">
-                                        <input type="radio" name="checkout-payment" value="cod" id="payment-cod" class="accent-gray-700 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('cod')">
-                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">Cash on Delivery</div><div class="text-xs text-gray-500">Pay cash when order arrives</div></div>
-                                        <span class="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 self-start whitespace-nowrap">+₹9 fee</span>
-                                    </label>
-                                    <label id="label-wallet" class="flex items-start gap-4 p-4 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-blue-300 transition-all" onclick="selectPaymentLabel('wallet')">
-                                        <input type="radio" name="checkout-payment" value="wallet" id="payment-wallet" class="accent-blue-600 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('wallet')">
-                                        <div class="flex-1"><div class="font-bold text-base text-gray-900 mb-0.5">OutfitKart Wallet</div><div class="text-xs text-gray-500">Use your store credits instantly</div><div class="flex items-center gap-2 mt-2"><div class="w-9 h-9 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-wallet text-sm"></i></div><span class="text-xs font-bold text-blue-700">Balance: <span id="checkout-wallet-balance">₹0</span></span></div></div>
-                                        <span class="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200 self-start whitespace-nowrap">Instant</span>
-                                    </label>
-                                    <div id="wallet-insufficient-warning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 font-semibold flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-500"></i><span id="wallet-warning-text">Wallet balance is insufficient for this order.</span></div>
-                                </div>
+                            <div id="delivery-address-display-step3" class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border"></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border">
+                            <h3 class="font-bold text-base mb-4 flex items-center gap-2 text-gray-900"><i class="fas fa-credit-card text-orange-500"></i> Payment Method</h3>
+                            <div class="space-y-3">
+                                <label id="label-upi" class="flex items-start gap-3 p-3 border-2 border-orange-400 rounded-xl cursor-pointer bg-orange-50 transition-all" onclick="selectPaymentLabel('upi')">
+                                    <input type="radio" name="checkout-payment" value="upi" id="payment-upi" class="accent-orange-500 w-5 h-5 mt-0.5" checked onchange="updatePaymentSelection('upi')">
+                                    <div class="flex-1"><div class="font-bold text-sm text-gray-900 mb-0.5">UPI Payment</div><div class="text-xs text-gray-500">GPay, PhonePe, Paytm &amp; more</div></div>
+                                    <span class="text-[10px] font-black bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 self-start whitespace-nowrap">No extra fee</span>
+                                </label>
+                                <label id="label-cod" class="flex items-start gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-gray-400 transition-all" onclick="selectPaymentLabel('cod')">
+                                    <input type="radio" name="checkout-payment" value="cod" id="payment-cod" class="accent-gray-700 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('cod')">
+                                    <div class="flex-1"><div class="font-bold text-sm text-gray-900 mb-0.5">Cash on Delivery</div><div class="text-xs text-gray-500">Pay cash when order arrives</div></div>
+                                    <span class="text-[10px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 self-start whitespace-nowrap">+₹9 fee</span>
+                                </label>
+                                <label id="label-wallet" class="flex items-start gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer bg-white hover:border-blue-300 transition-all" onclick="selectPaymentLabel('wallet')">
+                                    <input type="radio" name="checkout-payment" value="wallet" id="payment-wallet" class="accent-blue-600 w-5 h-5 mt-0.5" onchange="updatePaymentSelection('wallet')">
+                                    <div class="flex-1"><div class="font-bold text-sm text-gray-900 mb-0.5">OutfitKart Wallet</div><div class="text-xs text-gray-500">Use your store credits instantly</div><div class="flex items-center gap-2 mt-1.5"><div class="w-8 h-8 bg-blue-50 border rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-wallet text-xs"></i></div><span class="text-xs font-bold text-blue-700">Balance: <span id="checkout-wallet-balance">₹0</span></span></div></div>
+                                    <span class="text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200 self-start whitespace-nowrap">Instant</span>
+                                </label>
+                                <div id="wallet-insufficient-warning" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700 font-semibold flex items-center gap-2"><i class="fas fa-exclamation-circle text-red-500"></i><span id="wallet-warning-text">Wallet balance is insufficient for this order.</span></div>
                             </div>
                         </div>
-                        <div class="lg:col-span-1 flex flex-col justify-end space-y-4 mt-4 lg:mt-0">
-                            <div class="p-6 rounded-xl shadow-sm bg-white border">
-                                <h4 class="font-bold text-sm uppercase tracking-wide text-gray-700 mb-4">Order Total</h4>
-                                <div class="space-y-2 text-sm">
-                                    <div id="exchange-value-row" class="hidden justify-between font-bold text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200"><span>Exchange Value Applied</span><span id="exchange-value-display">-₹0</span></div>
-                                    <div id="cod-fee-row" class="hidden flex justify-between text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200"><span class="flex items-center gap-1"><i class="fas fa-hand-holding-usd text-xs"></i> COD Handling Fee</span><span class="font-bold">+₹9</span></div>
-                                    <div id="wallet-balance-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200"><span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Balance</span><span class="font-bold" id="wallet-balance-display">₹0</span></div>
-                                    <!-- Wallet ₹49 Discount Row -->
-                                    <div id="wallet-deduct-row" class="hidden flex justify-between text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                                        <span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Discount Applied</span>
-                                        <span class="font-bold" id="wallet-deduct-amt">-₹49</span>
-                                    </div>
-                                    <!-- Donation Row -->
-                                    <div id="donation-row-display" class="hidden flex justify-between text-rose-600 bg-rose-50 px-3 py-2 rounded-lg border border-rose-200">
-                                        <span class="flex items-center gap-1"><i class="fas fa-heart text-xs"></i> Donation</span>
-                                        <span class="font-bold" id="donation-display-amt">+₹10</span>
-                                    </div>
-                                    <!-- Donation Section -->
-                                    <div class="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-3">
-                                        <label class="flex items-start gap-3 cursor-pointer">
-                                            <input type="checkbox" id="donation-checkbox" onchange="updateCheckoutTotals()" class="w-5 h-5 accent-rose-600 mt-0.5 flex-shrink-0 rounded">
-                                            <div class="flex-1">
-                                                <div class="font-bold text-sm text-rose-700 flex items-center gap-1.5">
-                                                    <i class="fas fa-heart text-rose-500"></i> Donate to OutfitKart Foundation
-                                                </div>
-                                                <div class="text-xs text-gray-500 mt-0.5">Help underprivileged children get education & clothing</div>
-                                                <div class="flex items-center gap-2 mt-2">
-                                                    <span class="text-xs text-gray-500">Amount:</span>
-                                                    <select id="donation-custom-amt" onchange="updateCheckoutTotals()" class="border border-rose-200 rounded-lg px-2 py-1 text-xs font-bold text-rose-700 bg-white focus:ring-1 focus:ring-rose-400 outline-none">
-                                                        <option value="10">₹10</option>
-                                                        <option value="20">₹20</option>
-                                                        <option value="50">₹50</option>
-                                                        <option value="100">₹100</option>
-                                                    </select>
-                                                </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border">
+                            <h4 class="font-bold text-xs uppercase tracking-wide text-gray-700 mb-3">Order Total</h4>
+                            <div class="space-y-2 text-sm">
+                                <div id="exchange-value-row" class="hidden justify-between font-bold text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200"><span>Exchange Value Applied</span><span id="exchange-value-display">-₹0</span></div>
+                                <div id="cod-fee-row" class="hidden flex justify-between text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200"><span class="flex items-center gap-1"><i class="fas fa-hand-holding-usd text-xs"></i> COD Handling Fee</span><span class="font-bold">+₹9</span></div>
+                                <div id="wallet-balance-row" class="hidden flex justify-between text-blue-700 bg-blue-50 px-3 py-2 rounded-lg border border-blue-200"><span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Balance</span><span class="font-bold" id="wallet-balance-display">₹0</span></div>
+                                <div id="wallet-deduct-row" class="hidden flex justify-between text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                                    <span class="flex items-center gap-1"><i class="fas fa-wallet text-xs"></i> Wallet Discount Applied</span>
+                                    <span class="font-bold" id="wallet-deduct-amt">-₹49</span>
+                                </div>
+                                <div id="donation-row-display" class="hidden flex justify-between text-rose-600 bg-rose-50 px-3 py-2 rounded-lg border border-rose-200">
+                                    <span class="flex items-center gap-1"><i class="fas fa-heart text-xs"></i> Donation</span>
+                                    <span class="font-bold" id="donation-display-amt">+₹10</span>
+                                </div>
+                                <!-- Donation Section -->
+                                <div class="bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-xl p-3">
+                                    <label class="flex items-start gap-3 cursor-pointer">
+                                        <input type="checkbox" id="donation-checkbox" onchange="updateCheckoutTotals()" class="w-5 h-5 accent-rose-600 mt-0.5 flex-shrink-0 rounded">
+                                        <div class="flex-1">
+                                            <div class="font-bold text-sm text-rose-700 flex items-center gap-1.5"><i class="fas fa-heart text-rose-500"></i> Donate to OutfitKart Foundation</div>
+                                            <div class="text-xs text-gray-500 mt-0.5">Help underprivileged children get education & clothing</div>
+                                            <div class="flex items-center gap-2 mt-1.5">
+                                                <span class="text-xs text-gray-500">Amount:</span>
+                                                <select id="donation-custom-amt" onchange="updateCheckoutTotals()" class="border border-rose-200 rounded-lg px-2 py-1 text-xs font-bold text-rose-700 bg-white focus:ring-1 focus:ring-rose-400 outline-none">
+                                                    <option value="10">₹10</option><option value="20">₹20</option><option value="50">₹50</option><option value="100">₹100</option>
+                                                </select>
                                             </div>
-                                        </label>
-                                    </div>
-                                    <div class="flex justify-between font-black text-base text-gray-900 border-t pt-2 mt-1"><span>Total Amount</span><span id="final-total-step3" class="text-[#fb641b]">₹0</span></div>
-                                    <div id="refund-upi-row" class="hidden"><label class="block text-xs font-bold text-gray-600 mb-1 mt-2">Enter UPI ID for Refund</label><input type="text" id="refund-upi-input" placeholder="yourname@upi" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"></div>
-                                    <div class="text-xs text-gray-500 text-center py-2 bg-gray-50 rounded-lg mt-1">🔒 Secure &amp; Safe Checkout</div>
+                                        </div>
+                                    </label>
                                 </div>
+                                <div class="flex justify-between font-black text-base text-gray-900 border-t pt-2 mt-1"><span>Total Amount</span><span id="final-total-step3" class="text-[#fb641b]">₹0</span></div>
+                                <div id="refund-upi-row" class="hidden"><label class="block text-xs font-bold text-gray-600 mb-1 mt-2">Enter UPI ID for Refund</label><input type="text" id="refund-upi-input" placeholder="yourname@upi" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-400 outline-none"></div>
+                                <div class="text-xs text-gray-500 text-center py-2 bg-gray-50 rounded-lg mt-1">🔒 Secure &amp; Safe Checkout</div>
                             </div>
-                            <button onclick="initiatePayment()" id="place-order-btn" class="w-full bg-[#fb641b] text-white py-5 rounded-xl font-bold text-xl shadow-2xl hover:bg-[#f45012] active:scale-[0.98] transition-all"><i class="fas fa-lock mr-2"></i> PLACE ORDER (₹<span id="place-order-amount">0</span>)</button>
                         </div>
+                        <button onclick="initiatePayment()" id="place-order-btn" class="w-full bg-[#fb641b] text-white py-4 rounded-xl font-bold text-lg shadow-2xl hover:bg-[#f45012] active:scale-[0.98] transition-all"><i class="fas fa-lock mr-2"></i> PLACE ORDER (₹<span id="place-order-amount">0</span>)</button>
                     </div>
                 </div>
             </div>
@@ -664,10 +546,14 @@
                             <div class="border-t pt-3 px-3 pb-3 bg-gradient-to-br from-gray-50 to-white">
                                 <p class="text-xs text-gray-500 font-bold uppercase px-1 mb-2 tracking-wide">Need Help?</p>
                                 <button onclick="openWhatsAppSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-semibold text-sm hover:from-green-600 hover:to-green-700 active:scale-95 transition-all mb-2 shadow-md"><i class="fab fa-whatsapp text-xl"></i><span>WhatsApp Support</span></button>
-                                <button onclick="openEmailSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all shadow-md"><i class="fas fa-envelope text-lg"></i><span>Email Support</span></button>
+                                <button onclick="openEmailSupport()" class="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold text-sm hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all shadow-md mb-2"><i class="fas fa-envelope text-lg"></i><span>Email Support</span></button>
+                                <a href="https://www.instagram.com/outfitkart_ecommers?igsh=MWUwNTNzczI4YjZsdw==" target="_blank" rel="noopener"
+                                   class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm text-white active:scale-95 transition-all shadow-md"
+                                   style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);">
+                                    <i class="fab fa-instagram text-lg"></i><span>Follow on Instagram</span>
+                                </a>
                             </div>
                             <button onclick="shareOutfitKart()" class="share-outfitkart-btn text-left px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 border-t flex items-center gap-2 active:scale-95"><i class="fas fa-share-alt w-5 text-center"></i> Share OutfitKart<span class="ml-auto text-xs bg-white/20 px-1.5 py-0.5 rounded-full">🎁</span></button>
-                            <!-- Notification Toggle -->
                             <button id="notif-toggle-btn" onclick="toggleNotification()" class="text-left px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 border-t flex items-center gap-2 bg-gray-50 w-full">
                                 <i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>
                             </button>
@@ -687,8 +573,7 @@
                                 <div class="bg-white rounded-lg p-3 border-2 border-dashed border-green-300 mb-3"><div class="flex items-center justify-between"><div class="flex-1"><p class="text-xs text-gray-500 mb-1">Your Code:</p><p class="text-2xl font-black text-green-600 tracking-wider" id="user-referral-code">LOADING...</p></div><button onclick="copyReferralCode()" class="bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-600 active:scale-95 transition-all"><i class="fas fa-copy mr-1"></i> Copy</button></div></div>
                                 <p class="text-xs text-gray-600 text-center"><i class="fas fa-info-circle mr-1"></i>Share products with your code &amp; earn when friends buy!</p>
                             </div>
-                            <div class="mt-6 p-4 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-xl">
-                                <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center"><i class="fas fa-gift text-rose-600"></i></div><div><h4 class="font-bold text-gray-800 text-sm">Share OutfitKart</h4><p class="text-xs text-gray-500">Tell your friends about premium fashion!</p></div></div>
+                            <div class="mt-4 p-4 bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-100 rounded-xl">
                                 <button onclick="shareOutfitKart()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"><i class="fas fa-share-nodes"></i> Share with Friends &amp; Family</button>
                             </div>
                         </div>
@@ -710,7 +595,6 @@
                                 </div>
                             </div>
                             <div id="wallet-transactions" class="mb-4"><h3 class="font-bold text-sm text-gray-700 mb-3 flex items-center gap-2"><i class="fas fa-history text-gray-400"></i> Recent Activity</h3><div id="wallet-tx-list" class="space-y-2 text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-xl border"><i class="fas fa-receipt text-3xl text-gray-300 mb-2 block"></i><p>No transactions yet</p></div></div>
-                            <div class="bg-gray-50 rounded-xl p-4 border"><h3 class="font-bold text-sm text-gray-700 mb-3">How Wallet Works</h3><ul class="space-y-2 text-xs text-gray-600"><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Select "OutfitKart Wallet" at checkout for instant payment</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Earn wallet balance through referrals &amp; order returns</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Withdraw earned balance to your UPI / bank account</span></li><li class="flex items-start gap-2"><i class="fas fa-check-circle text-green-500 mt-0.5"></i><span>Minimum withdrawal amount: ₹120</span></li></ul></div>
                         </div>
                         <div id="tab-referrals" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2"><i class="fas fa-gift text-green-600"></i> My Referrals &amp; Earnings</h2>
@@ -729,17 +613,14 @@
                             <div id="referrals-cancelled-list" class="space-y-3 hidden"></div>
                         </div>
                         <div id="tab-security" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border"><h2 class="text-xl font-bold mb-4 border-b pb-2">Security Settings</h2><div class="max-w-md space-y-3"><input type="password" id="sec-old-pass" placeholder="Current Password" class="w-full border p-2 rounded outline-none text-sm"><input type="password" id="sec-new-pass" placeholder="New Password" class="w-full border p-2 rounded outline-none text-sm"><button class="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-900" onclick="changePassword()">Change Password</button></div></div>
-
                         <!-- INFLUENCER TAB -->
                         <div id="tab-influencer" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-1 flex items-center gap-2"><i class="fas fa-video text-purple-600"></i> Influencer Program</h2>
                             <p class="text-xs text-gray-500 mb-4">OutfitKart ka video banao, social media pe daalo, paise kamao!</p>
-                            <!-- Stats -->
                             <div class="grid grid-cols-2 gap-3 mb-5">
                                 <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 text-center"><p class="text-xs text-purple-600 font-bold">Total Earned</p><p class="text-2xl font-black text-purple-700" id="inf-total-earned">₹0</p></div>
                                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center"><p class="text-xs text-blue-600 font-bold">Submissions</p><p class="text-2xl font-black text-blue-700" id="inf-submissions-count">0</p></div>
                             </div>
-                            <!-- Rate Card -->
                             <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl p-4 mb-5">
                                 <h3 class="font-black text-base mb-2">💰 Earning Rate</h3>
                                 <div class="grid grid-cols-3 gap-2 text-center text-sm">
@@ -748,73 +629,39 @@
                                     <div class="bg-white/20 rounded-lg p-2"><div class="font-black">₹500</div><div class="text-xs opacity-80">10K views</div></div>
                                 </div>
                             </div>
-                            <!-- Submit Form -->
                             <div class="bg-gray-50 border rounded-xl p-4 mb-5">
                                 <h3 class="font-bold text-sm mb-3 flex items-center gap-2"><i class="fas fa-plus-circle text-purple-600"></i> New Submission</h3>
                                 <div class="space-y-3">
                                     <input type="text" id="inf-name" placeholder="Aapka naam" class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300">
                                     <select id="inf-platform" class="w-full border rounded-xl px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-purple-300">
-                                        <option value="">Platform select karo</option>
+                                        <option value=""> select Platform</option>
                                         <option value="Instagram">Instagram</option>
                                         <option value="YouTube">YouTube</option>
                                         <option value="Facebook">Facebook</option>
-                                        <option value="Moj">Moj</option>
-                                        <option value="Josh">Josh</option>
-                                        <option value="TikTok">TikTok</option>
                                     </select>
                                     <input type="url" id="inf-profile-url" placeholder="Aapki profile/channel URL" class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    <input type="url" id="inf-video-url" placeholder="Video URL (post/reel/short)" class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300">
+                                    <input type="url" id="inf-video-url" placeholder="Video URL (reel/short)" class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300">
                                     <input type="number" id="inf-views" placeholder="Current Views (e.g. 1500)" min="1000" class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    <textarea id="inf-description" placeholder="Video ke baare mein batao — kya dikhaaya, kaunsa product..." class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300 h-16 resize-none"></textarea>
+                                    <textarea id="inf-description" placeholder="Video ke baare mein batao..." class="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-300 h-16 resize-none"></textarea>
                                     <button onclick="submitInfluencerRequest()" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-bold text-sm active:scale-95 transition-all">Submit Request</button>
                                 </div>
                             </div>
-                            <!-- My Submissions -->
                             <h3 class="font-bold text-sm mb-3">My Submissions</h3>
                             <div id="inf-requests-list"></div>
-                            <!-- Policy -->
-                            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4 text-xs text-amber-800 space-y-2">
-                                <p class="font-bold text-sm">📋 Influencer Policy</p>
-                                <p>✅ <strong>Eligibility:</strong> Koi bhi OutfitKart user influencer ban sakta hai. Sirf genuine content creators jo OutfitKart products ke baare mein video banayein.</p>
-                                <p>💰 <strong>Earnings:</strong> ₹50 per 1000 verified views. Views real hone chahiye — fake/bot views pe request automatically reject hogi.</p>
-                                <p>📱 <strong>Supported Platforms:</strong> Instagram, YouTube, Facebook, Moj, Josh, TikTok. Video mein OutfitKart ka naam clearly dikhe.</p>
-                                <p>✅ <strong>Verification:</strong> Admin 3-5 working days mein views verify karega. 1000 se kam views pe request process nahi hogi.</p>
-                                <p>💳 <strong>Payment:</strong> Approved earnings seedha OutfitKart Wallet mein credit hongi. Wahan se UPI/Bank mein withdraw kar sakte hain (min ₹120).</p>
-                                <p>🚫 <strong>Prohibited:</strong> Misleading content, competitor comparison, offensive language, fake views strictly banned hai. Violation pe account suspend ho sakta hai.</p>
-                                <p>📜 <strong>Content Rights:</strong> Video mein OutfitKart logo/content use karne ki permission hai lekin official endorsement claim nahi kar sakte.</p>
-                                <p>🔄 <strong>Multiple Submissions:</strong> Ek video se ek baar earnings milegi. Naye videos ke liye naya submission karo.</p>
-                            </div>
                         </div>
-
                         <div id="tab-help" class="profile-tab hidden bg-white p-6 rounded-lg shadow-sm border">
                             <h2 class="text-xl font-bold mb-4 border-b pb-2">Help, Info &amp; Policies</h2>
                             <div class="space-y-3">
                                 <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">FAQs <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t">
                                     <p><strong>Q: Delivery kitne din mein hogi?</strong><br>A: Standard delivery 3-5 working days mein hogi.</p>
-                                    <p><strong>Q: COD available hai?</strong><br>A: Haan, Cash on Delivery available hai with ₹9 handling fee.</p>
-                                    <p><strong>Q: Return kaise karein?</strong><br>A: Unused items 7 days ke andar return kar sakte hain. WhatsApp support se contact karein.</p>
+                                    <p><strong>Q: COD available hai?</strong><br>A: Haan, Cash on Delivery available hai.</p>
+                                    <p><strong>Q: exchange kaise karein?</strong><br>A: Unused items 7 days ke andar exchange kar sakte hain.</p>
                                     <p><strong>Q: Wallet balance kaise earn karein?</strong><br>A: Referral links share karke 5% commission earn kar sakte hain.</p>
                                 </div></div>
-
-                                <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">Privacy Policy <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-4 border-t">
-                                    <p class="font-bold text-base text-gray-800">OutfitKart Privacy Policy</p>
-                                    <p class="text-xs text-gray-400">Last Updated: January 2025</p>
-                                    <div class="space-y-3">
-                                        <div><p class="font-bold text-gray-800 mb-1">1. Information Hamare Paas</p><p>Jab aap OutfitKart use karte hain, hum yeh information collect karte hain: Mobile Number (required for login), Full Name, Email Address (optional), Delivery Address, Order History, Wallet Transactions, Referral Data, aur Push Notification Subscription.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">2. Information Ka Use</p><p>Aapki information ka use: Orders process karne ke liye, Delivery coordinate karne ke liye, Customer support dene ke liye, Wallet aur referral earnings calculate karne ke liye, Push notifications bhejne ke liye (sirf aapki permission se), aur App improve karne ke liye kiya jaata hai.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">3. Data Security</p><p>Aapka data Supabase (enterprise-grade security) par store hota hai. Passwords hashed form mein store hote hain. Hum aapka data kabhi bhi third parties ko sell ya share nahi karte — sirf delivery partners ko order fulfillment ke liye zaruri information di jaati hai.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">4. Payment Security</p><p>Payments Razorpay ke through process hote hain jo RBI-approved payment gateway hai. Hum koi bhi card/UPI credentials store nahi karte. Wallet transactions encrypted aur secure hain.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">5. Push Notifications</p><p>Push notifications sirf aapki explicit permission se bheje jaate hain. Aap kabhi bhi Profile → Notifications OFF karke unsubscribe kar sakte hain. Hum spam nahi karte — sirf important updates (order status, special offers) bhejte hain.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">6. Cookies & Local Storage</p><p>Hum Cart, Session, aur Recently Viewed products localStorage mein store karte hain for better user experience. Yeh data sirf aapke device par hota hai.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">7. Aapke Rights</p><p>Aapko yeh rights hain: Account delete karne ka right, Data correction ka right, Data export ka right. In rights ke liye <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="5a352f2e3c332e313b282e2a283f37332f373c3b29323335341a3d373b333674393537">[email&#160;protected]</a> par contact karein.</p></div>
-                                        <div><p class="font-bold text-gray-800 mb-1">8. Contact</p><p>Privacy related queries ke liye: <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="640b1110020d100f051610141601090d11090205170c0d0b0a240309050d084a070b09">[email&#160;protected]</a></strong> ya WhatsApp: +91 9182296773</p></div>
-                                    </div>
-                                </div></div>
-
                                 <div class="border rounded-lg overflow-hidden"><button class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 font-bold flex justify-between" onclick="this.nextElementSibling.classList.toggle('hidden')">Terms & Conditions <i class="fas fa-chevron-down text-gray-500"></i></button><div class="p-4 bg-white hidden text-sm text-gray-600 space-y-3 border-t">
-                                    <div><p class="font-bold text-gray-800 mb-1">Return & Refund Policy</p><p>Unused, unwashed items 7 days ke andar return kar sakte hain. Damaged ya defective items pe full refund milega. COD orders mein ₹9 handling fee non-refundable hai. Exchange same ya higher value products ke liye available hai.</p></div>
-                                    <div><p class="font-bold text-gray-800 mb-1">Referral Terms</p><p>Referral commission 5% of order total hai. Commission 30 days baad confirm hota hai (agar order cancel na ho). Fake/self-referrals pe account ban ho sakta hai.</p></div>
-                                    <div><p class="font-bold text-gray-800 mb-1">Wallet Terms</p><p>Minimum withdrawal ₹120 hai. Withdrawal 24-48 hours mein process hoti hai. Wallet balance non-transferable hai.</p></div>
+                                    <p><strong>Return &amp; Refund:</strong> Unused items 7 days ke andar return. COD ₹9 fee non-refundable.</p>
+                                    <p><strong>Referral:</strong> Commission 5%, 30 days baad confirm. Fake referrals pe ban.</p>
+                                    <p><strong>Wallet:</strong> Min withdrawal ₹120. 24-48 hours processing.</p>
                                 </div></div>
                             </div>
                         </div>
@@ -823,11 +670,8 @@
             </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════
-             ADMIN VIEW — Professional Redesign
-             ═══════════════════════════════════════════════════════ -->
+        <!-- ADMIN VIEW -->
         <div id="view-admin" class="view-section hidden">
-            <!-- Admin Header Bar — shows admin name -->
             <div class="admin-sidebar-logo text-white sticky top-0 z-30 shadow-xl">
                 <div class="flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-3">
@@ -845,13 +689,12 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <!-- Admin name pill -->
                         <div id="admin-user-name-pill" class="hidden md:flex items-center gap-1.5">
                             <div class="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-[10px] font-black" id="admin-avatar-initial">A</div>
                             <span id="admin-display-name" class="text-xs font-bold">Admin</span>
                         </div>
-                        <button onclick="exitAdmin()" class="hidden md:flex items-center gap-1.5 text-xs text-purple-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all">
-                            <i class="fas fa-home text-xs"></i> Store
+                        <button onclick="exitAdmin()" class="flex items-center gap-1.5 text-xs text-purple-200 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-all">
+                            <i class="fas fa-home text-xs"></i> <span>Store</span>
                         </button>
                         <button onclick="adminLogout()" class="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg text-xs font-bold transition-all">
                             <i class="fas fa-sign-out-alt text-xs"></i><span class="hidden sm:inline">Logout</span>
@@ -861,84 +704,39 @@
             </div>
 
             <div class="flex min-h-screen bg-gray-50">
-                <!-- ═══ ADMIN SIDEBAR — Professional ═══ -->
+                <!-- ADMIN SIDEBAR -->
                 <div id="admin-sidebar" class="fixed md:sticky top-0 left-0 w-64 bg-white border-r border-gray-100 shadow-xl z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 h-screen overflow-y-auto">
-                    <!-- Sidebar brand -->
                     <div class="admin-sidebar-logo p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-shopping-bag text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <div class="text-white font-black text-base leading-none">OutfitKart</div>
-                            <div class="text-purple-200 text-[10px] font-semibold mt-0.5">Admin Dashboard</div>
-                        </div>
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0"><i class="fas fa-shopping-bag text-white text-lg"></i></div>
+                        <div><div class="text-white font-black text-base leading-none">OutfitKart</div><div class="text-purple-200 text-[10px] font-semibold mt-0.5">Admin Dashboard</div></div>
                     </div>
-
-                    <!-- Mobile close button -->
                     <div class="md:hidden flex items-center justify-between px-4 py-2 border-b bg-gray-50">
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Navigation</span>
-                        <button onclick="toggleAdminSidebar()" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 active:scale-95">
-                            <i class="fas fa-times text-gray-500 text-sm"></i>
-                        </button>
+                        <button onclick="toggleAdminSidebar()" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 active:scale-95"><i class="fas fa-times text-gray-500 text-sm"></i></button>
                     </div>
-
                     <nav class="p-3 space-y-0.5">
-                        <!-- Overview section -->
                         <div class="admin-nav-section-label">Overview</div>
-                        <button onclick="switchAdminTab('dashboard')" id="btn-admin-dashboard" class="admin-nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-chart-line"></i></span>
-                            <span class="flex-1 text-left">Dashboard</span>
-                        </button>
-
-                        <!-- Catalog section -->
+                        <button onclick="switchAdminTab('dashboard')" id="btn-admin-dashboard" class="admin-nav-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-chart-line"></i></span><span class="flex-1 text-left">Dashboard</span></button>
                         <div class="admin-nav-section-label mt-2">Catalog</div>
-                        <button onclick="switchAdminTab('products')" id="btn-admin-products" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-box-open"></i></span>
-                            <span class="flex-1 text-left">All Products</span>
-                            <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold" id="sidebar-product-count">0</span>
+                        <button onclick="switchAdminTab('products')" id="btn-admin-products" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-box-open"></i></span><span class="flex-1 text-left">All Products</span><span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-bold" id="sidebar-product-count">0</span></button>
+                        <button onclick="switchAdminTab('inventory')" id="btn-admin-inventory" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-plus-circle"></i></span><span class="flex-1 text-left">Add Product</span></button>
+                        <!-- ✅ GOLD TAB IN SIDEBAR -->
+                        <div class="admin-nav-section-label mt-2" style="color:#B8860B;">⭐ Gold</div>
+                        <button onclick="switchAdminTab('gold')" id="btn-admin-gold"
+                                class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
+                            <span class="nav-icon" style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;font-size:15px;font-weight:900;">⭐</span>
+                            <span class="flex-1 text-left font-bold" style="color:#B8860B;">Gold Products</span>
                         </button>
-                        <button onclick="switchAdminTab('inventory')" id="btn-admin-inventory" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-plus-circle"></i></span>
-                            <span class="flex-1 text-left">Add Product</span>
-                        </button>
-
-                        <!-- Operations section -->
                         <div class="admin-nav-section-label mt-2">Operations</div>
-                        <button onclick="switchAdminTab('order')" id="btn-admin-order" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-shopping-cart"></i></span>
-                            <span class="flex-1 text-left">Orders</span>
-                            <span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold hidden" id="sidebar-orders-badge">!</span>
-                        </button>
-                        <button onclick="switchAdminTab('users')" id="btn-admin-users" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-users"></i></span>
-                            <span class="flex-1 text-left">Users</span>
-                        </button>
-
-                        <!-- Finance section -->
+                        <button onclick="switchAdminTab('order')" id="btn-admin-order" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-shopping-cart"></i></span><span class="flex-1 text-left">Orders</span><span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold hidden" id="sidebar-orders-badge">!</span></button>
+                        <button onclick="switchAdminTab('users')" id="btn-admin-users" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-users"></i></span><span class="flex-1 text-left">Users</span></button>
                         <div class="admin-nav-section-label mt-2">Finance</div>
-                        <button onclick="switchAdminTab('payout')" id="btn-admin-payout" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-wallet"></i></span>
-                            <span class="flex-1 text-left">Withdrawals</span>
-                        </button>
-                        <button onclick="switchAdminTab('referrals')" id="btn-admin-referrals" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-gift"></i></span>
-                            <span class="flex-1 text-left">Referrals</span>
-                        </button>
-                        <button onclick="switchAdminTab('influencer')" id="btn-admin-influencer" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                            <span class="nav-icon"><i class="fas fa-video"></i></span>
-                            <span class="flex-1 text-left">Influencer</span>
-                        </button>
-
-                        <!-- Footer actions -->
+                        <button onclick="switchAdminTab('payout')" id="btn-admin-payout" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-wallet"></i></span><span class="flex-1 text-left">Withdrawals</span></button>
+                        <button onclick="switchAdminTab('referrals')" id="btn-admin-referrals" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-gift"></i></span><span class="flex-1 text-left">Referrals</span></button>
+                        <button onclick="switchAdminTab('influencer')" id="btn-admin-influencer" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-video"></i></span><span class="flex-1 text-left">Influencer</span></button>
                         <div class="pt-4 mt-4 border-t border-gray-100 space-y-1">
-                            <button onclick="exitAdmin()" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all">
-                                <span class="nav-icon"><i class="fas fa-home"></i></span>
-                                <span class="flex-1 text-left">Back to Store</span>
-                            </button>
-                            <button onclick="adminLogout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm text-red-500 hover:bg-red-50 transition-all">
-                                <span class="nav-icon bg-red-50 text-red-500"><i class="fas fa-sign-out-alt"></i></span>
-                                <span class="flex-1 text-left">Logout</span>
-                            </button>
+                            <button onclick="exitAdmin()" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all"><span class="nav-icon"><i class="fas fa-home"></i></span><span class="flex-1 text-left">Back to Store</span></button>
+                            <button onclick="adminLogout()" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm text-red-500 hover:bg-red-50 transition-all"><span class="nav-icon bg-red-50 text-red-500"><i class="fas fa-sign-out-alt"></i></span><span class="flex-1 text-left">Logout</span></button>
                         </div>
                     </nav>
                 </div>
@@ -946,63 +744,41 @@
                 <div id="admin-sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden" onclick="toggleAdminSidebar()"></div>
 
                 <div class="flex-1 p-4 md:p-6 max-w-7xl mx-auto w-full min-w-0">
+                    <!-- Dashboard Tab -->
                     <div id="admin-tab-dashboard" class="admin-content-tab">
                         <div id="admin-dashboard-content"></div>
                         <!-- Send Notification Panel -->
                         <div class="bg-white rounded-xl border shadow-sm p-4 mt-4">
                             <h3 class="font-bold text-sm text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-bell text-purple-600"></i> Send Push Notification</h3>
                             <div class="space-y-3">
-                                <!-- Product Search -->
                                 <div class="relative">
                                     <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">🔍 Search Product (optional)</label>
                                     <input type="text" id="notif-product-search" placeholder="Type product name to auto-fill..." oninput="searchProductsForNotif(this.value)" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300" autocomplete="off">
-                                    <div id="notif-product-results" class="absolute left-0 right-0 bg-white border rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto mt-1 hidden-empty"></div>
+                                    <div id="notif-product-results" class="absolute left-0 right-0 bg-white border rounded-xl shadow-xl z-50 max-h-52 overflow-y-auto mt-1"></div>
                                 </div>
-                                <!-- Preview -->
                                 <div id="notif-preview" class="hidden"></div>
-                                <!-- Fields -->
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Title *</label>
-                                        <input type="text" id="notif-title" placeholder="e.g. Sale is Live! 🔥" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Mobile (blank = all)</label>
-                                        <input type="tel" id="notif-mobile" placeholder="Leave blank for all" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    </div>
+                                    <div><label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Title *</label><input type="text" id="notif-title" placeholder="e.g. Sale is Live! 🔥" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300"></div>
+                                    <div><label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Mobile (blank = all)</label><input type="tel" id="notif-mobile" placeholder="Leave blank for all" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300"></div>
                                 </div>
-                                <div>
-                                    <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Message *</label>
-                                    <textarea id="notif-body" placeholder="Aaj 50% off on all products..." oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300 h-16 resize-none"></textarea>
-                                </div>
+                                <div><label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Message *</label><textarea id="notif-body" placeholder="Aaj 50% off on all products..." oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300 h-16 resize-none"></textarea></div>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Product Image URL</label>
-                                        <input type="text" id="notif-image" placeholder="Auto-filled on product select" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Deep Link URL</label>
-                                        <input type="text" id="notif-url" placeholder="./?pid=123 or ./?view=shop" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300">
-                                    </div>
+                                    <div><label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Product Image URL</label><input type="text" id="notif-image" placeholder="Auto-filled on product select" oninput="_updateNotifPreview()" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300"></div>
+                                    <div><label class="text-[10px] font-bold text-gray-500 uppercase mb-1 block">Deep Link URL</label><input type="text" id="notif-url" placeholder="./?pid=123 or ./?view=shop" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-300"></div>
                                 </div>
-                                <button onclick="sendAdminNotification()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all">
-                                    <i class="fas fa-paper-plane mr-2"></i>Send Notification
-                                </button>
+                                <button onclick="sendAdminNotification()" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold text-sm hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all"><i class="fas fa-paper-plane mr-2"></i>Send Notification</button>
                                 <div id="notif-result" class="hidden text-center text-sm font-semibold py-2 rounded-lg"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Products Tab — NO upload section shown here -->
+                    <!-- Products Tab -->
                     <div id="admin-tab-products" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-lg text-gray-800">All Products</h3>
-                            <button onclick="renderAdminProducts()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
-                        </div>
+                        <div class="flex justify-between items-center mb-4"><h3 class="font-bold text-lg text-gray-800">All Products</h3><button onclick="renderAdminProducts()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button></div>
                         <div class="overflow-y-auto max-h-[70vh] border rounded-lg bg-gray-50" id="admin-product-list"></div>
                     </div>
 
-                    <!-- Add Product Tab — Full form with upload -->
+                    <!-- Add Product Tab -->
                     <div id="admin-tab-inventory" class="admin-content-tab bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100 hidden">
                         <h3 class="font-bold text-lg md:text-xl mb-4 border-b pb-3 text-purple-700 flex items-center gap-2"><i class="fas fa-plus-circle"></i> Add New Product</h3>
                         <form id="add-product-form" onsubmit="adminAddProduct(event)" class="space-y-4">
@@ -1011,12 +787,9 @@
                                 <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="entry-mode" value="manual" id="mode-manual" class="w-5 h-5 accent-emerald-600" onchange="toggleProductMode('manual')"><i class="fas fa-calculator text-emerald-500 text-lg"></i><span>✏️ Manual Add</span></label>
                             </div>
                             <div id="auto-import-fields" class="bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 border-2 border-indigo-200 rounded-2xl p-5 shadow-sm">
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"><i class="fas fa-robot text-white text-sm"></i></div>
-                                    <div class="flex-1 min-w-0"><h4 class="font-black text-sm text-indigo-800 uppercase tracking-wide">Smart Import</h4><p class="text-[11px] text-indigo-500 font-medium">Meesho · Amazon · Flipkart · Myntra</p></div>
-                                </div>
+                                <div class="flex items-center gap-3 mb-4"><div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"><i class="fas fa-robot text-white text-sm"></i></div><div class="flex-1 min-w-0"><h4 class="font-black text-sm text-indigo-800 uppercase tracking-wide">Smart Import</h4><p class="text-[11px] text-indigo-500 font-medium">Meesho · Amazon · Flipkart · Myntra</p></div></div>
                                 <div class="flex gap-2">
-                                    <div class="flex-1 relative"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-link text-indigo-400 text-sm"></i></div><input type="url" id="scrape-url" placeholder="Paste supplier URL (Meesho/Amazon/Flipkart)..." class="w-full pl-9 pr-4 py-3 border-2 border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium" oninput="document.getElementById('ap-supplier-url').value=this.value"></div>
+                                    <div class="flex-1 relative"><div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><i class="fas fa-link text-indigo-400 text-sm"></i></div><input type="url" id="scrape-url" placeholder="Paste supplier URL..." class="w-full pl-9 pr-4 py-3 border-2 border-indigo-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-400 outline-none bg-white font-medium" oninput="document.getElementById('ap-supplier-url').value=this.value"></div>
                                     <button type="button" onclick="scrapeProductFromUrl()" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl font-black text-sm shadow-lg active:scale-95 transition-all flex items-center gap-2 flex-shrink-0"><i class="fas fa-search-plus"></i><span class="hidden sm:inline">Fetch</span></button>
                                 </div>
                                 <div id="scrape-status" class="hidden mt-3 items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg border"></div>
@@ -1041,11 +814,77 @@
                             <div class="flex flex-col gap-1"><div class="flex justify-between items-center"><label class="text-[10px] font-bold text-gray-400 ml-1">DESCRIPTION</label><button type="button" onclick="autoGenerateDescription()" class="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-200 font-bold">Auto Generate</button></div><textarea id="ap-desc" placeholder="Product details..." required class="w-full border p-2.5 rounded-lg h-20 text-sm outline-none"></textarea></div>
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500"><input type="number" id="ap-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0"></div>
                             <div class="grid grid-cols-2 gap-3"><input type="number" id="ap-stock" placeholder="Total Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50"></div>
-                            <div id="admin-ml-section" class="hidden"><label class="text-[10px] font-bold text-purple-600 ml-1 mb-2 block uppercase">🌸 Available Volumes (ML)</label><div class="grid grid-cols-3 md:grid-cols-9 gap-2 text-xs bg-purple-50 p-3 rounded-xl border border-purple-200"><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="10ml" class="ml-admin-chk accent-purple-600"> 10ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="20ml" class="ml-admin-chk accent-purple-600"> 20ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="30ml" class="ml-admin-chk accent-purple-600"> 30ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="50ml" class="ml-admin-chk accent-purple-600" checked> 50ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="75ml" class="ml-admin-chk accent-purple-600" checked> 75ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="100ml" class="ml-admin-chk accent-purple-600" checked> 100ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="150ml" class="ml-admin-chk accent-purple-600"> 150ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="200ml" class="ml-admin-chk accent-purple-600"> 200ml</label><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="250ml" class="ml-admin-chk accent-purple-600"> 250ml</label></div></div>
-                            <div id="admin-size-section"><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label><div class="grid grid-cols-3 md:grid-cols-4 gap-1.5 text-xs"><div class="border rounded p-1.5 bg-gray-50"><span class="text-[9px] font-bold text-gray-500 block text-center mb-1 uppercase">Clothing</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="XS" class="size-admin-chk"> XS</label><label><input type="checkbox" value="S" class="size-admin-chk" checked> S</label><label><input type="checkbox" value="M" class="size-admin-chk" checked> M</label><label><input type="checkbox" value="L" class="size-admin-chk" checked> L</label><label><input type="checkbox" value="XL" class="size-admin-chk"> XL</label><label><input type="checkbox" value="XXL" class="size-admin-chk"> XXL</label><label><input type="checkbox" value="XXXL" class="size-admin-chk"> 3XL</label></div></div><div class="border rounded p-1.5 bg-blue-50"><span class="text-[9px] font-bold text-blue-600 block text-center mb-1 uppercase">Pants/Jeans</span><div class="grid grid-cols-2 gap-1 text-[10px]"><label><input type="checkbox" value="28" class="size-admin-chk"> 28</label><label><input type="checkbox" value="30" class="size-admin-chk" checked> 30</label><label><input type="checkbox" value="32" class="size-admin-chk" checked> 32</label><label><input type="checkbox" value="34" class="size-admin-chk"> 34</label><label><input type="checkbox" value="36" class="size-admin-chk"> 36</label><label><input type="checkbox" value="38" class="size-admin-chk"> 38</label><label><input type="checkbox" value="40" class="size-admin-chk"> 40</label></div></div><div class="border rounded p-1.5 bg-green-50"><span class="text-[9px] font-bold text-green-600 block text-center mb-1 uppercase">Footwear</span><div class="grid grid-cols-3 gap-1 text-[10px]"><label><input type="checkbox" value="5" class="size-admin-chk"> 5</label><label><input type="checkbox" value="6" class="size-admin-chk"> 6</label><label><input type="checkbox" value="7" class="size-admin-chk"> 7</label><label><input type="checkbox" value="8" class="size-admin-chk" checked> 8</label><label><input type="checkbox" value="9" class="size-admin-chk" checked> 9</label><label><input type="checkbox" value="10" class="size-admin-chk"> 10</label><label><input type="checkbox" value="11" class="size-admin-chk"> 11</label><label><input type="checkbox" value="12" class="size-admin-chk"> 12</label></div></div><label class="col-span-full flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg cursor-pointer"><input type="checkbox" value="Free Size" class="size-admin-chk"> <span class="font-bold text-sm text-purple-700">Free Size</span></label></div></div>
-                            <!-- Image Upload — ONLY shown in Add Product tab -->
-                            <div class="flex flex-col mb-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ap-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
-                            <div class="flex flex-col"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Image URLs</label><textarea id="ap-imgs" placeholder="Upload above or paste URLs (one per line)..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea></div>
+                            <div id="admin-size-section"><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label>
+                                <div class="border rounded p-1.5 bg-gray-50">
+                                    <span class="text-[9px] font-bold text-gray-500 block text-center mb-1 uppercase">Clothing</span>
+                                    <div class="grid grid-cols-4 gap-1 text-[10px]">
+                                        <label><input type="checkbox" value="XS" class="size-admin-chk"> XS</label>
+                                        <label><input type="checkbox" value="S" class="size-admin-chk" checked> S</label>
+                                        <label><input type="checkbox" value="M" class="size-admin-chk" checked> M</label>
+                                        <label><input type="checkbox" value="L" class="size-admin-chk" checked> L</label>
+                                        <label><input type="checkbox" value="XL" class="size-admin-chk"> XL</label>
+                                        <label><input type="checkbox" value="XXL" class="size-admin-chk"> XXL</label>
+                                        <label><input type="checkbox" value="3XL" class="size-admin-chk"> 3XL</label>
+                                        <label><input type="checkbox" value="4XL" class="size-admin-chk"> 4XL</label>
+                                    </div>
+                                </div>
+                                <div class="border rounded p-1.5 bg-blue-50">
+                                    <span class="text-[9px] font-bold text-blue-600 block text-center mb-1 uppercase">Pants/Jeans</span>
+                                    <div class="grid grid-cols-3 gap-1 text-[10px]">
+                                        <label><input type="checkbox" value="24" class="size-admin-chk"> 24</label>
+                                        <label><input type="checkbox" value="26" class="size-admin-chk"> 26</label>
+                                        <label><input type="checkbox" value="28" class="size-admin-chk"> 28</label>
+                                        <label><input type="checkbox" value="30" class="size-admin-chk" checked> 30</label>
+                                        <label><input type="checkbox" value="32" class="size-admin-chk" checked> 32</label>
+                                        <label><input type="checkbox" value="34" class="size-admin-chk"> 34</label>
+                                        <label><input type="checkbox" value="36" class="size-admin-chk"> 36</label>
+                                        <label><input type="checkbox" value="38" class="size-admin-chk"> 38</label>
+                                        <label><input type="checkbox" value="40" class="size-admin-chk"> 40</label>
+                                    </div>
+                                </div>
+                                <div class="border rounded p-1.5 bg-green-50">
+                                    <span class="text-[9px] font-bold text-green-600 block text-center mb-1 uppercase">Footwear</span>
+                                    <div class="grid grid-cols-3 gap-1 text-[10px]">
+                                        <label><input type="checkbox" value="4" class="size-admin-chk"> 4</label>
+                                        <label><input type="checkbox" value="5" class="size-admin-chk"> 5</label>
+                                        <label><input type="checkbox" value="6" class="size-admin-chk"> 6</label>
+                                        <label><input type="checkbox" value="7" class="size-admin-chk"> 7</label>
+                                        <label><input type="checkbox" value="8" class="size-admin-chk" checked> 8</label>
+                                        <label><input type="checkbox" value="9" class="size-admin-chk" checked> 9</label>
+                                        <label><input type="checkbox" value="10" class="size-admin-chk"> 10</label>
+                                        <label><input type="checkbox" value="11" class="size-admin-chk"> 11</label>
+                                        <label><input type="checkbox" value="12" class="size-admin-chk"> 12</label>
+                                    </div>
+                                </div>
+                                <div id="admin-ml-section" class="hidden">
+                                    <label class="text-[10px] font-bold text-purple-600 ml-1 mb-2 block uppercase">🌸 Available Volumes (ML)</label>
+                                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs bg-purple-50 p-3 rounded-xl border border-purple-200 mb-2">
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="5ml" class="ml-admin-chk accent-purple-600"> 5ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="10ml" class="ml-admin-chk accent-purple-600"> 10ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="15ml" class="ml-admin-chk accent-purple-600"> 15ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="20ml" class="ml-admin-chk accent-purple-600"> 20ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="25ml" class="ml-admin-chk accent-purple-600"> 25ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="30ml" class="ml-admin-chk accent-purple-600"> 30ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="50ml" class="ml-admin-chk accent-purple-600" checked> 50ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="75ml" class="ml-admin-chk accent-purple-600" checked> 75ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="100ml" class="ml-admin-chk accent-purple-600" checked> 100ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="150ml" class="ml-admin-chk accent-purple-600"> 150ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="200ml" class="ml-admin-chk accent-purple-600"> 200ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="250ml" class="ml-admin-chk accent-purple-600"> 250ml</label>
+                                        <label class="flex items-center gap-1"><input type="checkbox" value="500ml" class="ml-admin-chk accent-purple-600"> 500ml</label>
+                                    </div>
+                                    <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-xl p-2">
+                                        <span class="text-xs font-bold text-purple-700 flex-shrink-0">➕ Custom:</span>
+                                        <div class="flex items-center border border-purple-300 rounded-lg overflow-hidden bg-white">
+                                            <span class="bg-purple-100 px-2 py-1.5 text-purple-700 font-black text-xs border-r border-purple-200">ml</span>
+                                            <input type="number" id="custom-ml-input" placeholder="e.g. 45" min="1" max="2000" class="w-24 px-2 py-1.5 text-xs font-bold outline-none" style="font-size:14px;">
+                                        </div>
+                                        <button type="button" onclick="addCustomMlVolume()" class="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 active:scale-95">Add</button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col mb-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images Directly 🚀</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ap-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
+                                <div class="flex flex-col"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Product Image URLs</label><textarea id="ap-imgs" placeholder="Upload above or paste URLs (one per line)..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea></div>
+                            </div>
                             <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">Add to Database</button>
                         </form>
                     </div>
@@ -1068,7 +907,6 @@
                                 <div class="grid grid-cols-2 gap-3"><input type="number" id="ep-oldprice" placeholder="MRP" class="w-full border p-2.5 rounded-lg text-sm text-red-500"><input type="number" id="ep-discount" placeholder="Discount (₹)" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="0"></div>
                                 <input type="number" id="ep-stock" placeholder="Stock Qty" min="0" class="w-full border p-2.5 rounded-lg text-sm text-green-600 font-bold" value="50">
                                 <div><label class="text-[10px] font-bold text-gray-400 ml-1 mb-2 block uppercase">Available Sizes</label><div class="grid grid-cols-4 md:grid-cols-6 gap-2 text-xs" id="ep-sizes-grid"></div></div>
-                                <!-- Edit form also gets upload section -->
                                 <div class="flex flex-col mb-2"><label class="text-[10px] font-bold text-gray-400 ml-1 uppercase">Upload Images</label><input type="file" multiple accept="image/*" class="w-full border p-1.5 rounded-lg text-sm bg-gray-50 cursor-pointer" onchange="uploadToImgBB(event,'ep-imgs')"><div class="upload-status text-xs font-bold text-rose-500 mt-1 hidden"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</div></div>
                                 <textarea id="ep-imgs" placeholder="Image URLs (one per line)..." class="w-full border p-2.5 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-purple-200"></textarea>
                                 <div class="flex gap-3 pt-4 border-t"><button type="submit" class="flex-1 bg-purple-600 text-white py-3 rounded-lg font-bold shadow-lg hover:bg-purple-700">💾 Update Product</button><button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-500 text-white py-3 rounded-lg font-bold hover:bg-gray-600">Cancel</button></div>
@@ -1109,10 +947,7 @@
                     <!-- Referrals Tab -->
                     <div id="admin-tab-referrals" class="admin-content-tab hidden space-y-3">
                         <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="font-bold text-lg text-green-700 flex items-center gap-2"><i class="fas fa-gift"></i> All Referral Earnings</h3>
-                                <button onclick="loadAdminReferrals()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
-                            </div>
+                            <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-lg text-green-700 flex items-center gap-2"><i class="fas fa-gift"></i> All Referral Earnings</h3><button onclick="loadAdminReferrals()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button></div>
                             <div id="admin-referrals-content"><div class="text-center py-16 text-gray-400"><i class="fas fa-gift text-5xl mb-4"></i><p class="font-semibold">Click Refresh to load referrals</p></div></div>
                         </div>
                     </div>
@@ -1120,13 +955,37 @@
                     <!-- Influencer Tab -->
                     <div id="admin-tab-influencer" class="admin-content-tab hidden space-y-3">
                         <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="font-bold text-lg text-purple-700 flex items-center gap-2"><i class="fas fa-video"></i> Influencer Requests</h3>
-                                <button onclick="loadAdminInfluencerRequests()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
-                            </div>
+                            <div class="flex items-center justify-between mb-4"><h3 class="font-bold text-lg text-purple-700 flex items-center gap-2"><i class="fas fa-video"></i> Influencer Requests</h3><button onclick="loadAdminInfluencerRequests()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold border border-purple-200 hover:bg-purple-200"><i class="fas fa-sync-alt mr-1"></i>Refresh</button></div>
                             <div id="admin-influencer-list"><div class="text-center py-16 text-gray-400"><i class="fas fa-video text-5xl mb-4"></i><p class="font-semibold">Click Refresh to load</p></div></div>
                         </div>
                     </div>
+
+                    <!-- ✅ GOLD PRODUCTS TAB — Fixed & Working -->
+                    <div id="admin-tab-gold" class="admin-content-tab hidden space-y-3">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-md border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-lg flex items-center gap-2" style="color:#B8860B;">
+                                    ⭐ OutfitKart Gold Products
+                                </h3>
+                                <button onclick="loadAdminGoldProducts()"
+                                        class="text-xs px-3 py-1.5 rounded-lg font-bold border"
+                                        style="background:#fffbeb;color:#B8860B;border-color:#C9A84C;">
+                                    <i class="fas fa-sync-alt mr-1"></i>Refresh
+                                </button>
+                            </div>
+                            <div id="admin-gold-list">
+                                <div class="text-center py-12" style="color:#B8860B;">
+                                    <span style="font-size:3rem;">⭐</span>
+                                    <p class="font-bold mt-3 text-lg">Gold Products yahan dikhenge</p>
+                                    <p class="text-sm text-gray-400 mt-1">Pehle Supabase mein gold_products table banao</p>
+                                    <button onclick="copyGoldSQL()" class="mt-4 text-sm bg-amber-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-amber-700 active:scale-95">
+                                        📋 SQL Copy karo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1148,6 +1007,10 @@
     <nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-[60] text-xs font-medium text-gray-500 shadow-[0_-5px_15px_rgba(0,0,0,0.08)]">
         <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('home')"><i class="fas fa-home text-lg"></i><span>Home</span></div>
         <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('shop')"><i class="fas fa-tshirt text-lg"></i><span>Shop</span></div>
+        <div class="flex flex-col items-center gap-1 cursor-pointer transition-colors" id="gold-nav-item" onclick="navigate('gold')" style="color:#6b7280;">
+            <span style="font-size:1.2rem;line-height:1.4;">⭐</span>
+            <span style="font-size:10px;font-weight:700;">Gold</span>
+        </div>
         <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 relative transition-colors" onclick="toggleCart()"><i class="fas fa-shopping-bag text-lg"></i><span>Cart</span><span id="mobile-cart-badge" class="absolute -top-1 right-2 bg-rose-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center hidden">0</span></div>
         <div class="flex flex-col items-center gap-1 cursor-pointer hover:text-rose-600 transition-colors" onclick="navigate('profile')"><i class="far fa-user text-lg"></i><span id="nav-profile-text">Login</span></div>
     </nav>
@@ -1181,14 +1044,14 @@
             <h3 class="font-black text-xl text-gray-900 mb-1">Refund Details</h3>
             <p class="text-sm text-gray-600 mb-4">Enter your UPI ID to receive the refund within 24-48 hours.</p>
             <input type="text" id="cancel-refund-upi-input" placeholder="yourname@upi or mobile@bank" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-1 focus:ring-2 focus:ring-rose-400 outline-none text-center font-semibold">
-            <p class="text-xs text-gray-400 mb-5">e.g. 9876543210@paytm or name@okaxis</p>
+            <p class="text-xs text-gray-400 mb-5">e.g. 9876543210@paytm</p>
             <div class="flex gap-3"><button onclick="closeRefundUpiModal()" class="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 text-sm">Go Back</button><button onclick="finaliseCancelWithRefund()" class="flex-1 bg-rose-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-rose-700 active:scale-95 text-sm">Confirm Cancel</button></div>
         </div>
     </div>
 
     <!-- Order Cancelled Screen -->
     <div id="order-cancel-modal" class="fixed inset-0 bg-white z-[200] hidden flex-col items-center justify-center text-center p-6">
-        <div class="w-28 h-28 mb-6 relative"><svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><polygon points="60,48 10,28 60,8 110,28" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="10,28 10,78 60,98 60,48" fill="#f1f5f9" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="110,28 110,78 60,98 60,48" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/></svg><div class="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"><i class="fas fa-times text-white text-lg"></i></div></div>
+        <div class="w-24 h-24 mb-6 relative"><svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full"><polygon points="60,48 10,28 60,8 110,28" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="10,28 10,78 60,98 60,48" fill="#f1f5f9" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/><polygon points="110,28 110,78 60,98 60,48" fill="#e2e8f0" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/></svg><div class="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 bg-rose-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"><i class="fas fa-times text-white text-lg"></i></div></div>
         <h2 class="text-3xl font-black text-gray-900 mb-2 uppercase">Order Cancelled</h2>
         <p class="text-gray-500 mb-3">Your order has been successfully cancelled.</p>
         <p id="cancel-refund-msg" class="text-sm text-green-600 font-semibold mb-8 hidden">💰 Refund will be credited to your UPI within 24-48 hours.</p>
@@ -1221,53 +1084,45 @@
     <div id="admin-login-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[100] hidden items-center justify-center p-4 flex backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-shield-alt text-purple-600 text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-alt text-purple-600 text-2xl"></i></div>
                 <h2 class="text-2xl font-black text-gray-900 mb-1">Admin Login</h2>
                 <p class="text-sm text-gray-500">Authorized personnel only</p>
             </div>
             <form onsubmit="handleAdminLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Mobile Number</label>
-                    <div class="flex">
-                        <span class="bg-gray-100 border border-r-0 rounded-l-xl px-4 py-3 text-gray-500 font-semibold text-sm">+91</span>
-                        <input type="tel" id="admin-mobile" pattern="[0-9]{10}" maxlength="10" required
-                            class="flex-1 border border-l-0 rounded-r-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                            placeholder="Enter registered mobile">
-                    </div>
+                    <div class="flex"><span class="bg-gray-100 border border-r-0 rounded-l-xl px-4 py-3 text-gray-500 font-semibold text-sm">+91</span><input type="tel" id="admin-mobile" pattern="[0-9]{10}" maxlength="10" required class="flex-1 border border-l-0 rounded-r-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter registered mobile"></div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                    <input type="password" id="admin-password" required
-                        class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
-                        placeholder="Enter password">
+                    <input type="password" id="admin-password" required class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter password">
                 </div>
                 <div class="flex gap-3 pt-2">
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold shadow-lg hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all">
-                        <i class="fas fa-lock mr-2"></i>Login
-                    </button>
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-xl font-bold shadow-lg hover:from-purple-700 hover:to-purple-800 active:scale-95 transition-all"><i class="fas fa-lock mr-2"></i>Login</button>
                     <button type="button" onclick="closeAdminLogin(true)" class="flex-1 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50 active:scale-95 transition-all">Cancel</button>
                 </div>
             </form>
-            <p class="text-xs text-gray-400 text-center mt-4"><i class="fas fa-database mr-1"></i>Verified against database</p>
         </div>
     </div>
 
     <!-- PWA Install Banner -->
     <div id="pwa-install-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-rose-600 to-rose-700 text-white p-4 shadow-2xl z-[70] hidden md:flex items-center justify-between transform translate-y-full transition-transform duration-300 ease-in-out">
         <div class="flex items-center gap-3"><div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center"><i class="fas fa-shopping-bag text-2xl"></i></div><div><h3 class="font-bold text-lg">OutfitKart</h3><p class="text-sm opacity-90">Install for better experience</p></div></div>
-        <div class="flex gap-3"><button onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95">Install App</button><button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10">Not Now</button>
-             </div>
+        <div class="flex gap-3"><button onclick="installApp()" class="bg-white text-rose-600 px-6 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl active:scale-95">Install App</button><button onclick="hideInstallBanner()" class="text-white/80 hover:text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-white/10">Not Now</button></div>
+    </div>
 
     <script src="script-core.js"></script>
-<script src="script-admin.js"></script>
-<script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () =>
-          navigator.serviceWorker.register('./sw.js').catch(() => {})
-        );
-      }
+    <script src="script-admin.js"></script>
+    <script>
+        // ✅ FIX: openGoldSection function — banner ke Gold buttons ke liye
+        function openGoldSection() { navigate('gold'); }
+        window.openGoldSection = openGoldSection;
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () =>
+                navigator.serviceWorker.register('./sw.js').catch(() => {})
+            );
+        }
     </script>
 </body>
 </html>
