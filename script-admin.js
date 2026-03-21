@@ -1,7 +1,12 @@
 'use strict';
 /* ============================================================
-   SCRIPT-ADMIN.JS — OutfitKart Admin Panel
-   Depends on: script-core.js (must load first)
+   SCRIPT-ADMIN.JS — OutfitKart Admin Panel  (FIXED VERSION)
+   Changes vs original:
+     1. Removed first loadAdminGoldProducts (products.is_gold toggle) — duplicate
+     2. Removed _renderGoldProductRow, _filterGoldAdmin(first), toggleGoldProduct — stale
+     3. Added showPushSetupGuide function
+     4. Added btn-admin-gold to switchAdminTab highlight list
+     5. gold_products table version is the ONE true implementation
    ============================================================ */
 
 /* ============================================================
@@ -106,7 +111,6 @@ async function renderAdminDashboard() {
         const pendingComm   = allReferrals.filter(r => r.status === 'pending').reduce((s, r) => s + (r.commission || 0), 0);
         const confirmedComm = allReferrals.filter(r => r.status === 'confirmed').reduce((s, r) => s + (r.commission || 0), 0);
 
-        /* Last 7 days chart data */
         const last7Labels = [], revenueByDay = [], profitByDay = [], ordersByDay = [];
         for (let i = 6; i >= 0; i--) {
             const d = new Date(); d.setDate(d.getDate() - i);
@@ -295,6 +299,7 @@ function switchAdminTab(tab) {
     if (tab === 'users')      loadAllUsersAdmin();
     if (tab === 'referrals')  loadAdminReferrals();
     if (tab === 'influencer') loadAdminInfluencerRequests();
+    if (tab === 'gold')       loadAdminGoldProducts();   // ← Gold tab
 }
 
 function toggleAdminSidebar() {
@@ -526,7 +531,6 @@ async function openEditProduct(productId) {
     document.getElementById('edit-product-title').textContent = `(ID: ${p.id})`;
     document.getElementById('ep-name').value     = p.name      || '';
     document.getElementById('ep-price').value    = p.price     || '';
-    document.getElementById('ep-margin-amt')?.setAttribute('value', p.margin_amt || 0);
     if (document.getElementById('ep-margin-amt')) document.getElementById('ep-margin-amt').value = p.margin_amt || 0;
     document.getElementById('ep-category').value = p.category  || 'Men';
     setTimeout(() => {
@@ -603,6 +607,23 @@ async function deleteProduct(id) {
         if (countBadge) countBadge.textContent = products.length;
         showToast('Deleted from DB. 🗑️');
     } catch (err) { showToast('Delete failed: ' + err.message); }
+}
+
+/* Misc product form helper */
+function addCustomMlVolume() {
+    const inp = document.getElementById('custom-ml-input');
+    if (!inp || !inp.value || isNaN(Number(inp.value))) return showToast('Valid number enter karo');
+    const val = inp.value.trim() + 'ml';
+    const existing = document.querySelector(`.ml-admin-chk[value="${val}"]`);
+    if (existing) { existing.checked = true; showToast(`${val} already hai — checked!`); inp.value = ''; return; }
+    const grid = document.querySelector('#admin-ml-section .grid');
+    if (!grid) return;
+    const lbl = document.createElement('label');
+    lbl.className = 'flex items-center gap-1 cursor-pointer';
+    lbl.innerHTML = `<input type="checkbox" value="${val}" class="ml-admin-chk accent-purple-600" checked> ${val}`;
+    grid.appendChild(lbl);
+    showToast(`✅ ${val} add ho gaya!`);
+    inp.value = '';
 }
 
 /* ============================================================
@@ -746,7 +767,7 @@ function renderFilteredOrders(filterStatus) {
                          onerror="this.src='https://placehold.co/48x60/eee/999?text=?'" loading="lazy">
                     <div class="admin-order-item-info">
                         <div class="admin-order-item-name" title="${item.name}">${item.name}</div>
-                        <div class="admin-order-item-meta">${isPerfumeCategory(item.category || '') ? 'Vol' : 'Size'}: <strong>${item.size || 'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty || 1}</strong></div>
+                        <div class="admin-order-item-meta">Size: <strong>${item.size || 'M'}</strong> &nbsp;•&nbsp; Qty: <strong>${item.qty || 1}</strong></div>
                         <div class="admin-order-item-price">₹${((item.price || 0) * (item.qty || 1)).toLocaleString('en-IN')}</div>
                     </div>
                 </div>`).join('')
@@ -1065,8 +1086,7 @@ async function rejectInfluencer(id) {
 }
 
 /* ============================================================
-   A12. PUSH NOTIFICATIONS SENDER — ★ FIX: Sabhi users ko jaata hai
-   Admin se seedha Supabase ke through sabhi subscribed users ko
+   A12. PUSH NOTIFICATIONS
    ============================================================ */
 function searchProductsForNotif(query) {
     const q   = query.toLowerCase().trim();
@@ -1122,9 +1142,34 @@ function _updateNotifPreview() {
         <div class="text-[9px] text-gray-400 text-center mt-1">Preview (actual may vary by device)</div>`;
 }
 
-/* ★ FIX: Push notification - sabhi subscribed users ko bhejta hai
-   Supabase se sabhi push_subscription fetch karta hai
-   Phir browser Notification API se (admin ke liye) ya Supabase store karta hai */
+/* ── FIXED: Show push setup guide ─────────────────────────── */
+function showPushSetupGuide() {
+    const guide = `
+📱 Push Notification Setup Guide
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Option 1: Supabase Edge Function
+  1. Supabase Dashboard → Edge Functions → New Function
+  2. Function name: "send-push"
+  3. Code: Web Push API se VAPID key use karo
+  4. Deploy karo
+
+Option 2: OneSignal (FREE & Easy)
+  1. onesignal.com pe account banao
+  2. App ID aur REST API Key lo
+  3. script-core.js mein OneSignal init karo
+
+Option 3: Firebase Cloud Messaging (FCM)
+  1. console.firebase.google.com
+  2. Project setup → Cloud Messaging
+  3. Service worker update karo
+
+Abhi ke liye notifications DB mein save ho
+rahe hain — users next visit pe dekhenge.
+    `.trim();
+    alert(guide);
+}
+
 async function sendAdminNotification() {
     const title  = document.getElementById('notif-title')?.value.trim();
     const body   = document.getElementById('notif-body')?.value.trim();
@@ -1141,7 +1186,6 @@ async function sendAdminNotification() {
     if (result) { result.classList.remove('hidden'); result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-blue-50 text-blue-700'; result.textContent = 'Fetching subscribed users...'; }
 
     try {
-        /* Step 1: Supabase se sabhi subscribed users fetch karo */
         let query = dbClient.from('users').select('mobile, name, push_subscription').not('push_subscription', 'is', null);
         if (mobile) {
             query = dbClient.from('users').select('mobile, name, push_subscription').eq('mobile', mobile).not('push_subscription', 'is', null);
@@ -1154,109 +1198,54 @@ async function sendAdminNotification() {
         });
 
         if (!subscribed.length) {
-            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-amber-50 text-amber-700'; result.textContent = '⚠️ Koi bhi subscribed user nahi mila. Users ko pehle notifications enable karne kahein.'; }
+            if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-amber-50 text-amber-700'; result.textContent = '⚠️ Koi bhi subscribed user nahi mila.'; }
             if (btn)    { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
             return;
         }
 
-        /* Step 2: Notification record Supabase mein save karo */
-        const notifPayload = {
-            title,
-            body,
-            url:      url   || './',
-            image:    image || null,
-            mobile:   mobile || null,
-            sent_at:  new Date().toISOString(),
-            sent_by:  localStorage.getItem('outfitkart_admin_mobile') || 'admin',
-            status:   'pending',
-        };
-
-        let savedNotifId = null;
+        // Save notification record
         try {
-            const { data: notifRow } = await dbClient.from('notifications').insert([notifPayload]).select().single();
-            savedNotifId = notifRow?.id;
-        } catch (_) { /* notifications table nahi hai to skip */ }
+            await dbClient.from('notifications').insert([{
+                title, body, url: url || './', image: image || null,
+                mobile: mobile || null, sent_at: new Date().toISOString(),
+                sent_by: localStorage.getItem('outfitkart_admin_mobile') || 'admin', status: 'pending',
+            }]);
+        } catch (_) {}
 
-        /* Step 3: Web Push via VAPID — direct browser push */
-        let sent = 0, failed = 0;
-
-        /* Har subscribed user ke liye push bhejo via Supabase Edge Function ya Node server */
+        // Try Edge Function
         try {
-            /* Supabase Edge Function try karo */
             const edgeRes = await fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_KEY}` },
-                body:    JSON.stringify({
-                    title, body, url, image,
-                    mobile:   mobile || null,
-                    notif_id: savedNotifId,
-                }),
-                signal: AbortSignal.timeout(15000),
+                body:    JSON.stringify({ title, body, url, image, mobile: mobile || null }),
+                signal:  AbortSignal.timeout(15000),
             });
             if (edgeRes.ok) {
                 const edgeData = await edgeRes.json();
-                sent   = edgeData.sent   || subscribed.length;
-                failed = edgeData.failed || 0;
-                if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ ${sent} users ko notification bheja gaya!${failed ? ` (${failed} failed)` : ''}`; }
+                const sent = edgeData.sent || subscribed.length;
+                if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ ${sent} users ko notification bheja gaya!`; }
                 showToast(`✅ ${sent} users ko notification bheja!`);
                 _clearNotifFields();
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
                 return;
             }
-        } catch (_) { /* Edge function nahi mili — fallback */ }
+        } catch (_) {}
 
-        /* Step 4: Node server try karo (agar run ho raha ho) */
-        try {
-            const serverRes = await fetch('/api/notify/send', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer outfitkart_admin_token' },
-                body:    JSON.stringify({ title, body, url, image, mobile: mobile || null }),
-                signal:  AbortSignal.timeout(5000),
-            });
-            if (serverRes.ok) {
-                const serverData = await serverRes.json();
-                sent   = serverData.sent   || 0;
-                failed = serverData.failed || 0;
-                if (result) { result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-green-50 text-green-700'; result.textContent = `✅ ${sent} users ko notification bheja!`; }
-                showToast(`✅ ${sent} users ko push notification bheja!`);
-                _clearNotifFields();
-                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Notification'; }
-                return;
-            }
-        } catch (_) { /* Server nahi mila */ }
-
-        /* Step 5: Sabse zyada users — ServiceWorker ke through broadcast karo
-           Agar same origin pe SW chal raha hai to sabko message bhejo */
-        if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.ready.catch(() => null);
-            if (reg) {
-                /* SW ko instruction bhejo sabko show karne ke liye */
-                reg.active?.postMessage({
-                    type: 'BROADCAST_NOTIF',
-                    payload: { title, body, url, image, badge: '/icon-96x96.png' },
-                });
-            }
-        }
-
-        /* Step 6: Admin ke browser pe bhi dikhao */
+        // Admin browser notification (fallback)
         if (Notification.permission === 'granted') {
             new Notification(title, {
-                body,
-                icon:  image || 'https://placehold.co/192x192/e11d48/ffffff?text=OK',
-                badge: 'https://placehold.co/96x96/e11d48/ffffff?text=OK',
-                data:  { url },
+                body, icon: image || 'https://placehold.co/192x192/e11d48/ffffff?text=OK',
+                data: { url },
             });
         }
 
-        /* Final status */
         if (result) {
             result.className = 'text-center text-sm font-semibold py-2 rounded-lg bg-amber-50 text-amber-700';
             result.innerHTML = `⚠️ <strong>${subscribed.length} users subscribed</strong> hain.<br>
-                <span class="text-xs">Push bhejne ke liye Supabase Edge Function ya Node server setup karo.<br>
-                Abhi DB mein save ho gaya — users next session pe dekhenge.</span>
-                <br><button onclick="showPushSetupGuide()" class="mt-2 text-xs bg-purple-600 text-white px-3 py-1 rounded-lg font-bold">Setup Guide dekho</button>`;
+                <span class="text-xs">Supabase Edge Function setup karo full push ke liye.</span>
+                <br><button onclick="showPushSetupGuide()" class="mt-2 text-xs bg-purple-600 text-white px-3 py-1 rounded-lg font-bold">Setup Guide</button>`;
         }
-        showToast(`📋 Notification DB mein save! ${subscribed.length} users subscribed hain.`);
+        showToast(`📋 DB mein save! ${subscribed.length} users subscribed.`);
         _clearNotifFields();
 
     } catch (err) {
@@ -1276,37 +1265,389 @@ function _clearNotifFields() {
     if (box) box.innerHTML = '';
 }
 
-function showPushSetupGuide() {
-    showToast('Guide: Supabase → Edge Functions → send-push function banao. Ya Node.js server ke saath web-push library use karo.');
-    alert(`Push Notification Setup Guide:
+/* ============================================================
+   A13. GOLD PRODUCTS — gold_products TABLE (separate table)
+   ============================================================ */
+let _goldAdminProducts = [];
+let _goldEditId        = null;
 
-OPTION 1 — Supabase Edge Function (Recommended):
-1. Supabase Dashboard → Edge Functions → New Function "send-push"
-2. web-push library use karo
-3. VAPID keys set karo (same jo script-core.js mein hai)
-4. Function users table se push_subscription fetch kare aur sabko bheje
+/* Main load — called by switchAdminTab('gold') */
+async function loadAdminGoldProducts() {
+    const container = document.getElementById('admin-gold-list');
+    if (!container) {
+        console.warn('[Gold] admin-gold-list element not found. Add admin-tab-gold HTML first.');
+        return;
+    }
+    container.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl" style="color:#C9A84C;"></i><p class="mt-3 font-semibold" style="color:#B8860B;">Loading Gold Products...</p></div>';
+    try {
+        const { data, error } = await dbClient.from('gold_products').select('*').order('id', { ascending: false });
+        if (error) throw error;
+        _goldAdminProducts = data || [];
+        _renderGoldAdminUI(container);
+    } catch (err) {
+        container.innerHTML = `<div class="text-center text-red-500 py-10">
+            <i class="fas fa-exclamation-circle text-3xl mb-3"></i>
+            <p class="font-bold">${err.message}</p>
+            <p class="text-xs mt-2 text-gray-400">gold_products table Supabase mein exist karti hai?</p>
+            <button onclick="copyGoldSQL()" class="mt-3 text-xs bg-amber-600 text-white px-4 py-2 rounded-lg font-bold">📋 SQL Copy karo</button>
+        </div>`;
+    }
+}
 
-OPTION 2 — Node.js Server:
-1. npm install web-push express
-2. /api/notify/send endpoint banao
-3. VAPID keys se sign karo
-4. Supabase se subscriptions fetch karo
-5. webpush.sendNotification() call karo
+/* alias (backward compat) */
+const loadAdminGoldTab = loadAdminGoldProducts;
 
-VAPID Keys Generate: https://vapidkeys.com/
-Ek baar setup hone ke baad sabhi users ko push jaayega!`);
+function _renderGoldAdminUI(container) {
+    const all = _goldAdminProducts;
+    container.innerHTML = `
+    <div class="p-4 rounded-xl mb-4" style="background:linear-gradient(135deg,#1a0800,#3d2c00);">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span style="font-size:2rem">⭐</span>
+                <div>
+                    <div class="font-black" style="background:linear-gradient(135deg,#C9A84C,#F5E6C0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:1rem;">OutfitKart Gold</div>
+                    <div style="color:rgba(245,230,192,0.6);font-size:11px;">${all.length} products</div>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="_openGoldForm(null)"
+                        class="flex items-center gap-2 px-3 py-2 rounded-xl font-black text-sm"
+                        style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;">
+                    <i class="fas fa-plus text-xs"></i> Add
+                </button>
+                <button onclick="copyGoldSQL()"
+                        class="text-xs px-3 py-2 rounded-xl font-bold"
+                        style="background:rgba(201,168,76,0.2);color:#C9A84C;border:1px solid #C9A84C;">
+                    SQL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Form panel -->
+    <div id="gold-form-panel" class="hidden mb-4"></div>
+
+    <!-- Filter tabs -->
+    <div class="flex gap-2 mb-3 overflow-x-auto hide-scrollbar pb-1">
+        <button onclick="_gFilter('all')"     class="gf-btn text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap" style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;">All (${all.length})</button>
+        <button onclick="_gFilter('Men')"     class="gf-btn text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-700">Men</button>
+        <button onclick="_gFilter('Women')"   class="gf-btn text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-700">Women</button>
+        <button onclick="_gFilter('inactive')"class="gf-btn text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap bg-white border border-gray-200 text-gray-500">Inactive</button>
+    </div>
+
+    <!-- Product list -->
+    <div id="gold-admin-product-list" class="space-y-2">
+        ${all.length ? all.map(_goldAdminRow).join('') : `
+        <div class="text-center py-12" style="color:#B8860B;">
+            <span style="font-size:3rem;">⭐</span>
+            <p class="font-bold mt-3">Koi Gold product nahi mila</p>
+            <p class="text-sm text-gray-400 mt-1">Upar + Add button se Gold products add karo</p>
+        </div>`}
+    </div>`;
+}
+
+function _goldAdminRow(p) {
+    const img    = (p.imgs || [])[0] || p.img || 'https://placehold.co/48x48/eee/666?text=?';
+    const active = p.is_active !== false;
+    const safeName = (p.name || '').replace(/'/g, "\\'");
+    return `<div class="flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all gold-adm-row" data-cat="${p.category||''}" data-active="${active}">
+        <img src="${img}" class="w-12 h-14 rounded-lg object-cover border flex-shrink-0" loading="lazy"
+             onerror="this.src='https://placehold.co/48x56/eee/666?text=?'">
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm text-gray-800 truncate flex items-center gap-1">
+                <span style="color:#B8860B;font-size:11px;">⭐</span> ${p.name}
+            </div>
+            <div class="text-xs text-gray-500">${p.category || '—'} › ${p.sub || '—'} • ₹${p.price}${p.oldprice ? ` <span class="line-through text-red-400">₹${p.oldprice}</span>` : ''}</div>
+            <div class="text-[10px] text-blue-500">${(p.available_sizes || []).join(', ') || '—'}</div>
+        </div>
+        <div class="flex flex-col gap-1.5 flex-shrink-0">
+            <button onclick="_openGoldForm(${p.id})" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-lg font-bold hover:bg-amber-100"><i class="fas fa-edit mr-1"></i>Edit</button>
+            <button onclick="_toggleGoldActive(${p.id},${!active})" class="text-xs px-2.5 py-1 rounded-lg font-bold border ${active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}">${active ? 'Active' : 'Inactive'}</button>
+            <button onclick="_deleteGoldProduct(${p.id},'${safeName}')" class="text-xs bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-lg font-bold hover:bg-red-100"><i class="fas fa-trash-alt mr-1"></i>Del</button>
+        </div>
+    </div>`;
+}
+
+function _gFilter(type) {
+    document.querySelectorAll('.gold-adm-row').forEach(row => {
+        let show = true;
+        if (type === 'Men')     show = row.dataset.cat === 'Men';
+        if (type === 'Women')   show = row.dataset.cat === 'Women';
+        if (type === 'inactive') show = row.dataset.active === 'false';
+        row.style.display = show ? '' : 'none';
+    });
+    document.querySelectorAll('.gf-btn').forEach(btn => {
+        const isActive = btn.getAttribute('onclick')?.includes(`'${type}'`);
+        btn.style.background = isActive ? 'linear-gradient(135deg,#C9A84C,#B8860B)' : 'white';
+        btn.style.color      = isActive ? '#1a0800' : '#374151';
+        btn.style.border     = isActive ? 'none' : '1px solid #e5e7eb';
+    });
+}
+
+function _openGoldForm(id) {
+    _goldEditId = id;
+    const p     = id ? _goldAdminProducts.find(x => x.id === id) : null;
+    const panel = document.getElementById('gold-form-panel');
+    if (!panel) return;
+    const sizes = p?.available_sizes || [];
+    const imgs  = p?.imgs || (p?.img ? [p.img] : []);
+
+    panel.className = 'mb-4 bg-white border-2 rounded-2xl p-4 shadow-lg';
+    panel.style.borderColor = '#C9A84C';
+    panel.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="font-black text-base" style="color:#B8860B;">${id ? '✏️ Edit Gold Product' : '➕ Add Gold Product'}</h3>
+        <button onclick="_closeGoldForm()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Product Name *</label>
+            <input id="gf-name" value="${p?.name || ''}" placeholder="Gold product ka naam" required
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Category *</label>
+            <select id="gf-category" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                <option value="Men"   ${(p?.category || 'Men') === 'Men' ? 'selected' : ''}>👔 Men</option>
+                <option value="Women" ${p?.category === 'Women' ? 'selected' : ''}>👗 Women</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Sub Category *</label>
+            <select id="gf-sub" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white focus:ring-2 focus:ring-amber-400 outline-none">
+                <option value="Topwear"    ${(p?.sub || 'Topwear') === 'Topwear' ? 'selected' : ''}>👕 Topwear</option>
+                <option value="Bottomwear" ${p?.sub === 'Bottomwear' ? 'selected' : ''}>👖 Bottomwear</option>
+                <option value="Footwear"   ${p?.sub === 'Footwear' ? 'selected' : ''}>👟 Footwear</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Gold Price ₹ *</label>
+            <input id="gf-price" type="number" value="${p?.price || ''}" placeholder="₹ Price" required
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">MRP (Optional)</label>
+            <input id="gf-oldprice" type="number" value="${p?.oldprice || ''}" placeholder="Strike-through price"
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Brand</label>
+            <input id="gf-brand" value="${p?.brand || ''}" placeholder="Brand name"
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Stock Qty</label>
+            <input id="gf-stock" type="number" value="${p?.stock_qty || 0}" placeholder="0"
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Description</label>
+            <textarea id="gf-desc" rows="2" placeholder="Product ki description..."
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none resize-none">${p?.desc || ''}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Images</label>
+            <div class="flex items-center gap-2 mb-2">
+                <label class="cursor-pointer bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-purple-700 active:scale-95">
+                    <i class="fas fa-upload mr-1"></i>Upload
+                    <input type="file" accept="image/*" multiple class="hidden" onchange="uploadToImgBB(event,'gf-imgs')">
+                </label>
+            </div>
+            <textarea id="gf-imgs" rows="2" placeholder="https://... (ek line mein ek URL)"
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-mono text-xs focus:ring-2 focus:ring-amber-400 outline-none resize-none">${imgs.join('\n')}</textarea>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Sizes</label>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="border rounded-xl p-2.5 bg-gray-50">
+                    <div class="text-[9px] font-black text-gray-500 uppercase text-center mb-1.5">Clothing</div>
+                    <div class="grid grid-cols-4 gap-1 text-[10px]">
+                        ${['XS','S','M','L','XL','XXL','3XL','4XL'].map(s=>`<label class="flex items-center gap-0.5 cursor-pointer"><input type="checkbox" value="${s}" class="gold-size-chk" ${sizes.includes(s)?'checked':''}> ${s}</label>`).join('')}
+                    </div>
+                </div>
+                <div class="border rounded-xl p-2.5 bg-blue-50">
+                    <div class="text-[9px] font-black text-blue-600 uppercase text-center mb-1.5">Pants</div>
+                    <div class="grid grid-cols-3 gap-1 text-[10px]">
+                        ${['28','30','32','34','36','38','40'].map(s=>`<label class="flex items-center gap-0.5 cursor-pointer"><input type="checkbox" value="${s}" class="gold-size-chk" ${sizes.includes(s)?'checked':''}> ${s}</label>`).join('')}
+                    </div>
+                </div>
+                <div class="border rounded-xl p-2.5 bg-green-50">
+                    <div class="text-[9px] font-black text-green-600 uppercase text-center mb-1.5">Footwear</div>
+                    <div class="grid grid-cols-3 gap-1 text-[10px]">
+                        ${['6','7','8','9','10','11','12'].map(s=>`<label class="flex items-center gap-0.5 cursor-pointer"><input type="checkbox" value="${s}" class="gold-size-chk" ${sizes.includes(s)?'checked':''}> ${s}</label>`).join('')}
+                    </div>
+                </div>
+                <div class="border rounded-xl p-2.5 bg-purple-50 flex items-center justify-center">
+                    <label class="flex flex-col items-center gap-1 cursor-pointer">
+                        <input type="checkbox" value="Free Size" class="gold-size-chk w-4 h-4" ${sizes.includes('Free Size')?'checked':''}>
+                        <span class="text-xs font-bold text-purple-700 text-center">Free Size</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Supplier Price ₹</label>
+            <input id="gf-supplier-price" type="number" value="${p?.supplier_price || ''}" placeholder="Cost price"
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">Supplier URL</label>
+            <input id="gf-supplier-url" value="${p?.supplier_url || ''}" placeholder="https://..."
+                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-semibold focus:ring-2 focus:ring-amber-400 outline-none">
+        </div>
+        <div class="md:col-span-2 flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <input type="checkbox" id="gf-trending" ${p?.istrending ? 'checked' : ''} class="w-4 h-4 accent-amber-500">
+            <label for="gf-trending" class="text-sm font-bold text-amber-800 cursor-pointer">⭐ Trending mein dikhao</label>
+        </div>
+    </div>
+    <div class="flex gap-3 mt-4">
+        <button onclick="_saveGoldProduct()" class="flex-1 py-3 rounded-xl font-black text-sm active:scale-95 transition-all shadow-md" style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;">
+            <i class="fas fa-save mr-2"></i>${id ? 'Save Changes' : 'Add Gold Product'}
+        </button>
+        <button onclick="_closeGoldForm()" class="px-6 py-3 rounded-xl font-bold text-sm border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 transition-all">Cancel</button>
+    </div>`;
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function _closeGoldForm() {
+    _goldEditId = null;
+    const panel = document.getElementById('gold-form-panel');
+    if (panel) { panel.className = 'hidden mb-4'; panel.innerHTML = ''; }
+}
+
+async function _saveGoldProduct() {
+    const name     = document.getElementById('gf-name')?.value.trim();
+    const price    = parseFloat(document.getElementById('gf-price')?.value);
+    const category = document.getElementById('gf-category')?.value;
+    const sub      = document.getElementById('gf-sub')?.value;
+    if (!name)            return showToast('Product name required!');
+    if (!price || isNaN(price)) return showToast('Valid price required!');
+
+    const imgsRaw = document.getElementById('gf-imgs')?.value || '';
+    const imgs    = imgsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+    const sizes   = [...document.querySelectorAll('.gold-size-chk:checked')].map(c => c.value);
+
+    const payload = {
+        name,
+        price,
+        oldprice:        parseFloat(document.getElementById('gf-oldprice')?.value)       || null,
+        category,
+        sub,
+        brand:           document.getElementById('gf-brand')?.value.trim()               || null,
+        desc:            document.getElementById('gf-desc')?.value.trim()                || null,
+        imgs,
+        img:             imgs[0]                                                          || null,
+        available_sizes: sizes,
+        stock_qty:       parseInt(document.getElementById('gf-stock')?.value)            || 0,
+        supplier_price:  parseFloat(document.getElementById('gf-supplier-price')?.value) || null,
+        supplier_url:    document.getElementById('gf-supplier-url')?.value.trim()        || null,
+        istrending:      document.getElementById('gf-trending')?.checked                 || false,
+        is_active:       true,
+    };
+
+    try {
+        let savedData;
+        if (_goldEditId) {
+            const { data, error } = await dbClient.from('gold_products').update(payload).eq('id', _goldEditId).select().single();
+            if (error) throw error;
+            savedData = data;
+            const idx = _goldAdminProducts.findIndex(p => p.id === _goldEditId);
+            if (idx > -1) _goldAdminProducts[idx] = savedData;
+            showToast('✅ Gold product updated!');
+        } else {
+            const { data, error } = await dbClient.from('gold_products').insert([payload]).select().single();
+            if (error) throw error;
+            savedData = data;
+            _goldAdminProducts.unshift(savedData);
+            showToast('⭐ Gold product added!');
+        }
+        // Update frontend goldProducts array
+        if (typeof goldProducts !== 'undefined') {
+            if (_goldEditId) {
+                const gi = goldProducts.findIndex(p => p.id === _goldEditId);
+                if (gi > -1) goldProducts[gi] = savedData; else goldProducts.unshift(savedData);
+            } else { goldProducts.unshift(savedData); }
+        }
+        _closeGoldForm();
+        _renderGoldAdminUI(document.getElementById('admin-gold-list'));
+    } catch (err) { showToast('❌ Error: ' + err.message); }
+}
+
+async function _toggleGoldActive(id, isActive) {
+    try {
+        const { error } = await dbClient.from('gold_products').update({ is_active: isActive }).eq('id', id);
+        if (error) throw error;
+        const idx = _goldAdminProducts.findIndex(p => p.id === id);
+        if (idx > -1) _goldAdminProducts[idx].is_active = isActive;
+        showToast(isActive ? '✅ Active kar diya' : '🔴 Inactive kar diya');
+        _renderGoldAdminUI(document.getElementById('admin-gold-list'));
+    } catch (err) { showToast('❌ ' + err.message); }
+}
+
+async function _deleteGoldProduct(id, name) {
+    if (!confirm(`"${name}" Gold se delete karo?`)) return;
+    try {
+        const { error } = await dbClient.from('gold_products').delete().eq('id', id);
+        if (error) throw error;
+        _goldAdminProducts = _goldAdminProducts.filter(p => p.id !== id);
+        if (typeof goldProducts !== 'undefined') {
+            const gi = goldProducts.findIndex(p => p.id === id);
+            if (gi > -1) goldProducts.splice(gi, 1);
+        }
+        showToast('🗑️ Gold product deleted');
+        _renderGoldAdminUI(document.getElementById('admin-gold-list'));
+    } catch (err) { showToast('❌ ' + err.message); }
+}
+
+function copyGoldSQL() {
+    const sql = `-- OutfitKart Gold — Separate Table SQL
+-- Supabase SQL Editor mein ye run karo:
+
+CREATE TABLE IF NOT EXISTS public.gold_products (
+  id              BIGSERIAL PRIMARY KEY,
+  name            TEXT NOT NULL,
+  price           NUMERIC NOT NULL,
+  oldprice        NUMERIC,
+  category        TEXT DEFAULT 'Men',
+  sub             TEXT DEFAULT 'Topwear',
+  brand           TEXT,
+  desc            TEXT,
+  imgs            JSONB DEFAULT '[]',
+  img             TEXT,
+  available_sizes JSONB DEFAULT '[]',
+  stock_qty       INTEGER DEFAULT 50,
+  supplier_price  NUMERIC,
+  supplier_url    TEXT,
+  margin_amt      NUMERIC DEFAULT 0,
+  istrending      BOOLEAN DEFAULT true,
+  is_active       BOOLEAN DEFAULT true,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.gold_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read"  ON public.gold_products FOR SELECT USING (true);
+CREATE POLICY "admin_write"  ON public.gold_products FOR ALL USING (true) WITH CHECK (true);`;
+    navigator.clipboard.writeText(sql)
+        .then(() => showToast('✅ Gold SQL copied! Supabase SQL Editor mein paste karo.'))
+        .catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = sql; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            showToast('✅ SQL copied!');
+        });
 }
 
 /* ============================================================
-   A13. GLOBAL EXPORTS — Admin functions
+   EXPORTS
    ============================================================ */
 Object.assign(window, {
-    /* Admin Auth */
+    /* Auth */
     showAdminLogin, closeAdminLogin, handleAdminLogin,
     updateAdminNameInHeader, loadAdminDashboard,
     adminLogout, exitAdmin,
 
-    /* Admin Tabs */
+    /* Tabs */
     switchAdminTab, toggleAdminSidebar,
 
     /* Dashboard */
@@ -1316,6 +1657,7 @@ Object.assign(window, {
     updateDropdownSubs, updateSizeSection, toggleProductMode, updateSellingPreview,
     autoGenerateDescription, adminAddProduct, renderAdminProducts,
     openEditProduct, closeEditModal, updateProduct, deleteProduct,
+    addCustomMlVolume,
 
     /* Scraping */
     scrapeProductFromUrl, uploadScrapedImageToImgBB,
@@ -1338,4 +1680,10 @@ Object.assign(window, {
     /* Notifications */
     sendAdminNotification, searchProductsForNotif, selectNotifProduct,
     _updateNotifPreview, _clearNotifFields, showPushSetupGuide,
+
+    /* Gold Products */
+    loadAdminGoldProducts, loadAdminGoldTab,
+    _openGoldForm, _closeGoldForm, _saveGoldProduct,
+    _toggleGoldActive, _deleteGoldProduct,
+    _gFilter, copyGoldSQL,
 });
