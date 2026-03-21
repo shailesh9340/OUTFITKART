@@ -223,7 +223,6 @@ async function applyPromoCode(codeVal) {
         promoDiscount = data.discount;
         showToast(`🎉 Promo applied! ₹${data.discount} discount!`);
         updateCheckoutTotals();
-        // Re-render promo section
         const promoArea = document.getElementById('promo-section-container');
         if (promoArea) promoArea.innerHTML = _promoAppliedHtml();
         return true;
@@ -273,19 +272,98 @@ function _renderPromoSection() {
 }
 
 /* ============================================================
-   REFERRAL
+   REFERRAL — FIXED: correct column names, single INSERT
    ============================================================ */
 function captureReferralFromUrl(){const params=new URLSearchParams(window.location.search);const ref=params.get('ref');if(ref&&ref.length>=4){activeReferralCode=ref.toUpperCase();localStorage.setItem('outfitkart_active_referral',activeReferralCode);}else{const stored=localStorage.getItem('outfitkart_active_referral');if(stored)activeReferralCode=stored;}}
 function generateReferralCode(name,mobile){const u=(name||'USER').toUpperCase().replace(/[^A-Z]/g,'');return u.substring(0,4).padEnd(4,'X')+String(mobile).slice(-3);}
 async function loadUserReferralCode(){if(!currentUser)return;const codeEl=document.getElementById('user-referral-code');try{const{data,error}=await dbClient.from('users').select('referral_code, name').eq('mobile',currentUser.mobile).single();if(error)throw error;let refCode=data?.referral_code;if(!refCode){refCode=generateReferralCode(data?.name||currentUser.name,currentUser.mobile);await dbClient.from('users').update({referral_code:refCode}).eq('mobile',currentUser.mobile);}if(codeEl)codeEl.textContent=refCode;currentUser.referral_code=refCode;localStorage.setItem('outfitkart_session',JSON.stringify(currentUser));}catch(err){const fallback=generateReferralCode(currentUser.name,currentUser.mobile);if(codeEl)codeEl.textContent=fallback;}renderSidebarReferralWidget();}
 async function copyReferralCode(){const codeEl=document.getElementById('user-referral-code'),sidebarEl=document.getElementById('sidebar-referral-code');let code=(codeEl?.textContent||sidebarEl?.textContent||'').trim();if(!code||code==='LOADING...'){if(currentUser){code=currentUser.referral_code||generateReferralCode(currentUser.name,currentUser.mobile);}else{showToast('Login karein pehle!');return;}}try{await navigator.clipboard.writeText(code);}catch{const ta=document.createElement('textarea');ta.value=code;ta.style.cssText='position:fixed;opacity:0;top:0;left:0;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch{}document.body.removeChild(ta);}showToast(`✅ Code copied: ${code}`);}
 async function shareWithReferral(productId,productName,price){if(!currentUser){showToast('Login to share!');return;}const code=currentUser.referral_code||generateReferralCode(currentUser.name,currentUser.mobile);const baseUrl=window.location.origin+window.location.pathname;const url=productId?`${baseUrl}?pid=${productId}&ref=${code}`:`${baseUrl}?ref=${code}`;const text=productId?`🛍️ Check out ${productName} for ₹${price} on OutfitKart! COD available.`:`🛍️ Shop premium fashion on OutfitKart! Amazing deals, COD available.`;if(navigator.share){try{await navigator.share({title:'OutfitKart',text,url});}catch{}}else{try{await navigator.clipboard.writeText(`${text}\n${url}`);showToast('Referral link copied! 📋');}catch{window.open(`https://wa.me/?text=${encodeURIComponent(text+'\n'+url)}`,'_blank');}}}
-async function recordReferralPurchase(orderId,orderTotal){if(!activeReferralCode||!currentUser)return;if(activeReferralCode.toUpperCase()===(currentUser.referral_code||'').toUpperCase()){localStorage.removeItem('outfitkart_active_referral');activeReferralCode=null;return;}try{const{data:referrer}=await dbClient.from('users').select('mobile,name,referral_code').eq('referral_code',activeReferralCode.toUpperCase()).maybeSingle();if(!referrer||referrer.mobile===currentUser.mobile)return;const commission=Math.round(orderTotal*0.05);if(commission<1)return;const payload1={referrer_mobile:referrer.mobile,buyer_mobile:currentUser.mobile,order_id:String(orderId),order_total:orderTotal,commission_amount:commission,status:'pending',created_at:new Date().toISOString(),referral_code:activeReferralCode.toUpperCase()};const{error:e1}=await dbClient.from('referrals').insert([payload1]);if(e1){const payload2={referrer_mobile:referrer.mobile,buyer_mobile:currentUser.mobile,order_id:String(orderId),order_total:orderTotal,commission,status:'pending',date:new Date().toLocaleDateString('en-IN'),referral_code:activeReferralCode.toUpperCase()};await dbClient.from('referrals').insert([payload2]);}showToast(`🎁 Referral recorded! ₹${commission} ${i18n('pending_for_referrer')}`);localStorage.removeItem('outfitkart_active_referral');activeReferralCode=null;}catch(err){console.error('[Referral Error]:',err.message);}}
+
+/* ============================================================
+   FIX: recordReferralPurchase — single INSERT with correct
+   column name 'commission' (not 'commission_amount')
+   ============================================================ */
+async function recordReferralPurchase(orderId, orderTotal) {
+    if (!activeReferralCode || !currentUser) return;
+
+    // Prevent self-referral
+    const myCode = (currentUser.referral_code || '').toUpperCase();
+    if (activeReferralCode.toUpperCase() === myCode) {
+        localStorage.removeItem('outfitkart_active_referral');
+        activeReferralCode = null;
+        return;
+    }
+
+    try {
+        // Find referrer by referral_code
+        const { data: referrer, error: refErr } = await dbClient
+            .from('users')
+            .select('mobile, name, referral_code')
+            .eq('referral_code', activeReferralCode.toUpperCase())
+            .maybeSingle();
+
+        if (refErr) { console.error('[Referral] Find referrer error:', refErr.message); return; }
+        if (!referrer) { console.warn('[Referral] No referrer for code:', activeReferralCode); localStorage.removeItem('outfitkart_active_referral'); activeReferralCode = null; return; }
+        if (referrer.mobile === currentUser.mobile) {
+            localStorage.removeItem('outfitkart_active_referral');
+            activeReferralCode = null;
+            return;
+        }
+
+        // 5% commission
+        const commission = Math.round(orderTotal * 0.05);
+        if (commission < 1) return;
+
+        // Single clean INSERT — column names match getReferralTableSQL() schema exactly
+        const payload = {
+            referrer_mobile : referrer.mobile,
+            buyer_mobile    : currentUser.mobile,
+            order_id        : String(orderId),
+            order_total     : orderTotal,
+            commission      : commission,
+            status          : 'pending',
+            date            : new Date().toLocaleDateString('en-IN'),
+            referral_code   : activeReferralCode.toUpperCase(),
+        };
+
+        let savedRef=null;
+        let insertErr=null;
+        ({ data: savedRef, error: insertErr } = await dbClient
+            .from('referrals')
+            .insert([payload])
+            .select()
+            .single());
+
+        if (insertErr) {
+            // Backward-compatible fallback for older schemas.
+            const legacyPayload={...payload,commission_amount:commission,pending_profit:commission};
+            ({ data: savedRef, error: insertErr } = await dbClient
+                .from('referrals')
+                .insert([legacyPayload])
+                .select()
+                .single());
+        }
+        if (insertErr) {
+            console.error('[Referral] Insert failed:', insertErr.message, JSON.stringify(insertErr));
+            return;
+        }
+
+        console.log('[Referral] ✅ Saved to DB:', savedRef);
+        showToast(`🎁 Referral recorded! ₹${commission} ${i18n('pending_for_referrer')}`);
+        localStorage.removeItem('outfitkart_active_referral');
+        activeReferralCode = null;
+
+    } catch (err) {
+        console.error('[Referral] Exception:', err.message);
+    }
+}
+
 async function cancelReferralForOrder(orderId){if(!orderId)return;try{await dbClient.from('referrals').update({status:'cancelled'}).eq('order_id',String(orderId)).eq('status','pending');}catch{}}
-async function loadReferrals(){if(!currentUser)return;const listIds=['referrals-pending-list','referrals-confirmed-list','referrals-cancelled-list'];listIds.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';});try{const{data:referrals,error}=await dbClient.from('referrals').select('*').eq('referrer_mobile',currentUser.mobile).order('id',{ascending:false});if(error)throw error;const all=referrals||[];const getC=(r)=>r.commission_amount||r.commission||0;const pending=all.filter(r=>r.status==='pending'),confirmed=all.filter(r=>r.status==='confirmed'),cancelled=all.filter(r=>r.status==='cancelled');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('pending-earnings',`₹${pending.reduce((s,r)=>s+getC(r),0)}`);set('confirmed-earnings',`₹${confirmed.reduce((s,r)=>s+getC(r),0)}`);set('cancelled-earnings',`₹${cancelled.reduce((s,r)=>s+getC(r),0)}`);set('pending-count',pending.length);set('confirmed-count',confirmed.length);set('cancelled-count',cancelled.length);set('referral-earnings-badge',`₹${pending.reduce((s,r)=>s+getC(r),0)+confirmed.reduce((s,r)=>s+getC(r),0)}`);renderReferralList('referrals-pending-list',pending,'pending');renderReferralList('referrals-confirmed-list',confirmed,'confirmed');renderReferralList('referrals-cancelled-list',cancelled,'cancelled');_subscribeReferralRealtime();}catch(err){listIds.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div class="text-center py-6 text-red-400 text-sm">${err.message}</div>`;});}}
+async function loadReferrals(){if(!currentUser)return;const listIds=['referrals-pending-list','referrals-confirmed-list','referrals-cancelled-list'];listIds.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="text-center py-6 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>';});try{const{data:referrals,error}=await dbClient.from('referrals').select('*').eq('referrer_mobile',currentUser.mobile).order('id',{ascending:false});if(error)throw error;const all=referrals||[];const getC=(r)=>r.commission||0;const pending=all.filter(r=>r.status==='pending'),confirmed=all.filter(r=>r.status==='confirmed'),cancelled=all.filter(r=>r.status==='cancelled');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('pending-earnings',`₹${pending.reduce((s,r)=>s+getC(r),0)}`);set('confirmed-earnings',`₹${confirmed.reduce((s,r)=>s+getC(r),0)}`);set('cancelled-earnings',`₹${cancelled.reduce((s,r)=>s+getC(r),0)}`);set('pending-count',pending.length);set('confirmed-count',confirmed.length);set('cancelled-count',cancelled.length);set('referral-earnings-badge',`₹${pending.reduce((s,r)=>s+getC(r),0)+confirmed.reduce((s,r)=>s+getC(r),0)}`);renderReferralList('referrals-pending-list',pending,'pending');renderReferralList('referrals-confirmed-list',confirmed,'confirmed');renderReferralList('referrals-cancelled-list',cancelled,'cancelled');_subscribeReferralRealtime();}catch(err){listIds.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=`<div class="text-center py-6 text-red-400 text-sm">${err.message}</div>`;});}}
 let _referralChannel=null;
-function _subscribeReferralRealtime(){if(!currentUser||_referralChannel)return;try{_referralChannel=dbClient.channel(`ref-${currentUser.mobile}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'referrals',filter:`referrer_mobile=eq.${currentUser.mobile}`},()=>{loadReferrals();showToast(`🎁 ${i18n('new_referral_commission')}`);}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'referrals',filter:`referrer_mobile=eq.${currentUser.mobile}`},payload=>{if(payload.new?.status==='confirmed')showToast(`✅ ₹${payload.new.commission_amount||payload.new.commission} ${i18n('referral_confirmed')}`);loadReferrals();}).subscribe();}catch{}}
-function renderReferralList(containerId,items,type){const el=document.getElementById(containerId);if(!el)return;const getC=(r)=>r.commission_amount||r.commission||0;const EMPTY={pending:{icon:'fa-hourglass-half',msg:'No pending referrals',sub:'Share products to start earning!'},confirmed:{icon:'fa-check-circle',msg:'No confirmed earnings',sub:'Earnings appear after 30 days'},cancelled:{icon:'fa-times-circle',msg:'No cancelled referrals',sub:''}};const STYLE={pending:{badge:'bg-amber-100 text-amber-700',icon:'⏳',label:'Pending',amount:'text-amber-500'},confirmed:{badge:'bg-green-100 text-green-700',icon:'✅',label:'Confirmed',amount:'text-green-600'},cancelled:{badge:'bg-red-100 text-red-600',icon:'❌',label:'Cancelled',amount:'text-red-400 line-through'}};if(!items.length){const e=EMPTY[type];el.innerHTML=`<div class="text-center py-10 text-gray-400"><i class="fas ${e.icon} text-5xl mb-3"></i><p class="font-semibold">${e.msg}</p><p class="text-sm mt-1">${e.sub}</p></div>`;return;}const s=STYLE[type];el.innerHTML=items.map(r=>{const comm=getC(r),dateStr=r.date||r.created_at?.split('T')[0]||'—',buyerMobile=r.buyer_mobile||r.referee_mobile||'—';let daysInfo='';if(type==='pending')daysInfo=`<div class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>Confirms after 30 days</div>`;if(type==='confirmed'&&r.confirmed_at)daysInfo=`<div class="text-xs text-green-600 mt-1"><i class="fas fa-check mr-1"></i>Credited on ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`;if(type==='cancelled')daysInfo=`<div class="text-xs text-red-500 mt-1"><i class="fas fa-ban mr-1"></i>Order cancelled</div>`;return `<div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all"><div class="flex justify-between items-start"><div class="flex-1 min-w-0"><div class="font-bold text-sm text-gray-800">Order #${r.order_id}</div><div class="text-xs text-gray-500 mt-0.5">Buyer: +91 ${buyerMobile}</div><div class="text-xs text-gray-500">Date: ${dateStr}</div><div class="text-xs text-gray-600 mt-1">Order Total: ₹${(r.order_total||0).toLocaleString()}</div>${daysInfo}</div><div class="text-right ml-3 flex-shrink-0"><div class="text-xl font-black ${s.amount}">${type==='cancelled'?'':'+'}₹${comm}</div><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${s.badge}">${s.icon} ${s.label}</span></div></div></div>`;}).join('');}
+function _subscribeReferralRealtime(){if(!currentUser||_referralChannel)return;try{_referralChannel=dbClient.channel(`ref-${currentUser.mobile}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'referrals',filter:`referrer_mobile=eq.${currentUser.mobile}`},()=>{loadReferrals();showToast(`🎁 ${i18n('new_referral_commission')}`);}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'referrals',filter:`referrer_mobile=eq.${currentUser.mobile}`},payload=>{if(payload.new?.status==='confirmed')showToast(`✅ ₹${payload.new.commission||0} ${i18n('referral_confirmed')}`);loadReferrals();}).subscribe();}catch{}}
+function renderReferralList(containerId,items,type){const el=document.getElementById(containerId);if(!el)return;const getC=(r)=>r.commission||0;const EMPTY={pending:{icon:'fa-hourglass-half',msg:'No pending referrals',sub:'Share products to start earning!'},confirmed:{icon:'fa-check-circle',msg:'No confirmed earnings',sub:'Earnings appear after 30 days'},cancelled:{icon:'fa-times-circle',msg:'No cancelled referrals',sub:''}};const STYLE={pending:{badge:'bg-amber-100 text-amber-700',icon:'⏳',label:'Pending',amount:'text-amber-500'},confirmed:{badge:'bg-green-100 text-green-700',icon:'✅',label:'Confirmed',amount:'text-green-600'},cancelled:{badge:'bg-red-100 text-red-600',icon:'❌',label:'Cancelled',amount:'text-red-400 line-through'}};if(!items.length){const e=EMPTY[type];el.innerHTML=`<div class="text-center py-10 text-gray-400"><i class="fas ${e.icon} text-5xl mb-3"></i><p class="font-semibold">${e.msg}</p><p class="text-sm mt-1">${e.sub}</p></div>`;return;}const s=STYLE[type];el.innerHTML=items.map(r=>{const comm=getC(r),dateStr=r.date||r.created_at?.split('T')[0]||'—',buyerMobile=r.buyer_mobile||'—';let daysInfo='';if(type==='pending')daysInfo=`<div class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>Confirms after 30 days</div>`;if(type==='confirmed'&&r.confirmed_at)daysInfo=`<div class="text-xs text-green-600 mt-1"><i class="fas fa-check mr-1"></i>Credited on ${new Date(r.confirmed_at).toLocaleDateString('en-IN')}</div>`;if(type==='cancelled')daysInfo=`<div class="text-xs text-red-500 mt-1"><i class="fas fa-ban mr-1"></i>Order cancelled</div>`;return `<div class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-all"><div class="flex justify-between items-start"><div class="flex-1 min-w-0"><div class="font-bold text-sm text-gray-800">Order #${r.order_id}</div><div class="text-xs text-gray-500 mt-0.5">Buyer: +91 ${buyerMobile}</div><div class="text-xs text-gray-500">Date: ${dateStr}</div><div class="text-xs text-gray-600 mt-1">Order Total: ₹${(r.order_total||0).toLocaleString()}</div>${daysInfo}</div><div class="text-right ml-3 flex-shrink-0"><div class="text-xl font-black ${s.amount}">${type==='cancelled'?'':'+'}₹${comm}</div><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${s.badge}">${s.icon} ${s.label}</span></div></div></div>`;}).join('');}
 function switchReferralTab(tab){['pending','confirmed','cancelled'].forEach(t=>{const btn=document.getElementById(`btn-ref-${t}`),list=document.getElementById(`referrals-${t}-list`),isActive=t===tab;if(btn)btn.className=isActive?'pb-2 px-4 text-sm font-bold text-green-600 border-b-2 border-green-600 whitespace-nowrap':'pb-2 px-4 text-sm font-bold text-gray-500 hover:text-gray-700 whitespace-nowrap';if(list)list.classList.toggle('hidden',!isActive);});}
 function renderSidebarReferralWidget(){const container=document.getElementById('sidebar-referral-widget');if(!container||!currentUser)return;const code=currentUser.referral_code||generateReferralCode(currentUser.name,currentUser.mobile);container.innerHTML=`<div class="px-3 pb-3 bg-gradient-to-br from-green-50 to-emerald-50 border-t border-green-100"><div class="mt-2 bg-white rounded-lg p-2.5 border border-dashed border-green-300"><p class="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">${i18n('referral_code')}</p><div class="flex items-center justify-between gap-2"><span class="text-lg font-black text-green-600 tracking-widest" id="sidebar-referral-code">${code}</span><button onclick="copyReferralCode()" class="bg-green-500 text-white text-[10px] font-black px-2.5 py-1 rounded-lg hover:bg-green-600 active:scale-95 transition-all whitespace-nowrap"><i class="fas fa-copy mr-0.5"></i> Copy</button></div><p class="text-[9px] text-gray-400 mt-1">${i18n('earn_5pct')}</p></div><a href="${INSTAGRAM_URL}" target="_blank" rel="noopener" class="mt-2 flex items-center justify-center gap-2 w-full py-2 rounded-lg font-bold text-xs text-white active:scale-95 transition-all" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"><i class="fab fa-instagram text-sm"></i> Follow @OutfitKart</a></div>`;}
 function updateHeaderWallet(balance){const el=document.getElementById('header-wallet-display'),pill=document.getElementById('header-wallet-pill');if(!el)return;if(balance>0){el.textContent='₹'+balance.toLocaleString();if(pill){pill.classList.remove('hidden');pill.classList.add('flex');}}else{if(pill){pill.classList.add('hidden');pill.classList.remove('flex');}}}
@@ -343,7 +421,13 @@ function _onQuickMlInput(val){if(!val||isNaN(val))return;quickSelectedSize=val+'
 function selectQuickSize(size){quickSelectedSize=size;const inp=document.getElementById('quick-custom-ml');if(inp)inp.value='';const isPerfPills=!!document.getElementById('quick-vol-pills');document.querySelectorAll('#quick-size-grid .size-btn, #quick-vol-pills .size-btn').forEach(btn=>{const m=btn.textContent.trim()===size;if(isPerfPills){btn.classList.toggle('border-purple-600',m);btn.classList.toggle('bg-purple-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-200',!m);btn.classList.toggle('text-gray-700',!m);}else{btn.classList.toggle('border-rose-600',m);btn.classList.toggle('bg-rose-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-300',!m);}});}
 function addFromQuickModal(){if(quickSizeModalProduct&&quickSelectedSize){addToCart(quickSizeModalProduct,quickSelectedSize);hideQuickSizeModal();}}
 function hideQuickSizeModal(){const modal=document.getElementById('quick-size-modal');modal.classList.add('hidden');modal.classList.remove('flex');quickSizeModalProduct=null;quickSelectedSize=null;}
-function getDefaultSizes(subOrCat=''){const l=subOrCat.toLowerCase();if(l.includes('jean')||l.includes('pant')||l.includes('cargo')||l.includes('trouser'))return['24','26','28','30','32','34','36','38','40'];if(l.includes('sneak')||l.includes('heel')||l.includes('flat')||l.includes('shoe'))return['4','5','6','7','8','9','10','11','12'];return['XS','S','M','L','XL','XXL','3XL','4XL'];}
+function getDefaultSizes(subOrCat=''){
+    const l=subOrCat.toLowerCase();
+    if(l.includes('accessor')||l.includes('jeweller')||l.includes('watch')||l.includes('wallet')||l.includes('belt')||l.includes('bag')||l.includes('earbud')||l.includes('case')||l.includes('sunglass'))return['Free Size'];
+    if(l.includes('jean')||l.includes('pant')||l.includes('cargo')||l.includes('trouser'))return['24','26','28','30','32','34','36','38','40'];
+    if(l.includes('sneak')||l.includes('heel')||l.includes('flat')||l.includes('shoe'))return['4','5','6','7','8','9','10','11','12'];
+    return['XS','S','M','L','XL','XXL','3XL','4XL'];
+}
 
 /* ============================================================
    GOLD PRODUCTS
@@ -352,7 +436,6 @@ async function fetchGoldProducts(){
     try{
         const{data,error}=await dbClient.from('gold_products').select('*').eq('is_active',true).order('id',{ascending:false});
         if(error)throw error;
-        // Map 'description' field to 'desc' for compatibility
         goldProducts=(data||[]).map(p=>({...p,desc:p.description||p.desc||''}));
         if(currentView==='gold')renderGoldGrid();
     }catch(err){console.error('[Gold fetch error]',err.message);}
@@ -424,7 +507,6 @@ function renderCategoryBubbles(){
 
 /* ============================================================
    OUTFITKART GOLD VIEW
-   Gold sticky filter bar sits just below the fixed main header (top:64px)
    ============================================================ */
 function _startGoldRotation(){
     if(_goldRotateTimer)clearInterval(_goldRotateTimer);
@@ -438,10 +520,8 @@ function _getGoldBatch(gender,sub){
 function renderGoldView(){
     const view=document.getElementById('view-gold');if(!view)return;
     _applyGoldHeaderTheme(true);
-    // view-gold ko -mt-16 do taaki main ka pt-16 cancel ho — header ke bilkul neeche aaye
     view.style.marginTop='-64px';
     view.innerHTML=`
-    <!-- Gold filter bar — sticky below main header (top:64px = fixed header height) -->
     <div id="gold-filter-bar" style="position:sticky;top:64px;z-index:30;background:linear-gradient(135deg,#1a0800 0%,#3d2c00 50%,#1a0800 100%);border-bottom:2px solid #C9A84C;padding:12px 16px 0;">
         <div class="flex items-center gap-3 mb-3">
             <button onclick="navigate('home')" class="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0" style="background:rgba(201,168,76,0.2);border:1px solid #C9A84C;">
@@ -588,7 +668,6 @@ function updateBottomNav(){
     navItems.forEach((item,i)=>{
         const isActive=currentView===views[i]||(currentView==='category'&&i===0);
         if(views[i]==='gold'){
-            // Gold nav — circle ke andar star ka glow active hone pe
             item.style.color=isActive?'#C9A84C':'#B8860B';
             const circle=item.querySelector('div[style*="border-radius:50%"]');
             if(circle){circle.style.boxShadow=isActive?'0 0 12px rgba(201,168,76,0.8)':'0 2px 8px rgba(201,168,76,0.5)';}
@@ -722,7 +801,7 @@ function setRating(r){currentRating=r;const stars=document.getElementById('star-
 async function submitReview(){if(!currentUser)return showToast('Login required!');const txt=document.getElementById('review-text').value.trim();if(!txt)return showToast('Write something first!');try{const{data}=await dbClient.from('reviews').insert([{product_id:viewingProductId,user_name:currentUser.name,rating:currentRating,comment:txt,date:new Date().toLocaleDateString()}]).select().single();if(data){document.getElementById('review-text').value='';loadReviews(viewingProductId);showToast('Review Added! ⭐');}}catch(err){showToast('Error: '+err.message);}}
 
 /* ============================================================
-   CHECKOUT — with Promo Code section
+   CHECKOUT
    ============================================================ */
 function proceedToCheckout(){if(!cart.length)return showToast('Cart is empty!');if(!currentUser){showToast('Please Login to continue!');toggleCart();navigate('profile');return;}toggleCart();currentCheckoutItems=cart.map(c=>{const p=products.find(x=>x.id===c.productId)||goldProducts.find(x=>x.id===c.productId);return p?{...p,qty:c.qty,size:c.size}:null;}).filter(Boolean);navigate('checkout');}
 function buyNow(productId){if(!currentUser){showToast('Please Login to Buy!');navigate('profile');return;}const p=products.find(x=>x.id===productId)||goldProducts.find(x=>x.id===productId);if(!p)return;currentCheckoutItems=[{...p,qty:1,size:selectedSize||'M'}];navigate('checkout');}
@@ -732,7 +811,6 @@ function renderCheckoutStep(){
     s1.classList.toggle('hidden',currentCheckoutStep!==1);s2.classList.toggle('hidden',currentCheckoutStep!==2);s3.classList.toggle('hidden',currentCheckoutStep!==3);
     if(currentCheckoutStep>=2&&addressFormData.fullname){const nameStr=`${addressFormData.fullname} • +91 ${addressFormData.mobile}`;const addrStr=(addressFormData.fullAddress||'').replace(/\n/g,'<br>');['checkout-user-name','checkout-user-name-step3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=nameStr;});['delivery-address-display','delivery-address-display-step3'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=addrStr;});updateCheckoutTotals();}
 
-    // Inject promo section in step 2
     if(currentCheckoutStep===2){
         const step2=document.getElementById('checkout-step-2');
         let promoContainer=step2.querySelector('#checkout-promo-wrapper');
@@ -746,7 +824,6 @@ function renderCheckoutStep(){
             }
         }
     }
-    // Inject promo section in step 3
     if(currentCheckoutStep===3){
         const step3=document.getElementById('checkout-step-3');
         let promoContainer=step3.querySelector('#checkout-promo-wrapper-3');
@@ -780,14 +857,12 @@ function updateCheckoutTotals(){
     let mrpTotal=0,priceTotal=0,discountTotal=0;
     currentCheckoutItems.forEach(item=>{const mrp=item.oldprice||Math.round(item.price*1.3);mrpTotal+=mrp*item.qty;priceTotal+=item.price*item.qty;discountTotal+=(mrp-item.price)*item.qty;});
     const platformFee=7,handlingFee=selectedPaymentMethod==='cod'?9:0,donationAmt=_getDonationAmount();
-    // Apply promo discount
     const promoDis=promoDiscount||0;
     let finalTotal=Math.max(0,priceTotal+platformFee+handlingFee+donationAmt-promoDis);
     const exRow=document.getElementById('exchange-value-row'),exDisp=document.getElementById('exchange-value-display'),refRow=document.getElementById('refund-upi-row');
     if(isExchangeProcess&&exchangeOldPrice>0){const diff=priceTotal-exchangeOldPrice;if(exRow)exRow.style.display='flex';if(exDisp)exDisp.textContent=`-₹${exchangeOldPrice.toLocaleString()}`;if(diff>0){finalTotal=Math.max(0,diff+platformFee+handlingFee+donationAmt-promoDis);if(refRow)refRow.style.display='none';}else if(diff<0){finalTotal=0;if(refRow)refRow.style.display='block';}else{finalTotal=platformFee;if(refRow)refRow.style.display='none';}}else{if(exRow)exRow.style.display='none';if(refRow)refRow.style.display='none';}
     const donRowDisp=document.getElementById('donation-row-display'),donDisp=document.getElementById('donation-display-amt');if(donRowDisp)donRowDisp.classList.toggle('hidden',donationAmt===0);if(donDisp)donDisp.textContent=`+₹${donationAmt}`;
 
-    // Show promo discount row
     let promoRow=document.getElementById('promo-discount-row');
     if(!promoRow&&document.getElementById('handling-fee-row')){
         promoRow=document.createElement('div');promoRow.id='promo-discount-row';
@@ -843,11 +918,9 @@ async function placeOrder(txId='COD',refundUpiId=''){
     try{
         if(selectedPaymentMethod==='wallet'){const newBal=walletBalance-finalTotal;const walletRes=await fetch(`${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},body:JSON.stringify({wallet:newBal})});if(!walletRes.ok)throw new Error('Wallet deduction failed');walletBalance=newBal;if(currentUser)currentUser.wallet=newBal;localStorage.setItem('outfitkart_session',JSON.stringify(currentUser));updateHeaderWallet(newBal);}
         const{data:savedOrder,error}=await dbClient.from('orders').insert([newOrder]).select().single();if(error)throw error;
-        // Increment promo usage
         if(activePromoCode)await _incrementPromoUsage();
         await recordReferralPurchase(orderId,finalTotal);
         if(isExchangeProcess&&exchangeSourceOrder){try{await dbClient.from('orders').update({status:'Exchanged'}).eq('id',String(exchangeSourceOrder.id));}catch{}resetExchangeProcess();}
-        // Reset promo
         activePromoCode=null;promoDiscount=0;
         cart=[];if(currentUser)await clearCartDB();else saveCartLocal();updateCartCount();ordersDb.push(savedOrder||newOrder);
         const modal=document.getElementById('order-success-modal'),idEl=document.getElementById('success-order-id');if(idEl)idEl.innerText=orderId;if(modal){modal.classList.remove('hidden');modal.classList.add('flex');}
@@ -970,12 +1043,8 @@ Object.assign(window,{
     openWhatsAppSupport,openEmailSupport,startVoiceSearch,
     addToRecentlyViewed,renderRecentlyViewed,
     startAdminTimer,cancelAdminTimer,
-    // Gold
     switchGoldGender,filterGoldSubcat,renderGoldGrid,renderGoldView,fetchGoldProducts,
-    // Promo
     applyPromoCode,removePromoCode,
-    // Perfume ml
     _onQuickMlInput,
-    // Legacy
     openGoldSection: ()=>navigate('gold'),
 });
