@@ -7,11 +7,12 @@ const SUPABASE_URL    = 'https://wlgytgwmmefwpljstque.supabase.co';
 const SUPABASE_KEY    = 'sb_publishable_fFampYvNGSn7TE0TOy56dQ_xXrer_P8';
 const RAZORPAY_KEY    = 'rzp_live_SRZMbmo0aTi8xs';
 const IMGBB_KEY       = '3949e4873d8510691ee63026d22eeb75';
-const SCRAPINGBEE_KEY = 'BCR4ZMY5YAQGN1PM8HGEWBV52QGL1R4YRX58YTCP52G23H89YSVVE6S65PO2D5T56RVBITJQKCDBK4ZN';
 const SUPPORT_WA      = '918982296773';
 const SUPPORT_EMAIL   = 'outfitkartpremiumfashion@gmail.com';
 const SAFE_DELIVERY_URL = 'https://ltl.sh/y_nZrAV3';
 const INSTAGRAM_URL   = 'https://www.instagram.com/outfitkart_ecommers?igsh=MWUwNTNzczI4YjZsdw==';
+const TELEGRAM_CHANNEL = 'https://t.me/outfitkart';
+const WHATSAPP_CHANNEL = 'https://whatsapp.com/channel/0029VbCiSs06GcGJpToxKd3z';
 
 const AUTHORIZED_ADMINS = [
     { mobile: '9343988416', name: 'Shailesh Kumar Chauhan', email: 'shailu@gmail.com' },
@@ -42,9 +43,11 @@ let selectedPaymentMethod='upi', addressFormData={}, quickSizeModalProduct=null,
 let realtimeChannel=null, currentTrackingOrder=null, currentRating=5, deferredPrompt=null;
 let walletBalance=0, isAdminLoggedIn=false, isExchangeProcess=false, exchangeSourceOrder=null;
 let exchangeOldPrice=0, _pendingCancelOrderId=null, activeReferralCode=null, adminPressTimer=null;
+// Promo code state
+let activePromoCode=null, promoDiscount=0;
 // Gold state
 let goldCurrentGender='Men', goldCurrentSub=null, _goldRotateTimer=null;
-let goldProducts=[];  // loaded from gold_products table (separate)
+let goldProducts=[];
 
 /* ============================================================
    3. CONSTANTS
@@ -99,13 +102,10 @@ const CATEGORIES = [
     },
 ];
 
-/* OutfitKart Gold subcategories */
 const GOLD_SUBCATS = {
     Men:   ['Topwear','Bottomwear','Footwear'],
     Women: ['Topwear','Bottomwear','Footwear'],
 };
-// Gold products already have sub='Topwear'|'Bottomwear'|'Footwear' stored in gold_products table
-// No mapping needed — filter directly on p.sub and p.category
 
 function isPerfumeCategory(cat){return String(cat||'').toLowerCase()==='perfumes';}
 const PERFUME_ML_SIZES=['5ml','10ml','15ml','20ml','25ml','30ml','50ml','75ml','100ml','150ml','200ml','250ml','500ml'];
@@ -115,7 +115,48 @@ const ALL_ORDER_STATUSES=['Processing','Packed','Shipped','Delivered','Cancelled
 const STATUS_BADGE={'Processing':'bg-yellow-100 text-yellow-700','Packed':'bg-blue-100 text-blue-700','Shipped':'bg-purple-100 text-purple-700','Delivered':'bg-green-100 text-green-700','Cancelled':'bg-red-100 text-red-600','Exchange Requested':'bg-orange-100 text-orange-600','Exchange Processing':'bg-orange-200 text-orange-700','Exchanged':'bg-teal-100 text-teal-700'};
 
 function getReferralTableSQL(){return `-- Run in Supabase SQL Editor:\nCREATE TABLE IF NOT EXISTS public.referrals (\n  id              BIGSERIAL PRIMARY KEY,\n  referrer_mobile TEXT NOT NULL,\n  buyer_mobile    TEXT NOT NULL,\n  order_id        TEXT NOT NULL,\n  order_total     NUMERIC DEFAULT 0,\n  commission      NUMERIC DEFAULT 0,\n  status          TEXT DEFAULT 'pending',\n  date            TEXT,\n  referral_code   TEXT,\n  confirmed_at    TIMESTAMPTZ\n);\nALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "allow_all" ON public.referrals USING (true) WITH CHECK (true);`;}
-function getGoldTableSQL(){return `-- OutfitKart Gold SQL:\nALTER TABLE public.products\n  ADD COLUMN IF NOT EXISTS is_gold BOOLEAN DEFAULT false;\nCREATE INDEX IF NOT EXISTS idx_products_is_gold ON public.products(is_gold) WHERE is_gold = true;\n-- Mark products as Gold: UPDATE products SET is_gold = true WHERE id IN (1,2,3);`;}
+
+function getGoldTableSQL(){return `-- OutfitKart Gold SQL (Run in Supabase SQL Editor):
+CREATE TABLE IF NOT EXISTS public.gold_products (
+  id              BIGSERIAL PRIMARY KEY,
+  name            TEXT NOT NULL,
+  price           NUMERIC NOT NULL,
+  oldprice        NUMERIC,
+  category        TEXT DEFAULT 'Men',
+  sub             TEXT DEFAULT 'Topwear',
+  brand           TEXT,
+  description     TEXT,
+  imgs            JSONB DEFAULT '[]',
+  img             TEXT,
+  available_sizes JSONB DEFAULT '[]',
+  stock_qty       INTEGER DEFAULT 50,
+  supplier_price  NUMERIC,
+  supplier_url    TEXT,
+  margin_amt      NUMERIC DEFAULT 0,
+  istrending      BOOLEAN DEFAULT true,
+  is_active       BOOLEAN DEFAULT true,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.gold_products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read" ON public.gold_products FOR SELECT USING (true);
+CREATE POLICY "admin_write" ON public.gold_products FOR ALL USING (true) WITH CHECK (true);
+
+-- Promo codes table:
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+  id          BIGSERIAL PRIMARY KEY,
+  code        TEXT UNIQUE NOT NULL,
+  discount    NUMERIC NOT NULL,
+  type        TEXT DEFAULT 'flat',
+  min_order   NUMERIC DEFAULT 0,
+  max_uses    INTEGER DEFAULT 100,
+  used_count  INTEGER DEFAULT 0,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  is_active   BOOLEAN DEFAULT true,
+  created_by  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON public.promo_codes USING (true) WITH CHECK (true);`;}
 
 const TRANSLATIONS = {
     hi: { home:'होम', shop:'खरीदारी', cart:'कार्ट', login:'लॉगिन', gold:'गोल्ड', add_to_cart:'कार्ट में डालें', buy_now:'अभी खरीदें', size_select:'साइज़ चुनें', volume_select:'मात्रा चुनें (ML)', cod_available:'कैश ऑन डिलीवरी', safe_delivery:'सुरक्षित डिलीवरी!', safe_delivery_sub:'डिलीवरी मानक देखें →', safe_delivery_btn:'देखें', off:'% की छूट', in_stock:'स्टॉक में', your_cart:'आपका कार्ट', checkout_now:'चेकआउट करें', cart_empty:'कार्ट खाली है', continue_shopping:'जारी रखें', referral_code:'आपका रेफरल कोड', earn_5pct:'हर रेफरल पर 5% कमाएं!', pending_for_referrer:'रेफरर के लिए पेंडिंग', new_referral_commission:'नया कमीशन जुड़ा!', referral_confirmed:'रेफरल कन्फर्म!', track_order:'ऑर्डर ट्रैक करें', cancel_order:'ऑर्डर रद्द करें', exchange:'एक्सचेंज', order_placed:'ऑर्डर हो गया! 🎉', address:'पता', order_summary:'ऑर्डर सारांश', payment:'भुगतान', place_order:'ऑर्डर दें', upi_payment:'UPI भुगतान', cod:'कैश ऑन डिलीवरी', wallet:'वॉलेट', welcome:'स्वागत है!', logout:'लॉगआउट', search_placeholder:'कपड़े, परफ्यूम खोजें...', trending:'ट्रेंडिंग फिट्स', shop_by_cat:'केटेगरी से खरीदें', recently_viewed:'हाल में देखा', similar_products:'मिलते-जुलते प्रोडक्ट', write_review:'रिव्यू लिखें', submit:'सबमिट करें' },
@@ -140,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCart();
     const adminSession=localStorage.getItem('outfitkart_admin_session');
     if(adminSession==='true'){isAdminLoggedIn=true;setTimeout(()=>navigate('admin'),500);}
-    toggleProductMode('auto');updateDropdownSubs('ap-category','ap-sub');
+    updateDropdownSubs('ap-category','ap-sub');
     renderCategoryBubbles();renderProductGrid('trending-grid',[],true);
     await fetchProducts();await fetchGoldProducts();checkAuthUI();
     const params=new URLSearchParams(window.location.search);const pid=params.get('pid');
@@ -148,10 +189,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(pid&&!isBackNav)openProductPage(parseInt(pid));
     _setOgTags();setTimeout(_bannerInit,300);_initPwaInstall();_injectLangToggle();applyLanguage();
     _mrpObserver.observe(document.body,{childList:true,subtree:true});_enforceRedMrp();
-    ['trending-grid','shop-grid','wishlist-container','recommended-products-grid','recently-viewed-grid','gold-grid'].forEach(id=>{const el=document.getElementById(id);if(el)_cardObserver.observe(el,{childList:true});});
+    ['trending-grid','shop-grid','wishlist-container','recommended-products-grid','recently-viewed-grid'].forEach(id=>{const el=document.getElementById(id);if(el)_cardObserver.observe(el,{childList:true});});
     _animateProductCards();_startGoldRotation();
     console.log('%cOutfitKart ✅','color:#C8102E;font-weight:900;font-size:14px');
-    console.log('%c[Gold SQL]','color:#B8860B');console.log(getGoldTableSQL());
 });
 
 let _bannerCurrent=0;const _bannerTotal=4;let _bannerInterval=null,_bannerTouchX=0;
@@ -166,6 +206,75 @@ function startAdminTimer(){adminPressTimer=setTimeout(()=>{if(isAdminLoggedIn){n
 function cancelAdminTimer(){clearTimeout(adminPressTimer);}
 document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='a'){e.preventDefault();if(isAdminLoggedIn){navigate('admin');return;}showAdminLogin();}});
 
+/* ============================================================
+   PROMO CODE SYSTEM
+   ============================================================ */
+async function applyPromoCode(codeVal) {
+    const code = (codeVal || document.getElementById('promo-code-input')?.value || '').trim().toUpperCase();
+    if (!code) return showToast('Promo code enter karo');
+    try {
+        const { data, error } = await dbClient.from('promo_codes').select('*').eq('code', code).eq('is_active', true).maybeSingle();
+        if (error) throw error;
+        if (!data) { showToast('❌ Invalid promo code!'); return false; }
+        const now = new Date();
+        if (new Date(data.expires_at) < now) { showToast('❌ Promo code expired!'); return false; }
+        if (data.used_count >= data.max_uses) { showToast('❌ Promo code limit reached!'); return false; }
+        activePromoCode = data;
+        promoDiscount = data.discount;
+        showToast(`🎉 Promo applied! ₹${data.discount} discount!`);
+        updateCheckoutTotals();
+        // Re-render promo section
+        const promoArea = document.getElementById('promo-section-container');
+        if (promoArea) promoArea.innerHTML = _promoAppliedHtml();
+        return true;
+    } catch (err) { showToast('Error: ' + err.message); return false; }
+}
+
+function removePromoCode() {
+    activePromoCode = null; promoDiscount = 0;
+    const promoArea = document.getElementById('promo-section-container');
+    if (promoArea) promoArea.innerHTML = _promoInputHtml();
+    showToast('Promo code removed');
+    updateCheckoutTotals();
+}
+
+async function _incrementPromoUsage() {
+    if (!activePromoCode) return;
+    try { await dbClient.from('promo_codes').update({ used_count: (activePromoCode.used_count || 0) + 1 }).eq('code', activePromoCode.code); } catch {}
+}
+
+function _promoInputHtml() {
+    return `<div class="flex gap-2">
+        <input type="text" id="promo-code-input" placeholder="Enter promo code" class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm font-bold uppercase focus:ring-2 focus:ring-rose-400 outline-none" style="letter-spacing:0.06em;">
+        <button onclick="applyPromoCode()" class="bg-rose-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 active:scale-95 transition-all whitespace-nowrap">Apply</button>
+    </div>
+    <div class="flex gap-2 mt-2">
+        <a href="${TELEGRAM_CHANNEL}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white active:scale-95" style="background:linear-gradient(135deg,#0088cc,#00b0f4)"><i class="fab fa-telegram text-sm"></i> Get Code on Telegram</a>
+        <a href="${WHATSAPP_CHANNEL}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white active:scale-95" style="background:linear-gradient(135deg,#25D366,#128C7E)"><i class="fab fa-whatsapp text-sm"></i> Get Code on WhatsApp</a>
+    </div>`;
+}
+
+function _promoAppliedHtml() {
+    if (!activePromoCode) return _promoInputHtml();
+    return `<div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><i class="fas fa-tag text-green-600 text-xs"></i></div>
+            <div><div class="font-black text-sm text-green-800 tracking-wider">${activePromoCode.code}</div><div class="text-xs text-green-600">₹${promoDiscount} discount applied! 🎉</div></div>
+        </div>
+        <button onclick="removePromoCode()" class="text-red-500 text-xs font-bold hover:text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg"><i class="fas fa-times mr-1"></i>Remove</button>
+    </div>`;
+}
+
+function _renderPromoSection() {
+    return `<div class="bg-white p-4 rounded-xl shadow-sm border mb-3">
+        <h4 class="font-bold text-sm mb-3 flex items-center gap-2"><i class="fas fa-tag text-rose-500"></i> Promo Code</h4>
+        <div id="promo-section-container">${activePromoCode ? _promoAppliedHtml() : _promoInputHtml()}</div>
+    </div>`;
+}
+
+/* ============================================================
+   REFERRAL
+   ============================================================ */
 function captureReferralFromUrl(){const params=new URLSearchParams(window.location.search);const ref=params.get('ref');if(ref&&ref.length>=4){activeReferralCode=ref.toUpperCase();localStorage.setItem('outfitkart_active_referral',activeReferralCode);}else{const stored=localStorage.getItem('outfitkart_active_referral');if(stored)activeReferralCode=stored;}}
 function generateReferralCode(name,mobile){const u=(name||'USER').toUpperCase().replace(/[^A-Z]/g,'');return u.substring(0,4).padEnd(4,'X')+String(mobile).slice(-3);}
 async function loadUserReferralCode(){if(!currentUser)return;const codeEl=document.getElementById('user-referral-code');try{const{data,error}=await dbClient.from('users').select('referral_code, name').eq('mobile',currentUser.mobile).single();if(error)throw error;let refCode=data?.referral_code;if(!refCode){refCode=generateReferralCode(data?.name||currentUser.name,currentUser.mobile);await dbClient.from('users').update({referral_code:refCode}).eq('mobile',currentUser.mobile);}if(codeEl)codeEl.textContent=refCode;currentUser.referral_code=refCode;localStorage.setItem('outfitkart_session',JSON.stringify(currentUser));}catch(err){const fallback=generateReferralCode(currentUser.name,currentUser.mobile);if(codeEl)codeEl.textContent=fallback;}renderSidebarReferralWidget();}
@@ -181,6 +290,9 @@ function switchReferralTab(tab){['pending','confirmed','cancelled'].forEach(t=>{
 function renderSidebarReferralWidget(){const container=document.getElementById('sidebar-referral-widget');if(!container||!currentUser)return;const code=currentUser.referral_code||generateReferralCode(currentUser.name,currentUser.mobile);container.innerHTML=`<div class="px-3 pb-3 bg-gradient-to-br from-green-50 to-emerald-50 border-t border-green-100"><div class="mt-2 bg-white rounded-lg p-2.5 border border-dashed border-green-300"><p class="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">${i18n('referral_code')}</p><div class="flex items-center justify-between gap-2"><span class="text-lg font-black text-green-600 tracking-widest" id="sidebar-referral-code">${code}</span><button onclick="copyReferralCode()" class="bg-green-500 text-white text-[10px] font-black px-2.5 py-1 rounded-lg hover:bg-green-600 active:scale-95 transition-all whitespace-nowrap"><i class="fas fa-copy mr-0.5"></i> Copy</button></div><p class="text-[9px] text-gray-400 mt-1">${i18n('earn_5pct')}</p></div><a href="${INSTAGRAM_URL}" target="_blank" rel="noopener" class="mt-2 flex items-center justify-center gap-2 w-full py-2 rounded-lg font-bold text-xs text-white active:scale-95 transition-all" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"><i class="fab fa-instagram text-sm"></i> Follow @OutfitKart</a></div>`;}
 function updateHeaderWallet(balance){const el=document.getElementById('header-wallet-display'),pill=document.getElementById('header-wallet-pill');if(!el)return;if(balance>0){el.textContent='₹'+balance.toLocaleString();if(pill){pill.classList.remove('hidden');pill.classList.add('flex');}}else{if(pill){pill.classList.add('hidden');pill.classList.remove('flex');}}}
 
+/* ============================================================
+   CART
+   ============================================================ */
 function initCart(){loadCartLocal();updateCartCount();if(currentUser)syncCartFromDB();}
 function loadCartLocal(){try{const saved=localStorage.getItem('outfitkart_cart');cart=saved?JSON.parse(saved):[];cart.forEach(i=>{if(!i.size)i.size='M';});}catch{cart=[];}}
 function saveCartLocal(){localStorage.setItem('outfitkart_cart',JSON.stringify(cart.map(i=>({productId:i.productId,size:i.size,qty:i.qty}))));}
@@ -195,69 +307,57 @@ window.addToCart=async function(productId,size){size=size||'M';const key=`${prod
 async function updateQty(productId,size,delta){const key=`${productId}-${size}`,idx=cart.findIndex(i=>`${i.productId}-${i.size}`===key);if(idx===-1)return;cart[idx].qty+=delta;if(cart[idx].qty<=0){cart.splice(idx,1);showToast('Removed 🗑️');if(currentUser)_removeCartItemDB(productId,size);}else{if(currentUser)_upsertCartItem(productId,size,cart[idx].qty);}saveCartLocal();updateCartCount();renderCart();}
 async function removeFromCart(productId,size){cart=cart.filter(i=>`${i.productId}-${i.size}`!==`${productId}-${size}`);saveCartLocal();if(currentUser)_removeCartItemDB(productId,size);updateCartCount();renderCart();showToast('Removed 🗑️');}
 function updateCartCount(){const total=cart.reduce((s,i)=>s+i.qty,0);['cart-count','mobile-cart-badge','tab-cart-count'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=total;});const badge=document.getElementById('mobile-cart-badge');if(badge)badge.classList.toggle('hidden',total===0);}
-function renderCart(){const container=document.getElementById('cart-items'),totalEl=document.getElementById('cart-total-price');if(!container)return;if(!cart.length){container.innerHTML=`<div class="flex flex-col items-center justify-center py-20 text-center h-full"><div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-3xl text-gray-400"></i></div><h3 class="text-lg font-bold text-gray-800 mb-2">${i18n('cart_empty')}</h3><button onclick="toggleCart(); navigate('shop')" class="bg-rose-600 text-white px-8 py-2 rounded-lg font-bold text-sm">${i18n('continue_shopping')}</button></div>`;if(totalEl)totalEl.textContent='₹0';return;}let subtotal=0;container.innerHTML=cart.map(item=>{const p=products.find(x=>x.id===item.productId);if(!p)return '';const img=p.imgs?.[0]||p.img||'https://placehold.co/80x80/eee/666?text=?';subtotal+=p.price*item.qty;const sizeLabel=isPerfumeCategory(p.category)?`Volume: ${item.size}`:`Size: ${item.size}`;return `<div class="bg-white rounded-xl shadow-sm border p-4"><div class="flex gap-3"><div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50"><img src="${img}" class="w-full h-full object-cover" alt="${p.name}" loading="lazy"></div><div class="flex-1 min-w-0"><h4 class="font-semibold text-sm text-gray-900 truncate mb-1">${p.name}</h4><p class="text-xs text-blue-600 font-semibold mb-1">${sizeLabel}</p><div class="flex items-baseline gap-2 mb-2"><span class="text-lg font-black text-gray-900">₹${p.price}</span>${p.oldprice?`<span class="text-xs line-through font-semibold" style="color:#C8102E;opacity:0.7">₹${p.oldprice}</span>`:''}</div><div class="flex items-center justify-between"><div class="flex items-center bg-gray-100 rounded-lg p-1"><button onclick="updateQty(${item.productId},'${item.size}',-1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 rounded font-bold text-sm">-</button><span class="w-8 text-center font-bold text-sm">${item.qty}</span><button onclick="updateQty(${item.productId},'${item.size}',1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 rounded font-bold text-sm">+</button></div><button onclick="removeFromCart(${item.productId},'${item.size}')" class="text-rose-500 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50"><i class="fas fa-trash-alt text-xs"></i></button></div></div></div></div>`;}).join('');if(totalEl)totalEl.textContent=`₹${subtotal.toLocaleString()}`;}
+function renderCart(){
+    const container=document.getElementById('cart-items'),totalEl=document.getElementById('cart-total-price');if(!container)return;
+    if(!cart.length){container.innerHTML=`<div class="flex flex-col items-center justify-center py-20 text-center h-full"><div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-3xl text-gray-400"></i></div><h3 class="text-lg font-bold text-gray-800 mb-2">${i18n('cart_empty')}</h3><button onclick="toggleCart(); navigate('shop')" class="bg-rose-600 text-white px-8 py-2 rounded-lg font-bold text-sm">${i18n('continue_shopping')}</button></div>`;if(totalEl)totalEl.textContent='₹0';return;}
+    let subtotal=0;
+    container.innerHTML=cart.map(item=>{
+        const p=products.find(x=>x.id===item.productId)||goldProducts.find(x=>x.id===item.productId);if(!p)return '';
+        const img=p.imgs?.[0]||p.img||'https://placehold.co/80x80/eee/666?text=?';subtotal+=p.price*item.qty;
+        const sizeLabel=isPerfumeCategory(p.category)?`Volume: ${item.size}`:`Size: ${item.size}`;
+        return `<div class="bg-white rounded-xl shadow-sm border p-4"><div class="flex gap-3"><div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50"><img src="${img}" class="w-full h-full object-cover" alt="${p.name}" loading="lazy"></div><div class="flex-1 min-w-0"><h4 class="font-semibold text-sm text-gray-900 truncate mb-1">${p.name}</h4><p class="text-xs text-blue-600 font-semibold mb-1">${sizeLabel}</p><div class="flex items-baseline gap-2 mb-2"><span class="text-lg font-black text-gray-900">₹${p.price}</span>${p.oldprice?`<span class="text-xs line-through font-semibold" style="color:#C8102E;opacity:0.7">₹${p.oldprice}</span>`:''}</div><div class="flex items-center justify-between"><div class="flex items-center bg-gray-100 rounded-lg p-1"><button onclick="updateQty(${item.productId},'${item.size}',-1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 rounded font-bold text-sm">-</button><span class="w-8 text-center font-bold text-sm">${item.qty}</span><button onclick="updateQty(${item.productId},'${item.size}',1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-rose-600 rounded font-bold text-sm">+</button></div><button onclick="removeFromCart(${item.productId},'${item.size}')" class="text-rose-500 font-bold text-sm px-2 py-1 rounded hover:bg-rose-50"><i class="fas fa-trash-alt text-xs"></i></button></div></div></div></div>`;
+    }).join('');
+    if(totalEl)totalEl.textContent=`₹${subtotal.toLocaleString()}`;
+}
 function toggleCart(){const sidebar=document.getElementById('cart-sidebar'),overlay=document.getElementById('cart-overlay');const isOpen=!sidebar.classList.contains('translate-x-full');if(isOpen){sidebar.classList.add('translate-x-full');overlay.classList.add('hidden');}else{sidebar.classList.remove('translate-x-full');overlay.classList.remove('hidden');renderCart();}}
 
+/* ============================================================
+   QUICK SIZE MODAL
+   ============================================================ */
 function showQuickSizeModal(productId){
-    const product=products.find(p=>p.id===productId);if(!product)return showToast('Product not found');
+    const product=products.find(p=>p.id===productId)||goldProducts.find(p=>p.id===productId);if(!product)return showToast('Product not found');
     quickSizeModalProduct=productId;
     const isPerf=isPerfumeCategory(product.category);
     const sizes=isPerf?(product.available_sizes?.length?product.available_sizes:PERFUME_ML_SIZES):(product.available_sizes?.length?product.available_sizes:getDefaultSizes(product.sub||product.category));
     quickSelectedSize=sizes[0];
-    const titleEl=document.querySelector('#quick-size-modal h3');
-    if(titleEl)titleEl.textContent=isPerf?i18n('volume_select'):i18n('size_select');
+    const titleEl=document.querySelector('#quick-size-modal h3');if(titleEl)titleEl.textContent=isPerf?i18n('volume_select'):i18n('size_select');
     const grid=document.getElementById('quick-size-grid');
     if(isPerf){
-        grid.innerHTML=`<div class="w-full space-y-3">
-            <div class="flex flex-wrap gap-2" id="quick-vol-pills">${sizes.map(s=>`<button onclick="selectQuickSize('${s}')" class="size-btn px-4 py-1.5 rounded-full border-2 font-bold text-sm transition-all ${quickSelectedSize===s?'border-purple-600 bg-purple-600 text-white':'border-gray-200 text-gray-700 hover:border-purple-400'}">${s}</button>`).join('')}</div>
-            <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Ya custom volume:</div>
-            <div class="flex items-center border-2 border-purple-200 rounded-xl overflow-hidden focus-within:border-purple-500 bg-white">
-                <span class="bg-purple-100 px-3 py-2.5 text-purple-700 font-black text-sm border-r border-purple-200 whitespace-nowrap">ml</span>
-                <input type="number" id="quick-custom-ml" placeholder="e.g. 45" min="1" max="2000"
-                    class="flex-1 px-3 py-2.5 text-sm font-bold outline-none" style="font-size:16px;"
-                    oninput="_onQuickMlInput(this.value)">
-            </div>
-            <p class="text-[11px] text-gray-400">Number type karo — ml automatic add hoga</p>
-        </div>`;
+        grid.innerHTML=`<div class="w-full space-y-3"><div class="flex flex-wrap gap-2" id="quick-vol-pills">${sizes.map(s=>`<button onclick="selectQuickSize('${s}')" class="size-btn px-4 py-1.5 rounded-full border-2 font-bold text-sm transition-all ${quickSelectedSize===s?'border-purple-600 bg-purple-600 text-white':'border-gray-200 text-gray-700'}">${s}</button>`).join('')}</div><div class="flex items-center border-2 border-purple-200 rounded-xl overflow-hidden focus-within:border-purple-500 bg-white"><span class="bg-purple-100 px-3 py-2.5 text-purple-700 font-black text-sm border-r border-purple-200 whitespace-nowrap">ml</span><input type="number" id="quick-custom-ml" placeholder="e.g. 45" min="1" max="2000" class="flex-1 px-3 py-2.5 text-sm font-bold outline-none" style="font-size:16px;" oninput="_onQuickMlInput(this.value)"></div></div>`;
     }else{
         grid.innerHTML=sizes.map(s=>`<button onclick="selectQuickSize('${s}')" class="size-btn px-5 py-2 rounded-xl border-2 font-bold text-sm transition-all ${quickSelectedSize===s?'border-rose-600 bg-rose-600 text-white':'border-gray-300'}">${s}</button>`).join('');
     }
     const modal=document.getElementById('quick-size-modal');modal.classList.remove('hidden');modal.classList.add('flex');
 }
-function _onQuickMlInput(val){
-    if(!val||isNaN(val))return;
-    const mlVal=val+'ml';
-    quickSelectedSize=mlVal;
-    // Clear all pill selections
-    document.querySelectorAll('#quick-vol-pills .size-btn').forEach(btn=>{
-        btn.classList.remove('border-purple-600','bg-purple-600','text-white');
-        btn.classList.add('border-gray-200','text-gray-700');
-    });
-}
-function selectQuickSize(size){
-    quickSelectedSize=size;
-    // Clear custom ml input if selecting a pill
-    const inp=document.getElementById('quick-custom-ml');if(inp)inp.value='';
-    // Handle perfume pills (purple) vs clothing pills (rose)
-    const isPerfPills=!!document.getElementById('quick-vol-pills');
-    document.querySelectorAll('#quick-size-grid .size-btn, #quick-vol-pills .size-btn').forEach(btn=>{
-        const m=btn.textContent.trim()===size;
-        if(isPerfPills){btn.classList.toggle('border-purple-600',m);btn.classList.toggle('bg-purple-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-200',!m);btn.classList.toggle('text-gray-700',!m);}
-        else{btn.classList.toggle('border-rose-600',m);btn.classList.toggle('bg-rose-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-300',!m);}
-    });
-}
+function _onQuickMlInput(val){if(!val||isNaN(val))return;quickSelectedSize=val+'ml';document.querySelectorAll('#quick-vol-pills .size-btn').forEach(btn=>{btn.classList.remove('border-purple-600','bg-purple-600','text-white');btn.classList.add('border-gray-200','text-gray-700');});}
+function selectQuickSize(size){quickSelectedSize=size;const inp=document.getElementById('quick-custom-ml');if(inp)inp.value='';const isPerfPills=!!document.getElementById('quick-vol-pills');document.querySelectorAll('#quick-size-grid .size-btn, #quick-vol-pills .size-btn').forEach(btn=>{const m=btn.textContent.trim()===size;if(isPerfPills){btn.classList.toggle('border-purple-600',m);btn.classList.toggle('bg-purple-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-200',!m);btn.classList.toggle('text-gray-700',!m);}else{btn.classList.toggle('border-rose-600',m);btn.classList.toggle('bg-rose-600',m);btn.classList.toggle('text-white',m);btn.classList.toggle('border-gray-300',!m);}});}
 function addFromQuickModal(){if(quickSizeModalProduct&&quickSelectedSize){addToCart(quickSizeModalProduct,quickSelectedSize);hideQuickSizeModal();}}
 function hideQuickSizeModal(){const modal=document.getElementById('quick-size-modal');modal.classList.add('hidden');modal.classList.remove('flex');quickSizeModalProduct=null;quickSelectedSize=null;}
 function getDefaultSizes(subOrCat=''){const l=subOrCat.toLowerCase();if(l.includes('jean')||l.includes('pant')||l.includes('cargo')||l.includes('trouser'))return['24','26','28','30','32','34','36','38','40'];if(l.includes('sneak')||l.includes('heel')||l.includes('flat')||l.includes('shoe'))return['4','5','6','7','8','9','10','11','12'];return['XS','S','M','L','XL','XXL','3XL','4XL'];}
 
+/* ============================================================
+   GOLD PRODUCTS
+   ============================================================ */
 async function fetchGoldProducts(){
     try{
         const{data,error}=await dbClient.from('gold_products').select('*').eq('is_active',true).order('id',{ascending:false});
         if(error)throw error;
-        goldProducts=data||[];
+        // Map 'description' field to 'desc' for compatibility
+        goldProducts=(data||[]).map(p=>({...p,desc:p.description||p.desc||''}));
         if(currentView==='gold')renderGoldGrid();
     }catch(err){console.error('[Gold fetch error]',err.message);}
 }
+
 async function fetchProducts(retry=0){try{const{data,error}=await dbClient.from('products').select('*');if(error)throw error;if(data&&data.length>0){products=data;updateProductCountBadge(products.length);renderProductGrid('trending-grid',products.filter(p=>p.istrending));if(!document.getElementById('view-shop').classList.contains('hidden'))renderShopProducts();if(currentView==='gold')renderGoldGrid();const countBadge=document.getElementById('sidebar-product-count');if(countBadge)countBadge.textContent=products.length;}else{products=[];goldProducts=[];renderProductGrid('trending-grid',[]);updateProductCountBadge(0,'empty');}}catch(err){if(retry<3){await new Promise(r=>setTimeout(r,2000));return fetchProducts(retry+1);}updateProductCountBadge(0,'error');}}
 function updateProductCountBadge(count,status='live'){const el=document.getElementById('products-count');if(!el)return;if(status==='error'){el.textContent='!';el.className='absolute -top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm';}else if(status==='empty'){el.textContent='0';el.className='absolute -top-1 right-1 bg-gray-400 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm';}else{el.textContent=count>99?'99+':count;el.className='absolute -top-1 right-1 bg-blue-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm';}}
 
@@ -275,7 +375,7 @@ function createProductCard(p,forceGold=false){
         let topLeftBadge='';
         if(isGold){topLeftBadge=`<div class="absolute top-2 left-2 z-20 text-[10px] font-black px-2.5 py-1 rounded-full shadow-md" style="background:linear-gradient(135deg,#C9A84C,#F5E6C0);color:#3d2c00;border:1px solid rgba(201,168,76,0.5);">⭐ GOLD</div>`;}
         else if(hasDiscount){topLeftBadge=`<div class="absolute top-2 left-2 z-20 bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-md">${discPct}${i18n('off')}</div>`;}
-        return `<div class="product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative flex flex-col cursor-pointer hover:shadow-md transition-shadow" onclick="openProductPage(${p.id})">
+        return `<div class="product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative flex flex-col cursor-pointer hover:shadow-md transition-shadow" onclick="openProductPage(${p.id},${!!isGold})">
         <button class="absolute top-2 right-2 z-20 ${inWishlist?'text-rose-500':'text-gray-300'} hover:text-rose-600 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center shadow border transition-all" onclick="event.stopPropagation(); toggleWishlist(${p.id})"><i class="${inWishlist?'fas':'far'} fa-heart text-sm"></i></button>
         <button class="absolute top-12 right-2 z-20 text-gray-400 hover:text-rose-600 bg-white/90 rounded-full w-9 h-9 flex items-center justify-center shadow border transition-all" onclick="event.stopPropagation(); showQuickSizeModal(${p.id})"><i class="fas fa-cart-plus text-sm"></i></button>
         ${topLeftBadge}
@@ -307,7 +407,6 @@ function renderProductGrid(containerId,list,loading=false){
     requestAnimationFrame(_animateProductCards);requestAnimationFrame(_enforceRedMrp);
 }
 
-/* Category bubbles with PHOTOS */
 function renderCategoryBubbles(){
     const container=document.getElementById('category-bubbles');if(!container)return;
     let html=CATEGORIES.map(c=>`<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px] active:scale-95 transition-transform" onclick="openCategoryPage('${c.name}')">
@@ -316,7 +415,6 @@ function renderCategoryBubbles(){
         </div>
         <span class="text-xs font-semibold text-gray-700 whitespace-nowrap">${c.name}</span>
     </div>`).join('');
-    // Gold bubble
     html+=`<div class="flex flex-col items-center gap-2 cursor-pointer min-w-[72px] active:scale-95 transition-transform" onclick="navigate('gold')">
         <div class="w-16 h-16 rounded-full flex items-center justify-center text-2xl hover:scale-110 transition-transform flex-shrink-0" style="background:linear-gradient(135deg,#1a0800,#3d2c00,#C9A84C);border:2.5px solid #C9A84C;box-shadow:0 4px 16px rgba(201,168,76,0.5);">⭐</div>
         <span class="text-xs font-bold whitespace-nowrap" style="color:#B8860B;">Gold</span>
@@ -325,28 +423,26 @@ function renderCategoryBubbles(){
 }
 
 /* ============================================================
-   OUTFITKART GOLD — Separate nav section
+   OUTFITKART GOLD VIEW
+   Gold sticky filter bar sits just below the fixed main header (top:64px)
    ============================================================ */
-
-/* Every 2 hours rotate 10 random gold products in trending */
 function _startGoldRotation(){
     if(_goldRotateTimer)clearInterval(_goldRotateTimer);
-    _goldRotateTimer=setInterval(async()=>{
-        await fetchGoldProducts(); // re-fetch from DB every 2 hours
-        if(currentView==='gold')renderGoldGrid();
-    }, 2*60*60*1000);
+    _goldRotateTimer=setInterval(async()=>{await fetchGoldProducts();if(currentView==='gold')renderGoldGrid();},2*60*60*1000);
 }
 
 function _getGoldBatch(gender,sub){
-    // gold_products table pe: category='Men'|'Women', sub='Topwear'|'Bottomwear'|'Footwear'
     return goldProducts.filter(p=>p.category===gender&&(!sub||p.sub===sub));
 }
 
 function renderGoldView(){
     const view=document.getElementById('view-gold');if(!view)return;
     _applyGoldHeaderTheme(true);
+    // view-gold ko -mt-16 do taaki main ka pt-16 cancel ho — header ke bilkul neeche aaye
+    view.style.marginTop='-64px';
     view.innerHTML=`
-    <div id="gold-sticky-header" style="position:sticky;top:64px;z-index:30;background:linear-gradient(135deg,#1a0800 0%,#3d2c00 50%,#1a0800 100%);border-bottom:2px solid #C9A84C;padding:12px 16px 0;">
+    <!-- Gold filter bar — sticky below main header (top:64px = fixed header height) -->
+    <div id="gold-filter-bar" style="position:sticky;top:64px;z-index:30;background:linear-gradient(135deg,#1a0800 0%,#3d2c00 50%,#1a0800 100%);border-bottom:2px solid #C9A84C;padding:12px 16px 0;">
         <div class="flex items-center gap-3 mb-3">
             <button onclick="navigate('home')" class="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0" style="background:rgba(201,168,76,0.2);border:1px solid #C9A84C;">
                 <i class="fas fa-arrow-left" style="color:#C9A84C;font-size:14px;"></i>
@@ -356,12 +452,10 @@ function renderGoldView(){
                 <p style="color:rgba(245,230,192,0.65);font-size:10px;font-weight:600;margin:2px 0 0;">Premium Curated Collection</p>
             </div>
         </div>
-        <!-- Gender Tabs -->
-        <div class="flex gap-3 pb-3">
+        <div class="flex gap-3 mb-3">
             <button id="gold-tab-men" onclick="switchGoldGender('Men')" class="flex-1 py-2.5 rounded-xl font-black text-sm transition-all" style="background:linear-gradient(135deg,#C9A84C,#B8860B);color:#1a0800;box-shadow:0 3px 12px rgba(201,168,76,0.4);">👔 Men</button>
             <button id="gold-tab-women" onclick="switchGoldGender('Women')" class="flex-1 py-2.5 rounded-xl font-black text-sm transition-all" style="background:rgba(201,168,76,0.12);color:#C9A84C;border:1px solid rgba(201,168,76,0.3);">👗 Women</button>
         </div>
-        <!-- Subcat pills — plain names, no labels -->
         <div id="gold-subcat-pills" class="flex gap-2 pb-3 overflow-x-auto hide-scrollbar"></div>
     </div>
     <div style="background:linear-gradient(180deg,#f5e6c0 0%,#fdfcfa 80px);padding:12px 16px 100px;">
@@ -369,7 +463,6 @@ function renderGoldView(){
             <div class="col-span-full text-center py-12"><i class="fas fa-spinner fa-spin text-3xl" style="color:#C9A84C;"></i></div>
         </div>
     </div>`;
-
     goldCurrentGender='Men';goldCurrentSub=null;
     renderGoldSubcatPills('Men');
     renderGoldGrid();
@@ -406,22 +499,15 @@ function renderGoldSubcatPills(gender){
 
 function filterGoldSubcat(sub){
     goldCurrentSub=sub;
-    document.querySelectorAll('.gold-sub-pill').forEach(btn=>{
-        const active=btn.dataset.sub===sub;
-        btn.style.background=active?'linear-gradient(135deg,#C9A84C,#B8860B)':'rgba(201,168,76,0.12)';
-        btn.style.color=active?'#1a0800':'#C9A84C';btn.style.border=active?'none':'1px solid rgba(201,168,76,0.3)';
-    });
-    const allBtn=document.getElementById('gold-pill-all');
-    if(allBtn){allBtn.style.background=sub?'rgba(201,168,76,0.12)':'linear-gradient(135deg,#C9A84C,#B8860B)';allBtn.style.color=sub?'#C9A84C':'#1a0800';}
+    document.querySelectorAll('.gold-sub-pill').forEach(btn=>{const active=btn.dataset.sub===sub;btn.style.background=active?'linear-gradient(135deg,#C9A84C,#B8860B)':'rgba(201,168,76,0.12)';btn.style.color=active?'#1a0800':'#C9A84C';btn.style.border=active?'none':'1px solid rgba(201,168,76,0.3)';});
+    const allBtn=document.getElementById('gold-pill-all');if(allBtn){allBtn.style.background=sub?'rgba(201,168,76,0.12)':'linear-gradient(135deg,#C9A84C,#B8860B)';allBtn.style.color=sub?'#C9A84C':'#1a0800';}
     renderGoldGrid();
 }
 
 function renderGoldGrid(){
     const grid=document.getElementById('gold-grid');if(!grid)return;
     const list=_getGoldBatch(goldCurrentGender,goldCurrentSub);
-    if(!list.length){
-        grid.innerHTML=`<div class="col-span-full text-center py-16" style="color:#B8860B;"><i class="fas fa-crown text-5xl mb-4 opacity-40"></i><p class="font-bold text-lg">No Gold products yet</p><p class="text-sm opacity-60 mt-1">Admin Panel → OutfitKart Gold → Add Gold Product</p><p class="text-xs opacity-50 mt-1">gold_products table mein add karo</p></div>`;return;
-    }
+    if(!list.length){grid.innerHTML=`<div class="col-span-full text-center py-16" style="color:#B8860B;"><i class="fas fa-crown text-5xl mb-4 opacity-40"></i><p class="font-bold text-lg">No Gold products yet</p><p class="text-sm opacity-60 mt-1">Admin Panel → OutfitKart Gold → Add Gold Product</p></div>`;return;}
     grid.innerHTML=list.map(p=>createProductCard(p,true)).join('');
     requestAnimationFrame(_animateProductCards);
 }
@@ -436,12 +522,8 @@ function openCategoryPage(categoryName){
     document.getElementById('cat-page-title').textContent=`${categoryName} Collection`;
     const viewAllBtn=document.getElementById('cat-view-all-btn');if(viewAllBtn)viewAllBtn.dataset.cat=categoryName;
     const grid=document.getElementById('cat-page-subcat-grid');let html='';
-    if(cData.groups){
-        cData.groups.forEach(group=>{
-            html+=`<div class="col-span-2 md:col-span-3 text-xs font-black text-gray-400 uppercase tracking-widest pt-2 pb-1 border-b border-gray-100">${group.label}</div>`;
-            html+=group.items.map(sub=>{const safe=sub.replace(/'/g,"\\'");const isCombo=COMBO_SUBS.has(sub);return `<div onclick="openSubcatProducts('${categoryName}','${safe}')" class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[90px] text-center">${isCombo?'<span class="absolute top-2 right-2 bg-amber-400 text-gray-900 text-[9px] font-black px-1.5 py-0.5 rounded-full">🎁</span>':''}<span class="text-sm font-bold text-gray-800 leading-snug">${sub}</span></div>`;}).join('');
-        });
-    }else{html+=cData.subs.map(sub=>{const safe=sub.replace(/'/g,"\\'");return `<div onclick="openSubcatProducts('${categoryName}','${safe}')" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-center cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[80px] text-center"><span class="text-sm font-bold text-gray-800">${sub}</span></div>`;}).join('');}
+    if(cData.groups){cData.groups.forEach(group=>{html+=`<div class="col-span-2 md:col-span-3 text-xs font-black text-gray-400 uppercase tracking-widest pt-2 pb-1 border-b border-gray-100">${group.label}</div>`;html+=group.items.map(sub=>{const safe=sub.replace(/'/g,"\\'");const isCombo=COMBO_SUBS.has(sub);return `<div onclick="openSubcatProducts('${categoryName}','${safe}')" class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[90px] text-center">${isCombo?'<span class="absolute top-2 right-2 bg-amber-400 text-gray-900 text-[9px] font-black px-1.5 py-0.5 rounded-full">🎁</span>':''}<span class="text-sm font-bold text-gray-800 leading-snug">${sub}</span></div>`;}).join('');});}
+    else{html+=cData.subs.map(sub=>{const safe=sub.replace(/'/g,"\\'");return `<div onclick="openSubcatProducts('${categoryName}','${safe}')" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center justify-center cursor-pointer active:scale-95 hover:shadow-md hover:border-rose-200 transition-all min-h-[80px] text-center"><span class="text-sm font-bold text-gray-800">${sub}</span></div>`;}).join('');}
     grid.innerHTML=html;window.scrollTo(0,0);updateBottomNav();
 }
 function openSubcatProducts(categoryName,sub){
@@ -480,7 +562,7 @@ function sortProducts(val){globalSortOrder=val;['price-sort-desktop','price-sort
    NAVIGATION
    ============================================================ */
 function navigate(view,cat=null){
-    if(currentView==='gold'&&view!=='gold')_applyGoldHeaderTheme(false);
+    if(currentView==='gold'&&view!=='gold'){_applyGoldHeaderTheme(false);const vg=document.getElementById('view-gold');if(vg)vg.style.marginTop='';}
     document.querySelectorAll('.view-section').forEach(el=>el.classList.add('hidden'));
     currentView=view;
     if(view==='profile'&&cat){document.getElementById('view-profile').classList.remove('hidden');if(currentUser){let matchBtn=null;document.querySelectorAll('.tab-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${cat}'`))matchBtn=b;});switchProfileTab(cat,matchBtn);}updateBottomNav();return;}
@@ -491,7 +573,10 @@ function navigate(view,cat=null){
         else{currentCategoryFilter=null;currentSubFilter=null;const titleEl=document.getElementById('shop-title');if(titleEl)titleEl.textContent='Shop All Products';}
         const filtersEl=document.getElementById('subcategory-filters');if(filtersEl)filtersEl.innerHTML='';renderShopProducts();_initShopScrollHide();
     }
-    if(view==='checkout'){currentCheckoutStep=1;if(currentUser){preFillUserAddress().then(filled=>{if(filled){goToStep(2);showToast('Saved address loaded! 📍');}else renderCheckoutStep();}).catch(()=>renderCheckoutStep());}else renderCheckoutStep();}
+    if(view==='checkout'){
+        currentCheckoutStep=1;activePromoCode=null;promoDiscount=0;
+        if(currentUser){preFillUserAddress().then(filled=>{if(filled){goToStep(2);showToast('Saved address loaded! 📍');}else renderCheckoutStep();}).catch(()=>renderCheckoutStep());}else renderCheckoutStep();
+    }
     if(view==='profile'){if(currentUser)fetchUserData().then(()=>checkAuthUI());else checkAuthUI();}
     if(view==='admin'){if(!isAdminLoggedIn){showAdminLogin();return;}document.body.classList.add('admin-active');updateAdminNameInHeader();loadAdminDashboard();}
     else{document.body.classList.remove('admin-active');}
@@ -502,8 +587,12 @@ function updateBottomNav(){
     const views=['home','shop','gold','cart','profile'];
     navItems.forEach((item,i)=>{
         const isActive=currentView===views[i]||(currentView==='category'&&i===0);
-        if(views[i]==='gold'){item.style.color=isActive?'#C9A84C':'#6b7280';}
-        else{item.style.color=isActive?'#e11d48':'#6b7280';}
+        if(views[i]==='gold'){
+            // Gold nav — circle ke andar star ka glow active hone pe
+            item.style.color=isActive?'#C9A84C':'#B8860B';
+            const circle=item.querySelector('div[style*="border-radius:50%"]');
+            if(circle){circle.style.boxShadow=isActive?'0 0 12px rgba(201,168,76,0.8)':'0 2px 8px rgba(201,168,76,0.5)';}
+        }else{item.style.color=isActive?'#e11d48':'#6b7280';}
     });
 }
 function switchProfileTab(tabId,btnEl){
@@ -528,21 +617,8 @@ function startVoiceSearch(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const recognition=new SR();recognition.lang='hi-IN';recognition.start();showToast('🎙️ Bol rahe hain...');
     recognition.onresult=e=>{const q=e.results[0][0].transcript;const mSearch=document.getElementById('mobile-search');if(mSearch){mSearch.value=q;handleSearch(q);}};recognition.onerror=()=>showToast('Voice search failed.');
 }
-/* Recently Viewed — daily reset, 6 shown, view all btn */
-function addToRecentlyViewed(productId){
-    const today=new Date().toDateString();if(localStorage.getItem('outfitkart_rv_date')!==today){localStorage.removeItem('outfitkart_rv');localStorage.setItem('outfitkart_rv_date',today);}
-    let rv=JSON.parse(localStorage.getItem('outfitkart_rv')||'[]');rv=rv.filter(id=>id!==productId);rv.unshift(productId);rv=rv.slice(0,20);localStorage.setItem('outfitkart_rv',JSON.stringify(rv));renderRecentlyViewed();
-}
-function renderRecentlyViewed(showAll=false){
-    const section=document.getElementById('recently-viewed-section'),grid=document.getElementById('recently-viewed-grid');if(!section||!grid)return;
-    const rv=JSON.parse(localStorage.getItem('outfitkart_rv')||'[]');const allItems=rv.map(id=>products.find(p=>p.id===id)).filter(Boolean);
-    if(!allItems.length){section.classList.add('hidden');return;}
-    section.classList.remove('hidden');const displayItems=showAll?allItems:allItems.slice(0,6);
-    grid.innerHTML=displayItems.map(p=>createProductCard(p)).join('');
-    let viewBtn=document.getElementById('rv-view-all-btn');
-    if(!viewBtn){viewBtn=document.createElement('button');viewBtn.id='rv-view-all-btn';viewBtn.className='mt-3 w-full text-center text-sm font-bold text-rose-600 py-2 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all';grid.insertAdjacentElement('afterend',viewBtn);}
-    if(allItems.length>6){viewBtn.style.display='';viewBtn.textContent=showAll?'▲ Show Less':`View All Recently Viewed (${allItems.length}) →`;viewBtn.onclick=()=>renderRecentlyViewed(!showAll);}else{viewBtn.style.display='none';}
-}
+function addToRecentlyViewed(productId){const today=new Date().toDateString();if(localStorage.getItem('outfitkart_rv_date')!==today){localStorage.removeItem('outfitkart_rv');localStorage.setItem('outfitkart_rv_date',today);}let rv=JSON.parse(localStorage.getItem('outfitkart_rv')||'[]');rv=rv.filter(id=>id!==productId);rv.unshift(productId);rv=rv.slice(0,20);localStorage.setItem('outfitkart_rv',JSON.stringify(rv));renderRecentlyViewed();}
+function renderRecentlyViewed(showAll=false){const section=document.getElementById('recently-viewed-section'),grid=document.getElementById('recently-viewed-grid');if(!section||!grid)return;const rv=JSON.parse(localStorage.getItem('outfitkart_rv')||'[]');const allItems=rv.map(id=>products.find(p=>p.id===id)).filter(Boolean);if(!allItems.length){section.classList.add('hidden');return;}section.classList.remove('hidden');const displayItems=showAll?allItems:allItems.slice(0,6);grid.innerHTML=displayItems.map(p=>createProductCard(p)).join('');let viewBtn=document.getElementById('rv-view-all-btn');if(!viewBtn){viewBtn=document.createElement('button');viewBtn.id='rv-view-all-btn';viewBtn.className='mt-3 w-full text-center text-sm font-bold text-rose-600 py-2 border border-rose-200 rounded-xl hover:bg-rose-50 transition-all';grid.insertAdjacentElement('afterend',viewBtn);}if(allItems.length>6){viewBtn.style.display='';viewBtn.textContent=showAll?'▲ Show Less':`View All Recently Viewed (${allItems.length}) →`;viewBtn.onclick=()=>renderRecentlyViewed(!showAll);}else{viewBtn.style.display='none';}}
 function _getDonationAmount(){const cb=document.getElementById('donation-checkbox'),sel=document.getElementById('donation-custom-amt');if(!cb?.checked)return 0;return parseInt(sel?.value)||10;}
 function selectComboSize(size){selectedSize=size;}
 
@@ -567,24 +643,27 @@ async function changePassword(){const oldP=document.getElementById('sec-old-pass
 async function uploadProfilePic(event){if(!currentUser)return showToast('Please login first');const file=event.target.files[0];if(!file)return;if(file.size>32e6)return showToast('File too large (max 32MB)');showToast('Uploading... 📸');const fd=new FormData();fd.append('image',file);try{const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd});const json=await res.json();if(json.success&&json.data?.url){const{data,error}=await dbClient.from('users').update({profile_pic:json.data.url}).eq('mobile',currentUser.mobile).select().single();if(error)return showToast('Save failed ❌');currentUser=data;localStorage.setItem('outfitkart_session',JSON.stringify(data));document.getElementById('user-avatar-img').src=json.data.url;showToast('Profile picture updated! ✅');}else showToast('Upload failed ❌');}catch(err){showToast('Upload error: '+err.message);}event.target.value='';}
 function handleLogout(){saveCart();cleanupRealtime();currentUser=null;wishlist=[];ordersDb=[];localStorage.removeItem('outfitkart_session');localStorage.removeItem('outfitkart_admin_session');localStorage.removeItem('outfitkart_admin_name');isAdminLoggedIn=false;showToast(`${i18n('logout')} successfully.`);navigate('home');checkAuthUI();switchAuthTab('login');}
 
-/* FETCH USER DATA */
 async function fetchUserData(){if(!currentUser)return;try{const{data:freshUser}=await dbClient.from('users').select('*').eq('mobile',currentUser.mobile).maybeSingle();if(freshUser){currentUser=freshUser;walletBalance=freshUser.wallet||0;localStorage.setItem('outfitkart_session',JSON.stringify(freshUser));updateHeaderWallet(walletBalance);}}catch{}try{const{data:wData}=await dbClient.from('wishlist').select('*').eq('mobile',currentUser.mobile);wishlist=wData?wData.map(w=>w.product_id):[];updateWishlistCount();}catch{}try{const{data:oData}=await dbClient.from('orders').select('*').eq('mobile',currentUser.mobile).order('date',{ascending:false});ordersDb=oData||[];}catch{}initRealtimeTracking();loadUserReferralCode();}
 
-/* WISHLIST */
 async function toggleWishlist(id){if(!currentUser){showToast('Please login to save favorites ❤️');navigate('profile');return;}const idx=wishlist.indexOf(id);try{if(idx===-1){wishlist.push(id);showToast('Added to Wishlist ❤️');await dbClient.from('wishlist').insert([{mobile:currentUser.mobile,product_id:id}]);}else{wishlist.splice(idx,1);showToast('Removed from Wishlist 💔');await dbClient.from('wishlist').delete().eq('mobile',currentUser.mobile).eq('product_id',id);}}catch{}updateWishlistCount();if(!document.getElementById('view-shop').classList.contains('hidden'))renderShopProducts();if(!document.getElementById('tab-wishlist').classList.contains('hidden'))renderWishlist();}
 function updateWishlistCount(){const badge=document.getElementById('wishlist-count');if(badge){badge.innerText=wishlist.length;badge.classList.toggle('hidden',wishlist.length===0);}}
 function renderWishlist(){const container=document.getElementById('wishlist-container');const items=products.filter(p=>wishlist.includes(p.id));container.innerHTML=items.length?items.map(p=>createProductCard(p)).join(''):'<div class="col-span-full text-center text-gray-500 py-10"><i class="far fa-heart text-4xl mb-3 block"></i>Wishlist is empty</div>';}
 
-/* PRODUCT DETAIL */
-async function openProductPage(id){
-    const p=products.find(x=>x.id===id);if(!p)return;
+/* ============================================================
+   PRODUCT DETAIL
+   ============================================================ */
+async function openProductPage(id, isGoldProduct=false){
+    let p=products.find(x=>x.id===id);
+    if(!p)p=goldProducts.find(x=>x.id===id);
+    if(!p)return;
     viewingProductId=p.id;addToRecentlyViewed(id);
     const isPerf=isPerfumeCategory(p.category);
     const sizeArray=isPerf?(p.available_sizes?.length?p.available_sizes:PERFUME_ML_SIZES):(p.available_sizes?.length?p.available_sizes:getDefaultSizes(p.sub||p.category));
     selectedSize=sizeArray[1]||sizeArray[0];
     const imgList=p.imgs?.length?p.imgs:(p.img?[p.img]:['https://placehold.co/600x420/eee/333?text=No+Image']);
     const sizeLabel=isPerf?i18n('volume_select'):i18n('size_select');
-    const isGold=p.is_gold||false;
+    const isGold=p.is_gold||isGoldProduct||false;
+    const desc=p.description||p.desc||'Premium quality product.';
     let sliderHtml;
     if(imgList.length===1){sliderHtml=`<div class="rounded-lg overflow-hidden border shadow-sm"><img src="${imgList[0]}" class="w-full h-[420px] object-cover" alt="${p.name}"></div>`;}
     else{sliderHtml=`<div><div class="pdp-img-slider hide-scrollbar" id="pdp-slider-${id}">${imgList.map((src,i)=>`<img src="${src}" alt="${p.name} ${i+1}" data-index="${i}">`).join('')}</div><div class="pdp-thumb-strip mt-2" id="pdp-thumbs-${id}">${imgList.map((src,i)=>`<img src="${src}" alt="thumb ${i+1}" class="pdp-thumb ${i===0?'active':''}" data-index="${i}" onclick="pdpScrollToSlide(${i})">`).join('')}</div></div>`;}
@@ -600,7 +679,7 @@ async function openProductPage(id){
           </div>
         </div>
         <div class="flex items-baseline gap-3 mb-4"><span class="text-3xl font-bold">₹${p.price}</span>${p.oldprice?`<span class="text-lg line-through font-semibold" style="color:#C8102E;opacity:0.72">₹${p.oldprice}</span>`:''}</div>
-        <p class="text-gray-600 text-sm mb-6">${p.desc||'Premium quality product.'}</p>
+        <p class="text-gray-600 text-sm mb-6">${desc}</p>
         <div class="mb-6">
           <div class="font-bold text-sm mb-2">${sizeLabel}</div>
           ${isPerf?`<div>
@@ -609,11 +688,8 @@ async function openProductPage(id){
             </div>
             <div class="flex items-center border-2 border-purple-200 rounded-xl overflow-hidden focus-within:border-purple-500 bg-white max-w-[220px]">
               <span class="bg-purple-100 px-3 py-2.5 text-purple-700 font-black text-sm border-r border-purple-200 whitespace-nowrap">ml</span>
-              <input type="number" id="pdp-custom-ml" placeholder="e.g. 45" min="1" max="2000"
-                class="flex-1 px-3 py-2.5 text-sm font-bold outline-none" style="font-size:16px;"
-                oninput="if(this.value&&!isNaN(this.value)){selectSize(this.value+'ml');document.querySelectorAll('#size-selector .size-btn').forEach(b=>b.classList.remove('selected'));}">
+              <input type="number" id="pdp-custom-ml" placeholder="e.g. 45" min="1" max="2000" class="flex-1 px-3 py-2.5 text-sm font-bold outline-none" style="font-size:16px;" oninput="if(this.value&&!isNaN(this.value)){selectSize(this.value+'ml');document.querySelectorAll('#size-selector .size-btn').forEach(b=>b.classList.remove('selected'));}">
             </div>
-            <p class="text-[10px] text-gray-400 mt-1">Custom volume type karo — ml auto lagega</p>
           </div>`
           :`<div class="flex flex-wrap gap-3" id="size-selector">
             ${sizeArray.map(s=>`<button onclick="selectSize('${s}')" class="size-btn ${s===selectedSize?'selected':''} w-fit px-4 py-2 min-w-[3rem] rounded-full border border-gray-300 font-bold transition-colors">${s}</button>`).join('')}
@@ -631,16 +707,13 @@ async function openProductPage(id){
 }
 window.pdpScrollToSlide=function(idx){const slider=document.getElementById(`pdp-slider-${viewingProductId}`);if(!slider)return;slider.scrollTo({left:idx*slider.offsetWidth,behavior:'smooth'});updatePdpActiveThumbnail(viewingProductId,idx);};
 function updatePdpActiveThumbnail(productId,activeIdx){document.getElementById(`pdp-thumbs-${productId}`)?.querySelectorAll('.pdp-thumb').forEach((t,i)=>t.classList.toggle('active',i===activeIdx));}
-function selectSize(size){
-    selectedSize=size;
-    const s=String(size||'').trim();
-    document.querySelectorAll('#size-selector .size-btn').forEach(btn=>btn.classList.toggle('selected',btn.innerText.trim()===s));
-    // Clear custom ml input when a pill is clicked
-    const inp=document.getElementById('pdp-custom-ml');
-    if(inp&&!s.match(/^[0-9]+ml$/i))inp.value='';
-}
+function selectSize(size){selectedSize=size;const s=String(size||'').trim();document.querySelectorAll('#size-selector .size-btn').forEach(btn=>btn.classList.toggle('selected',btn.innerText.trim()===s));const inp=document.getElementById('pdp-custom-ml');if(inp&&!s.match(/^[0-9]+ml$/i))inp.value='';}
 async function addToCartPDP(){if(!currentUser){showToast('Login to add to cart 🛒');return navigate('profile');}addToCart(viewingProductId,selectedSize);}
-function buyNowPDP(){if(!currentUser){showToast('Login to Buy!');return navigate('profile');}const p=products.find(x=>x.id===viewingProductId);if(!p)return;currentCheckoutItems=[{...p,qty:1,size:selectedSize}];navigate('checkout');}
+function buyNowPDP(){
+    if(!currentUser){showToast('Login to Buy!');return navigate('profile');}
+    const p=products.find(x=>x.id===viewingProductId)||goldProducts.find(x=>x.id===viewingProductId);if(!p)return;
+    currentCheckoutItems=[{...p,qty:1,size:selectedSize}];navigate('checkout');
+}
 function renderRecommendedProducts(category,excludeId){const section=document.getElementById('recommended-section');const gridEl=document.getElementById('recommended-products-grid');const recs=products.filter(p=>p.category===category&&p.id!==excludeId).slice(0,8);if(recs.length===0){if(section)section.style.display='none';return;}if(section)section.style.display='';if(gridEl)gridEl.innerHTML=recs.map(p=>createProductCard(p)).join('');}
 
 /* REVIEWS */
@@ -648,15 +721,52 @@ async function loadReviews(prodId){const container=document.getElementById('pdp-
 function setRating(r){currentRating=r;const stars=document.getElementById('star-rating').children;for(let i=0;i<5;i++)stars[i].className=i<r?'fas fa-star':'far fa-star';}
 async function submitReview(){if(!currentUser)return showToast('Login required!');const txt=document.getElementById('review-text').value.trim();if(!txt)return showToast('Write something first!');try{const{data}=await dbClient.from('reviews').insert([{product_id:viewingProductId,user_name:currentUser.name,rating:currentRating,comment:txt,date:new Date().toLocaleDateString()}]).select().single();if(data){document.getElementById('review-text').value='';loadReviews(viewingProductId);showToast('Review Added! ⭐');}}catch(err){showToast('Error: '+err.message);}}
 
-/* CHECKOUT */
-function proceedToCheckout(){if(!cart.length)return showToast('Cart is empty!');if(!currentUser){showToast('Please Login to continue!');toggleCart();navigate('profile');return;}toggleCart();currentCheckoutItems=cart.map(c=>{const p=products.find(x=>x.id===c.productId);return p?{...p,qty:c.qty,size:c.size}:null;}).filter(Boolean);navigate('checkout');}
-function buyNow(productId){if(!currentUser){showToast('Please Login to Buy!');navigate('profile');return;}const p=products.find(x=>x.id===productId);if(!p)return;currentCheckoutItems=[{...p,qty:1,size:selectedSize||'M'}];navigate('checkout');}
+/* ============================================================
+   CHECKOUT — with Promo Code section
+   ============================================================ */
+function proceedToCheckout(){if(!cart.length)return showToast('Cart is empty!');if(!currentUser){showToast('Please Login to continue!');toggleCart();navigate('profile');return;}toggleCart();currentCheckoutItems=cart.map(c=>{const p=products.find(x=>x.id===c.productId)||goldProducts.find(x=>x.id===c.productId);return p?{...p,qty:c.qty,size:c.size}:null;}).filter(Boolean);navigate('checkout');}
+function buyNow(productId){if(!currentUser){showToast('Please Login to Buy!');navigate('profile');return;}const p=products.find(x=>x.id===productId)||goldProducts.find(x=>x.id===productId);if(!p)return;currentCheckoutItems=[{...p,qty:1,size:selectedSize||'M'}];navigate('checkout');}
 function renderCheckoutStep(){
     const s1=document.getElementById('checkout-step-1'),s2=document.getElementById('checkout-step-2'),s3=document.getElementById('checkout-step-3');if(!s1||!s2||!s3)return;
     document.querySelectorAll('.progress-step').forEach((step,i)=>{const n=i+1;const circle=step.querySelector('.step-circle');const label=step.querySelector('span');if(n<currentCheckoutStep){circle.innerHTML='✓';circle.className='step-circle bg-[#fb641b] text-white border-[#fb641b]';label.className='text-xs mt-1 font-medium text-[#fb641b]';}else if(n===currentCheckoutStep){circle.innerHTML=n;circle.className='step-circle bg-[#fb641b] text-white border-[#fb641b]';label.className='text-xs mt-1 font-medium text-[#fb641b]';}else{circle.innerHTML=n;circle.className='step-circle border-gray-300 text-gray-500';label.className='text-xs mt-1 font-medium text-gray-500';}});
     s1.classList.toggle('hidden',currentCheckoutStep!==1);s2.classList.toggle('hidden',currentCheckoutStep!==2);s3.classList.toggle('hidden',currentCheckoutStep!==3);
     if(currentCheckoutStep>=2&&addressFormData.fullname){const nameStr=`${addressFormData.fullname} • +91 ${addressFormData.mobile}`;const addrStr=(addressFormData.fullAddress||'').replace(/\n/g,'<br>');['checkout-user-name','checkout-user-name-step3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=nameStr;});['delivery-address-display','delivery-address-display-step3'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=addrStr;});updateCheckoutTotals();}
+
+    // Inject promo section in step 2
+    if(currentCheckoutStep===2){
+        const step2=document.getElementById('checkout-step-2');
+        let promoContainer=step2.querySelector('#checkout-promo-wrapper');
+        if(!promoContainer){
+            const placeAfter=step2.querySelector('#checkout-items-list')?.closest('.bg-white');
+            if(placeAfter){
+                promoContainer=document.createElement('div');
+                promoContainer.id='checkout-promo-wrapper';
+                promoContainer.innerHTML=_renderPromoSection();
+                placeAfter.insertAdjacentElement('afterend',promoContainer);
+            }
+        }
+    }
+    // Inject promo section in step 3
+    if(currentCheckoutStep===3){
+        const step3=document.getElementById('checkout-step-3');
+        let promoContainer=step3.querySelector('#checkout-promo-wrapper-3');
+        if(!promoContainer){
+            const paymentBox=step3.querySelector('.bg-white.p-5.rounded-xl.shadow-sm.border');
+            if(paymentBox){
+                promoContainer=document.createElement('div');
+                promoContainer.id='checkout-promo-wrapper-3';
+                promoContainer.innerHTML=_renderPromoSection().replace('promo-section-container','promo-section-container-3').replace('promo-code-input','promo-code-input-3').replace("applyPromoCode()",'applyPromoCodeStep3()');
+                paymentBox.insertAdjacentElement('beforebegin',promoContainer);
+            }
+        }
+    }
 }
+
+window.applyPromoCodeStep3 = function(){
+    const inp=document.getElementById('promo-code-input-3');
+    if(inp)applyPromoCode(inp.value);
+};
+
 function goToStep(step){currentCheckoutStep=step;renderCheckoutStep();if(step>=2&&currentCheckoutItems.length>0)updateCheckoutTotals();if(step===3&&currentUser){dbClient.from('users').select('wallet').eq('mobile',currentUser.mobile).maybeSingle().then(({data})=>{if(data){walletBalance=data.wallet||0;const cb=document.getElementById('checkout-wallet-balance');if(cb)cb.textContent=`₹${walletBalance.toLocaleString()}`;if(selectedPaymentMethod==='wallet')updatePaymentSelection('wallet');}}).catch(()=>{});}}
 async function saveAddressForm(event){
     event.preventDefault();
@@ -665,27 +775,41 @@ async function saveAddressForm(event){
     const parts=[house,road,landmark?`Near ${landmark}`:'',city,state?`${state} - ${pin}`:pin];
     addressFormData={fullname:name,mobile,pincode:pin,city,state,fullAddress:parts.filter(Boolean).join(', ')};goToStep(2);
 }
+
 function updateCheckoutTotals(){
     let mrpTotal=0,priceTotal=0,discountTotal=0;
     currentCheckoutItems.forEach(item=>{const mrp=item.oldprice||Math.round(item.price*1.3);mrpTotal+=mrp*item.qty;priceTotal+=item.price*item.qty;discountTotal+=(mrp-item.price)*item.qty;});
     const platformFee=7,handlingFee=selectedPaymentMethod==='cod'?9:0,donationAmt=_getDonationAmount();
-    let finalTotal=priceTotal+platformFee+handlingFee+donationAmt;
+    // Apply promo discount
+    const promoDis=promoDiscount||0;
+    let finalTotal=Math.max(0,priceTotal+platformFee+handlingFee+donationAmt-promoDis);
     const exRow=document.getElementById('exchange-value-row'),exDisp=document.getElementById('exchange-value-display'),refRow=document.getElementById('refund-upi-row');
-    if(isExchangeProcess&&exchangeOldPrice>0){const diff=priceTotal-exchangeOldPrice;if(exRow)exRow.style.display='flex';if(exDisp)exDisp.textContent=`-₹${exchangeOldPrice.toLocaleString()}`;if(diff>0){finalTotal=diff+platformFee+handlingFee+donationAmt;if(refRow)refRow.style.display='none';}else if(diff<0){finalTotal=0;if(refRow)refRow.style.display='block';}else{finalTotal=platformFee;if(refRow)refRow.style.display='none';}}else{if(exRow)exRow.style.display='none';if(refRow)refRow.style.display='none';}
+    if(isExchangeProcess&&exchangeOldPrice>0){const diff=priceTotal-exchangeOldPrice;if(exRow)exRow.style.display='flex';if(exDisp)exDisp.textContent=`-₹${exchangeOldPrice.toLocaleString()}`;if(diff>0){finalTotal=Math.max(0,diff+platformFee+handlingFee+donationAmt-promoDis);if(refRow)refRow.style.display='none';}else if(diff<0){finalTotal=0;if(refRow)refRow.style.display='block';}else{finalTotal=platformFee;if(refRow)refRow.style.display='none';}}else{if(exRow)exRow.style.display='none';if(refRow)refRow.style.display='none';}
     const donRowDisp=document.getElementById('donation-row-display'),donDisp=document.getElementById('donation-display-amt');if(donRowDisp)donRowDisp.classList.toggle('hidden',donationAmt===0);if(donDisp)donDisp.textContent=`+₹${donationAmt}`;
+
+    // Show promo discount row
+    let promoRow=document.getElementById('promo-discount-row');
+    if(!promoRow&&document.getElementById('handling-fee-row')){
+        promoRow=document.createElement('div');promoRow.id='promo-discount-row';
+        promoRow.className='flex justify-between text-rose-600 font-bold hidden';
+        document.getElementById('handling-fee-row').insertAdjacentElement('afterend',promoRow);
+    }
+    if(promoRow){promoRow.classList.toggle('hidden',promoDis===0);promoRow.innerHTML=`<span><i class="fas fa-tag mr-1"></i>Promo Discount</span><span>-₹${promoDis}</span>`;}
+
     const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
     set('price-mrp',`₹${mrpTotal.toLocaleString()}`);set('price-discount',`- ₹${discountTotal.toLocaleString()}`);set('total-save',discountTotal.toLocaleString());set('final-total-step2',`₹${finalTotal.toLocaleString()}`);set('final-total-step3',`₹${finalTotal.toLocaleString()}`);set('place-order-amount',finalTotal.toLocaleString());
     document.getElementById('handling-fee-row')?.classList.toggle('hidden',handlingFee===0);
     const itemsList=document.getElementById('checkout-items-list');
     if(itemsList){itemsList.innerHTML=currentCheckoutItems.map(item=>{const img=item.imgs?.[0]||item.img||'https://placehold.co/56x72/eee/666';const sLabel=isPerfumeCategory(item.category)?`Vol: ${item.size||'100ml'}`:`Size: ${item.size||'M'}`;return `<div class="flex items-center gap-3 py-2 border-b last:border-b-0"><img src="${img}" loading="lazy" class="w-14 rounded flex-shrink-0 object-cover" style="height:4.5rem" alt="${item.name}"><div class="flex-1 min-w-0"><h4 class="font-semibold text-sm truncate">${item.name}</h4><p class="text-xs text-gray-500">${sLabel} | Qty: ${item.qty}</p><div class="text-sm font-bold mt-1">₹${(item.price*item.qty).toLocaleString()}</div></div></div>`;}).join('');}
 }
+
 function updatePaymentSelection(method){
     selectedPaymentMethod=method;
     const styles={upi:{active:'border-orange-400 bg-orange-50',inactive:'border-gray-200 bg-white'},cod:{active:'border-gray-700 bg-gray-50',inactive:'border-gray-200 bg-white'},wallet:{active:'border-blue-500 bg-blue-50',inactive:'border-gray-200 bg-white'}};
     ['upi','cod','wallet'].forEach(m=>{const lbl=document.getElementById(`label-${m}`);if(!lbl)return;const isActive=m===method;lbl.className=lbl.className.replace(/border-orange-400|border-gray-700|border-blue-500|border-gray-200/g,'').replace(/bg-orange-50|bg-gray-50|bg-blue-50|bg-white/g,'').trim();styles[m][isActive?'active':'inactive'].split(' ').forEach(c=>{if(c)lbl.classList.add(c);});});
     const codRow=document.getElementById('cod-fee-row'),walletRow=document.getElementById('wallet-balance-row'),walletWarn=document.getElementById('wallet-insufficient-warning');
     if(codRow)codRow.classList.toggle('hidden',method!=='cod');if(walletRow)walletRow.classList.toggle('hidden',method!=='wallet');
-    if(method==='wallet'){const bal=walletBalance||0;const cb=document.getElementById('checkout-wallet-balance'),el2=document.getElementById('wallet-balance-display');if(cb)cb.textContent=`₹${bal.toLocaleString()}`;if(el2)el2.textContent=`₹${bal.toLocaleString()}`;const needed=currentCheckoutItems.reduce((t,i)=>t+(i.price*i.qty),0)+7;if(walletWarn){if(bal<needed){walletWarn.classList.remove('hidden');const wt=document.getElementById('wallet-warning-text');if(wt)wt.textContent=`Wallet ₹${bal} insufficient. Need ₹${needed}.`;}else walletWarn.classList.add('hidden');}const btn=document.getElementById('place-order-btn');if(btn){if(bal<needed){btn.disabled=true;btn.classList.add('opacity-50','cursor-not-allowed');}else{btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');}}}else{walletWarn?.classList.add('hidden');const btn=document.getElementById('place-order-btn');if(btn){btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');}}
+    if(method==='wallet'){const bal=walletBalance||0;const cb=document.getElementById('checkout-wallet-balance'),el2=document.getElementById('wallet-balance-display');if(cb)cb.textContent=`₹${bal.toLocaleString()}`;if(el2)el2.textContent=`₹${bal.toLocaleString()}`;const needed=currentCheckoutItems.reduce((t,i)=>t+(i.price*i.qty),0)+7-promoDiscount;if(walletWarn){if(bal<needed){walletWarn.classList.remove('hidden');const wt=document.getElementById('wallet-warning-text');if(wt)wt.textContent=`Wallet ₹${bal} insufficient. Need ₹${needed}.`;}else walletWarn.classList.add('hidden');}const btn=document.getElementById('place-order-btn');if(btn){if(bal<needed){btn.disabled=true;btn.classList.add('opacity-50','cursor-not-allowed');}else{btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');}}}else{walletWarn?.classList.add('hidden');const btn=document.getElementById('place-order-btn');if(btn){btn.disabled=false;btn.classList.remove('opacity-50','cursor-not-allowed');}}
     updateCheckoutTotals();
 }
 function selectPaymentLabel(method){const radio=document.getElementById(`payment-${method}`);if(radio){radio.checked=true;updatePaymentSelection(method);}}
@@ -698,8 +822,9 @@ async function initiatePayment(){
     if(!addressFormData.fullname){showToast('Please fill address first!');goToStep(1);return;}
     if(!currentCheckoutItems?.length){showToast('Cart is empty!');return;}
     const priceTotal=currentCheckoutItems.reduce((t,i)=>t+(i.price*i.qty),0),platformFee=7,handlingFee=selectedPaymentMethod==='cod'?9:0,donationAmt=_getDonationAmount();
-    if(isExchangeProcess&&exchangeOldPrice>0){const diff=priceTotal-exchangeOldPrice;if(diff>0){_openRazorpay(diff+platformFee+handlingFee,'OutfitKart Exchange',async(payId)=>{await placeOrder(payId);});}else if(diff<0){const upiId=document.getElementById('refund-upi-input')?.value.trim();if(!upiId)return showToast('Please enter your UPI ID for refund');await placeOrder(`EXCHANGE-REFUND-${exchangeSourceOrder.id}`,upiId);}else await placeOrder(`EXCHANGE-SAME-${exchangeSourceOrder.id}`);return;}
-    const finalAmount=priceTotal+platformFee+handlingFee+donationAmt;
+    const promoDis=promoDiscount||0;
+    if(isExchangeProcess&&exchangeOldPrice>0){const diff=priceTotal-exchangeOldPrice;if(diff>0){_openRazorpay(Math.max(0,diff+platformFee+handlingFee-promoDis),'OutfitKart Exchange',async(payId)=>{await placeOrder(payId);});}else if(diff<0){const upiId=document.getElementById('refund-upi-input')?.value.trim();if(!upiId)return showToast('Please enter your UPI ID for refund');await placeOrder(`EXCHANGE-REFUND-${exchangeSourceOrder.id}`,upiId);}else await placeOrder(`EXCHANGE-SAME-${exchangeSourceOrder.id}`);return;}
+    const finalAmount=Math.max(0,priceTotal+platformFee+handlingFee+donationAmt-promoDis);
     if(selectedPaymentMethod==='wallet'){try{const{data:freshUser}=await dbClient.from('users').select('wallet').eq('mobile',currentUser.mobile).maybeSingle();if(freshUser)walletBalance=freshUser.wallet||0;}catch{}if(walletBalance<finalAmount){showToast(`❌ Wallet ₹${walletBalance} insufficient. Need ₹${finalAmount}`);return;}showToast('💰 Paying via Wallet...');await placeOrder('WALLET-PAY');}
     else if(selectedPaymentMethod==='upi'||selectedPaymentMethod==='card'){_openRazorpay(finalAmount,'OutfitKart Premium Fashion',async(payId)=>{showToast('Payment Successful! 🚀');await placeOrder(payId);});}
     else{await placeOrder('COD');}
@@ -707,18 +832,23 @@ async function initiatePayment(){
 function _openRazorpay(amount,description,onSuccess){const options={key:RAZORPAY_KEY,amount:amount*100,currency:'INR',name:'OutfitKart',description,prefill:{name:addressFormData.fullname,contact:'+91'+addressFormData.mobile},theme:{color:'#e11d48'},handler:response=>onSuccess(response.razorpay_payment_id),modal:{ondismiss:()=>showToast('Payment Cancelled! ❌')}};try{const rzp=new Razorpay(options);rzp.on('payment.failed',resp=>showToast('Payment failed: '+(resp.error.description||'')));rzp.open();}catch{showToast('Could not open payment gateway');}}
 async function placeOrder(txId='COD',refundUpiId=''){
     const subtotal=currentCheckoutItems.reduce((t,i)=>t+(i.price*i.qty),0),handlingFee=selectedPaymentMethod==='cod'?9:0,donationAmt=_getDonationAmount();
-    let finalTotal=subtotal+7+handlingFee+donationAmt;
-    if(isExchangeProcess&&exchangeOldPrice>0){const diff=subtotal-exchangeOldPrice;if(diff>0)finalTotal=diff+7+handlingFee+donationAmt;else if(diff<0)finalTotal=0;else finalTotal=7;}
+    const promoDis=promoDiscount||0;
+    let finalTotal=Math.max(0,subtotal+7+handlingFee+donationAmt-promoDis);
+    if(isExchangeProcess&&exchangeOldPrice>0){const diff=subtotal-exchangeOldPrice;if(diff>0)finalTotal=Math.max(0,diff+7+handlingFee+donationAmt-promoDis);else if(diff<0)finalTotal=0;else finalTotal=7;}
     if(selectedPaymentMethod==='wallet'){try{const{data:fu}=await dbClient.from('users').select('wallet').eq('mobile',currentUser.mobile).maybeSingle();if(fu)walletBalance=fu.wallet||0;}catch{}if(walletBalance<finalTotal){showToast(`❌ Wallet insufficient`);return;}txId='WALLET-PAY';}
-    const orderMarginTotal=currentCheckoutItems.reduce((sum,i)=>{const prod=products.find(p=>p.id===i.id);return sum+((prod?.margin_amt||0)*i.qty);},0);
-    const itemsToSave=currentCheckoutItems.map(i=>{const prod=products.find(p=>p.id===i.id);return{id:i.id,name:i.name,img:i.imgs?.[0]||i.img||'',qty:i.qty,price:i.price,size:i.size||'M',margin_amt:prod?.margin_amt||0};});
+    const orderMarginTotal=currentCheckoutItems.reduce((sum,i)=>{const prod=products.find(p=>p.id===i.id)||goldProducts.find(p=>p.id===i.id);return sum+((prod?.margin_amt||0)*i.qty);},0);
+    const itemsToSave=currentCheckoutItems.map(i=>{const prod=products.find(p=>p.id===i.id)||goldProducts.find(p=>p.id===i.id);return{id:i.id,name:i.name,img:i.imgs?.[0]||i.img||'',qty:i.qty,price:i.price,size:i.size||'M',margin_amt:prod?.margin_amt||0};});
     const orderId='ORD'+Math.floor(Math.random()*1000000);
-    const newOrder={id:orderId,mobile:currentUser.mobile,customer_name:addressFormData.fullname||currentUser.name||'',items:itemsToSave,total:finalTotal,margin_total:orderMarginTotal,paymentmode:selectedPaymentMethod.toUpperCase(),status:'Processing',transaction_id:txId,date:new Date().toLocaleDateString('en-IN'),address:addressFormData.fullAddress||'',pincode:addressFormData.pincode||'',city:addressFormData.city||'',state:addressFormData.state||'',refund_upi:refundUpiId||null,referral_code:activeReferralCode||null,donation:donationAmt||null};
+    const newOrder={id:orderId,mobile:currentUser.mobile,customer_name:addressFormData.fullname||currentUser.name||'',items:itemsToSave,total:finalTotal,margin_total:orderMarginTotal,paymentmode:selectedPaymentMethod.toUpperCase(),status:'Processing',transaction_id:txId,date:new Date().toLocaleDateString('en-IN'),address:addressFormData.fullAddress||'',pincode:addressFormData.pincode||'',city:addressFormData.city||'',state:addressFormData.state||'',refund_upi:refundUpiId||null,referral_code:activeReferralCode||null,donation:donationAmt||null,promo_code:activePromoCode?.code||null,promo_discount:promoDis||null};
     try{
         if(selectedPaymentMethod==='wallet'){const newBal=walletBalance-finalTotal;const walletRes=await fetch(`${SUPABASE_URL}/rest/v1/users?mobile=eq.${currentUser.mobile}`,{method:'PATCH',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Prefer':'return=representation'},body:JSON.stringify({wallet:newBal})});if(!walletRes.ok)throw new Error('Wallet deduction failed');walletBalance=newBal;if(currentUser)currentUser.wallet=newBal;localStorage.setItem('outfitkart_session',JSON.stringify(currentUser));updateHeaderWallet(newBal);}
         const{data:savedOrder,error}=await dbClient.from('orders').insert([newOrder]).select().single();if(error)throw error;
+        // Increment promo usage
+        if(activePromoCode)await _incrementPromoUsage();
         await recordReferralPurchase(orderId,finalTotal);
         if(isExchangeProcess&&exchangeSourceOrder){try{await dbClient.from('orders').update({status:'Exchanged'}).eq('id',String(exchangeSourceOrder.id));}catch{}resetExchangeProcess();}
+        // Reset promo
+        activePromoCode=null;promoDiscount=0;
         cart=[];if(currentUser)await clearCartDB();else saveCartLocal();updateCartCount();ordersDb.push(savedOrder||newOrder);
         const modal=document.getElementById('order-success-modal'),idEl=document.getElementById('success-order-id');if(idEl)idEl.innerText=orderId;if(modal){modal.classList.remove('hidden');modal.classList.add('flex');}
     }catch(err){
@@ -753,7 +883,8 @@ function renderOrdersList(){
         const cancelBtn=order.status==='Processing'?`<button onclick="cancelOrder('${oidStr}')" class="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg font-bold hover:bg-red-100">${i18n('cancel_order')}</button>`:'';
         const exchangeBtn=order.status==='Delivered'?`<button onclick="startExchange('${oidStr}')" class="text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1.5 rounded-lg font-bold shadow">${i18n('exchange')}</button>`:'';
         const refundNote=(order.status==='Cancelled'&&order.refund_upi)?`<p class="text-xs text-green-600 mt-1"><i class="fas fa-check-circle mr-1"></i>Refund to: ${order.refund_upi}</p>`:'';
-        return `<div class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition"><div class="flex justify-between border-b pb-3 mb-3"><div><span class="font-bold text-gray-800">Order #${order.id}</span><br><span class="text-xs text-gray-500">${order.date} • ${order.paymentmode}</span>${refundNote}</div><div class="text-right"><span class="${badge} text-xs font-bold px-2 py-1 rounded-full">${order.status}</span><br><span class="font-bold text-sm mt-1 block">₹${order.total}</span></div></div><div class="space-y-3">${(order.items||[]).map(item=>`<div class="flex gap-3 items-center text-sm"><img src="${item.img}" class="w-12 h-16 rounded object-cover border flex-shrink-0" onerror="this.src='https://placehold.co/48x64/eee/999?text=?'" loading="lazy"><div class="flex-1 min-w-0"><div class="font-semibold text-gray-800 truncate">${item.name}</div><div class="text-gray-500 text-xs">Qty: ${item.qty} • Size: ${item.size||'M'}</div></div><div class="flex flex-col gap-1 items-end"><button onclick="openTrackingModal('${oidStr}')" class="text-xs bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1.5 rounded-md font-bold shadow whitespace-nowrap">${i18n('track_order')}</button>${cancelBtn}${exchangeBtn}</div></div>`).join('')}</div></div>`;
+        const promoNote=order.promo_code?`<p class="text-xs text-rose-600 mt-0.5"><i class="fas fa-tag mr-1"></i>Promo: ${order.promo_code} (-₹${order.promo_discount||0})</p>`:'';
+        return `<div class="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition"><div class="flex justify-between border-b pb-3 mb-3"><div><span class="font-bold text-gray-800">Order #${order.id}</span><br><span class="text-xs text-gray-500">${order.date} • ${order.paymentmode}</span>${refundNote}${promoNote}</div><div class="text-right"><span class="${badge} text-xs font-bold px-2 py-1 rounded-full">${order.status}</span><br><span class="font-bold text-sm mt-1 block">₹${order.total}</span></div></div><div class="space-y-3">${(order.items||[]).map(item=>`<div class="flex gap-3 items-center text-sm"><img src="${item.img}" class="w-12 h-16 rounded object-cover border flex-shrink-0" onerror="this.src='https://placehold.co/48x64/eee/999?text=?'" loading="lazy"><div class="flex-1 min-w-0"><div class="font-semibold text-gray-800 truncate">${item.name}</div><div class="text-gray-500 text-xs">Qty: ${item.qty} • Size: ${item.size||'M'}</div></div><div class="flex flex-col gap-1 items-end"><button onclick="openTrackingModal('${oidStr}')" class="text-xs bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1.5 rounded-md font-bold shadow whitespace-nowrap">${i18n('track_order')}</button>${cancelBtn}${exchangeBtn}</div></div>`).join('')}</div></div>`;
     }).join('');
 }
 
@@ -804,7 +935,6 @@ async function unsubscribePush(){try{const reg=await navigator.serviceWorker.rea
 function _updateNotifButton(enabled){const btn=document.getElementById('notif-toggle-btn');if(!btn)return;if(enabled){btn.innerHTML='<i class="fas fa-bell text-green-600 mr-2"></i><span>Notifications ON ✅</span>';btn.style.background='#f0fdf4';}else{btn.innerHTML='<i class="fas fa-bell-slash text-gray-500 mr-2"></i><span>Enable Notifications</span>';btn.style.background='';}}
 async function checkNotifStatus(){const btn=document.getElementById('notif-toggle-btn');if(!btn)return;if(!('Notification' in window)||!('serviceWorker' in navigator)){btn.style.display='none';return;}if(Notification.permission==='granted'){const reg=await navigator.serviceWorker.ready.catch(()=>null);if(reg){const sub=await reg.pushManager.getSubscription().catch(()=>null);_updateNotifButton(!!sub);}}}
 async function toggleNotification(){if(!currentUser){showToast('Pehle login karein! 👤');navigate('profile');return;}if(Notification.permission==='granted'){const reg=await navigator.serviceWorker.ready.catch(()=>null);const sub=reg?await reg.pushManager.getSubscription().catch(()=>null):null;if(sub)await unsubscribePush();else await requestPushPermission();}else{await requestPushPermission();}}
-if('serviceWorker' in navigator){navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='NOTIFICATION_CLICK'){const{url,pid,orderId}=event.data;if(pid){const productId=parseInt(pid);if(products.length)openProductPage(productId);else fetchProducts().then(()=>openProductPage(productId));return;}if(orderId||(url&&url.includes('orders'))){navigate('profile','orders');return;}navigate('home');}});}
 
 /* WALLET */
 function showWithdrawForm(){const section=document.getElementById('withdraw-form-section');if(!section)return;section.classList.remove('hidden');const nameInput=document.getElementById('withdraw-name');if(nameInput&&currentUser?.name)nameInput.value=currentUser.name;section.scrollIntoView({behavior:'smooth',block:'center'});}
@@ -842,6 +972,10 @@ Object.assign(window,{
     startAdminTimer,cancelAdminTimer,
     // Gold
     switchGoldGender,filterGoldSubcat,renderGoldGrid,renderGoldView,fetchGoldProducts,
-    // Perfume ml input
+    // Promo
+    applyPromoCode,removePromoCode,
+    // Perfume ml
     _onQuickMlInput,
+    // Legacy
+    openGoldSection: ()=>navigate('gold'),
 });
